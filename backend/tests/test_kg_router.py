@@ -103,7 +103,7 @@ def test_kg_explain_returns_explanation():
         patch(
             "app.routers.kg.explain_skipped_exercise",
             new_callable=AsyncMock,
-            return_value="'Barbell Squat' was skipped because it is contraindicated for: knee injury.",
+            return_value=("'Barbell Squat' was skipped because it is contraindicated for: knee injury.", {"event": "kg_explainability", "latency_ms": 3, "query_count": 1, "result_count": 1, "path_depth": 2, "reason_type": "contraindication", "user_id": "member-123", "confidence": 0.625}, 0.625),
         ),
     ):
         resp = client.post(
@@ -115,6 +115,8 @@ def test_kg_explain_returns_explanation():
     data = resp.json()
     assert data["exercise_id"] == "exercise-abc"
     assert "Barbell Squat" in data["explanation"]
+    assert "confidence" in data
+    assert isinstance(data["confidence"], float)
     mock_driver.close.assert_awaited_once()
 
 
@@ -175,3 +177,33 @@ def test_kg_recommend_returns_500_on_error():
 
     assert resp.status_code == 500
     mock_driver.close.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# /kg/audit
+# ---------------------------------------------------------------------------
+
+
+def test_kg_audit_returns_404_for_missing_session():
+    """Assert 404 when session has no entries."""
+    resp = client.get("/kg/audit/nonexistent-session-xyz")
+    assert resp.status_code == 404
+    data = resp.json()
+    assert "not found" in data["detail"].lower()
+
+
+def test_kg_audit_requires_auth():
+    """Assert 401 when JWT is missing."""
+    # Clear auth override to test missing auth
+    from app.auth import current_active_user
+    app.dependency_overrides.clear()
+
+    resp = client.get("/kg/audit/any-session")
+    assert resp.status_code == 401
+
+    # Restore auth override
+    app.dependency_overrides[current_active_user] = lambda: _MOCK_USER
+
+
+
+

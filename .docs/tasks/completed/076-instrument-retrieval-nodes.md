@@ -91,4 +91,4 @@ assert all(audit["latency_ms"] > 0 for audit in retrieval_entries)
 - [x] Test is passing <!-- Completed: 2026-06-06 -->
 
 ---
-**UAT**: [`.docs/uat/076-instrument-retrieval-nodes.uat.md`](../uat/076-instrument-retrieval-nodes.uat.md)
+**UAT**: [`.docs/uat/completed/076-instrument-retrieval-nodes.uat.md`](../uat/completed/076-instrument-retrieval-nodes.uat.md)

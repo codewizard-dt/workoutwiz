@@ -192,7 +192,7 @@
 }
 .ww-input { height: var(--control-md); padding: 0 var(--space-3); }
 .ww-textarea { min-height: 5rem; padding: var(--space-2) var(--space-3); resize: vertical; line-height: var(--leading-normal); }
-.ww-input::placeholder, .ww-textarea::placeholder { color: var(--muted-foreground); }
+.ww-input::placeholder, .ww-textarea::placeholder { color: var(--stone-400); opacity: 1; }
 .ww-input:focus, .ww-textarea:focus, .ww-select:focus {
   border-color: var(--ring);
   box-shadow: 0 0 0 3px oklch(0.645 0.190 38 / 0.18);

@@ -11,7 +11,6 @@
 |---|------|----------|------------|--------|-----------|
 | 060 | [generation-agent-subgraph](060-generation-agent-subgraph.md) | 6/6 ✓ | 059 | 061,062,063 | Generation sub-graph: ContextSlice → WorkoutRecommendation via LLM |
 | 071 | [feedback-submission-ui](071-feedback-submission-ui.md) | 5/5 ✓ | 065 | — | FeedbackForm component: star rating + text, POST /kg/feedback |
-| 081 | [add-kg-audit-endpoint](081-add-kg-audit-endpoint.md) | 0/5 | 074,075,076,077,079 | — | Create GET /kg/audit/{session_id} endpoint to expose KG-specific audit log entries |
 | 084 | [test-source-type-population](084-test-source-type-population.md) | 0/5 | 079 | — | Write tests asserting every exercise in KG recommendation has source_type set to valid enum |
 | 085 | [test-kg-audit-endpoint](085-test-kg-audit-endpoint.md) | 0/6 | 081 | — | Write integration tests verifying GET /kg/audit/{session_id} returns expected KG event keys |
 

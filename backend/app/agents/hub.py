@@ -1,6 +1,10 @@
 import time
 from typing import Any, cast
 
+import neo4j
+from app.kg.retrieval_graph import build_retrieval_graph
+from app.kg.generation_graph import build_generation_graph
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
@@ -109,10 +113,6 @@ def _clarification_node(state: AgentState) -> dict[str, Any]:
 
 async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
     """Run retrieval → generation pipeline and return formatted recommendation."""
-    import neo4j
-    from app.kg.retrieval_graph import build_retrieval_graph
-    from app.kg.generation_graph import build_generation_graph
-
     last_human = next(
         (m for m in reversed(state["messages"]) if hasattr(m, "type") and m.type == "human"),
         None,
@@ -120,6 +120,8 @@ async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
     query = last_human.content if last_human else ""
     member_id = state.get("user_id") or "unknown-member"
 
+    t0 = time.monotonic()
+    nested_audit_log: list[dict[str, Any]] = []
     try:
         async with neo4j.AsyncGraphDatabase.driver(
             settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password)
@@ -128,9 +130,16 @@ async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
                 {"member_id": member_id, "query": query}
             )
             context = retrieval_result.get("context")
+            # Collect audit entries from retrieval subgraph
+            nested_audit_log.extend(retrieval_result.get("audit_log", []))
+
             gen_result = await build_generation_graph().ainvoke(
                 {"member_id": member_id, "query": query, "context": context}
             )
+            # Collect audit entries from generation subgraph
+            nested_audit_log.extend(gen_result.get("audit_log", []))
+
+        latency_ms = int((time.monotonic() - t0) * 1000)
 
         rec = gen_result.get("recommendation")
         if rec and rec.exercises:
@@ -145,13 +154,29 @@ async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
             content = "\n".join(lines)
         else:
             content = "I couldn't build a recommendation with the available context. Please provide more details."
+
+        tokens_in = gen_result.get("tokens_in", 0)
+        tokens_out = gen_result.get("tokens_out", 0)
     except Exception as exc:
+        latency_ms = int((time.monotonic() - t0) * 1000)
         content = f"Knowledge graph recommendation failed: {exc}"
-        context = None
+        tokens_in = 0
+        tokens_out = 0
+
+    audit_entry = {
+        "event": "kg_hub",
+        "model": "n/a",
+        "provider": "neo4j",
+        "intent": "KNOWLEDGE_GRAPH",
+        "latency_ms": latency_ms,
+        "user_id": state.get("user_id"),
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
+    }
 
     return {
         "messages": [AIMessage(content=content)],
-        "audit_log": state.get("audit_log", []) + [{"event": "knowledge_graph", "member_id": member_id}],
+        "audit_log": state.get("audit_log", []) + nested_audit_log + [audit_entry],
     }
 
 

@@ -177,3 +177,68 @@ def test_knowledge_graph_intent_in_route_intent_enum() -> None:
 
     assert hasattr(Intent, "KNOWLEDGE_GRAPH"), "Intent.KNOWLEDGE_GRAPH must exist"
     assert Intent.KNOWLEDGE_GRAPH == "KNOWLEDGE_GRAPH"
+
+
+@pytest.mark.asyncio
+async def test_retrieval_graph_audit_log_contains_all_5_entries() -> None:
+    """After a full retrieval graph invocation, audit_log must contain 5 retrieval entries."""
+    mock_driver = MagicMock()
+    context_slice = _make_context_slice()
+    profile = _make_member_profile()
+    exercises = _make_exercises()
+
+    with (
+        patch(
+            "app.kg.retrieval_graph.get_member_profile",
+            new=AsyncMock(return_value=profile),
+        ),
+        patch(
+            "app.kg.retrieval_graph.get_contraindicated_exercise_ids",
+            new=AsyncMock(return_value=set()),
+        ),
+        patch(
+            "app.kg.retrieval_graph.get_safe_exercises",
+            new=AsyncMock(return_value=exercises),
+        ),
+        patch(
+            "app.kg.retrieval_graph.get_preferred_exercises",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "app.kg.retrieval_graph.get_performed_exercises",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "app.kg.retrieval_graph.get_exercise_vector_store",
+            return_value=MagicMock(similarity_search=MagicMock(return_value=[])),
+        ),
+        patch(
+            "app.kg.retrieval_graph.assemble_context",
+            new=AsyncMock(return_value=context_slice),
+        ),
+    ):
+        from app.kg.retrieval_graph import build_retrieval_graph
+
+        graph = build_retrieval_graph(mock_driver)
+        result = await graph.ainvoke({"member_id": "m1", "query": "leg workout", "user_id": "user-42"})
+
+    audit_log: list = result.get("audit_log", [])
+    retrieval_events = [e["event"] for e in audit_log if e["event"].startswith("retrieval_")]
+
+    assert len(retrieval_events) == 5, f"Expected 5 retrieval audit entries, got: {retrieval_events}"
+    assert set(retrieval_events) == {
+        "retrieval_lookup_member",
+        "retrieval_injury_traversal",
+        "retrieval_preference_traversal",
+        "retrieval_vector_search",
+        "retrieval_assemble",
+    }
+
+    retrieval_entries = [e for e in audit_log if e["event"].startswith("retrieval_")]
+    assert all(e["latency_ms"] >= 0 for e in retrieval_entries), "All entries must have non-negative latency_ms"
+    assert all("user_id" in e for e in retrieval_entries), "All entries must have user_id"
+    # result_count present in nodes that produce it
+    for entry in retrieval_entries:
+        if entry["event"] in ("retrieval_lookup_member", "retrieval_injury_traversal",
+                               "retrieval_preference_traversal", "retrieval_vector_search"):
+            assert "result_count" in entry, f"Missing result_count in {entry['event']}"

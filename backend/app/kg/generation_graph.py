@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+import time
+from typing import Any, Literal
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
@@ -27,6 +28,19 @@ logger = logging.getLogger(__name__)
 
 
 class RecommendedExercise(BaseModel):
+    """Exercise recommendation with source provenance tracking.
+    
+    Attributes:
+        exercise_id: Unique exercise identifier
+        name: Exercise name
+        sets: Number of sets
+        reps: Target repetitions (if applicable)
+        duration_seconds: Target duration in seconds (if applicable)
+        weight_kg: Weight in kilograms (if applicable)
+        reasoning: Rationale for recommending this exercise
+        source_type: Origin of recommendation (SAFE_SET, PREFERRED, VECTOR_SEARCH, or FALLBACK)
+        source_id: Optional identifier for the source context (query ID, context ID, fallback set ID)
+    """
     exercise_id: str
     name: str
     sets: int
@@ -34,6 +48,8 @@ class RecommendedExercise(BaseModel):
     duration_seconds: int | None = None
     weight_kg: float | None = None
     reasoning: str
+    source_type: Literal["SAFE_SET", "PREFERRED", "VECTOR_SEARCH", "FALLBACK"]
+    source_id: str | None = None
 
 
 class WorkoutRecommendation(BaseModel):
@@ -67,6 +83,9 @@ class GenerationState(TypedDict, total=False):
 
     # Non-fatal error message
     error: str | None
+
+    # Audit log entries appended by each node
+    audit_log: list[dict[str, Any]]
 
 
 # ---------------------------------------------------------------------------
@@ -138,6 +157,68 @@ Please design a personalized workout for this member using only the exercises in
     ]
 
 
+
+
+def _enrich_recommendation_with_sources(
+    recommendation: WorkoutRecommendation,
+    context: ContextSlice,
+) -> WorkoutRecommendation:
+    """Post-process recommendation to populate source_type and source_id fields.
+    
+    For each exercise in the recommendation, traces its origin in the context:
+    - If in preferred_exercises: source_type="PREFERRED"
+    - Else if in vector_hits: source_type="VECTOR_SEARCH"
+    - Else (safe_exercises only): source_type="SAFE_SET"
+    
+    Updates the recommendation in-place and returns it.
+    """
+    if not context or not recommendation.exercises:
+        return recommendation
+    
+    # Build ID→index maps for quick lookup
+    preferred_ids = {e.get("id"): i for i, e in enumerate(context.get("preferred_exercises", []))}
+    vector_ids = {e.get("id"): i for i, e in enumerate(context.get("vector_hits", []))}
+    
+    # Enrich each exercise
+    enriched_exercises = []
+    for exercise in recommendation.exercises:
+        ex_id = exercise.exercise_id
+        
+        # Determine source based on which context list the exercise appears in
+        if ex_id in preferred_ids:
+            source_type = "PREFERRED"
+            source_id = f"preferred_{preferred_ids[ex_id]}"
+        elif ex_id in vector_ids:
+            source_type = "VECTOR_SEARCH"
+            source_id = f"vector_{vector_ids[ex_id]}"
+        else:
+            # Default to SAFE_SET for all other cases
+            source_type = "SAFE_SET"
+            source_id = f"safe_{ex_id}"
+        
+        # Create a new RecommendedExercise with source fields
+        enriched = RecommendedExercise(
+            exercise_id=exercise.exercise_id,
+            name=exercise.name,
+            sets=exercise.sets,
+            reps=exercise.reps,
+            duration_seconds=exercise.duration_seconds,
+            weight_kg=exercise.weight_kg,
+            reasoning=exercise.reasoning,
+            source_type=source_type,
+            source_id=source_id,
+        )
+        enriched_exercises.append(enriched)
+    
+    # Return a new recommendation with enriched exercises
+    return WorkoutRecommendation(
+        exercises=enriched_exercises,
+        overall_reasoning=recommendation.overall_reasoning,
+        member_id=recommendation.member_id,
+        skipped_exercise_ids=recommendation.skipped_exercise_ids,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Node functions
 # ---------------------------------------------------------------------------
@@ -159,20 +240,68 @@ async def _generate_workout_node(state: GenerationState) -> dict[str, Any]:
     """Call Claude with structured output to produce a WorkoutRecommendation."""
     context = state["context"]
     member_id = state.get("member_id", "")
+    model_name = settings.generator_model
 
     llm = ChatAnthropic(
-        model=settings.generator_model,
+        model=model_name,
         api_key=settings.anthropic_api_key,
-    ).with_structured_output(WorkoutRecommendation)
+    ).with_structured_output(WorkoutRecommendation, include_raw=True)
 
     messages = _build_generation_prompt(state["query"], context)  # type: ignore[arg-type]
 
+    t0 = time.monotonic()
     try:
-        recommendation: WorkoutRecommendation = await llm.ainvoke(messages)
+        raw_result = await llm.ainvoke(messages)
+        latency_ms = int((time.monotonic() - t0) * 1000)
+
+        # include_raw=True returns {"raw": AIMessage, "parsed": WorkoutRecommendation, ...}
+        # Mocks may return WorkoutRecommendation directly — handle both.
+        if isinstance(raw_result, dict) and "parsed" in raw_result:
+            recommendation: WorkoutRecommendation = raw_result["parsed"]
+            raw_response = raw_result.get("raw")
+            usage_meta = getattr(raw_response, "usage_metadata", None) or {}
+            tokens_in = usage_meta.get("input_tokens", 0)
+            tokens_out = usage_meta.get("output_tokens", 0)
+        else:
+            recommendation = raw_result
+            tokens_in = 0
+            tokens_out = 0
+
         recommendation.member_id = member_id
-        return {"recommendation": recommendation}
+        
+        # Enrich recommendation with source information
+        recommendation = _enrich_recommendation_with_sources(
+            recommendation, context
+        )
+        
+        audit_entry = {
+            "event": "kg_generation_llm",
+            "model": model_name,
+            "provider": "anthropic",
+            "latency_ms": latency_ms,
+            "user_id": state.get("member_id"),
+            "tokens_in": tokens_in,
+            "tokens_out": tokens_out,
+            "exercise_count": len(recommendation.exercises),
+        }
+        return {
+            "recommendation": recommendation,
+            "audit_log": state.get("audit_log", []) + [audit_entry],
+        }
     except Exception as exc:
+        latency_ms = int((time.monotonic() - t0) * 1000)
         logger.error("generation_graph: LLM call failed: %s", exc)
+        audit_entry = {
+            "event": "kg_generation_llm",
+            "model": model_name,
+            "provider": "anthropic",
+            "latency_ms": latency_ms,
+            "user_id": state.get("member_id"),
+            "tokens_in": 0,
+            "tokens_out": 0,
+            "exercise_count": 0,
+            "error": str(exc),
+        }
         return {
             "error": str(exc),
             "recommendation": WorkoutRecommendation(
@@ -180,6 +309,7 @@ async def _generate_workout_node(state: GenerationState) -> dict[str, Any]:
                 overall_reasoning="Generation failed due to an error.",
                 member_id=member_id,
             ),
+            "audit_log": state.get("audit_log", []) + [audit_entry],
         }
 
 
@@ -192,18 +322,42 @@ def _safety_gate_node(state: GenerationState) -> dict[str, Any]:
     remain, sets fallback_triggered=True so the fallback handler can
     pick it up.
     """
+    t0 = time.monotonic()
+
     if state.get("fallback_triggered") or not state.get("recommendation"):
-        return {}
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        audit_entry = {
+            "event": "kg_generation_safety_gate",
+            "latency_ms": latency_ms,
+            "user_id": state.get("member_id"),
+            "exercise_in": 0,
+            "exercise_out": 0,
+            "violations_filtered": 0,
+            "skipped": True,
+        }
+        return {"audit_log": state.get("audit_log", []) + [audit_entry]}
 
     raw_context: dict[str, Any] = dict(state.get("context") or {})
     raw_ids: list[str] = [str(x) for x in raw_context.get("contraindicated_ids", [])]
     contraindicated: set[str] = set(raw_ids)
     rec: WorkoutRecommendation = state["recommendation"]  # type: ignore[assignment]
 
+    exercise_in = len(rec.exercises)
     safe = [e for e in rec.exercises if e.exercise_id not in contraindicated]
     removed = [e.exercise_id for e in rec.exercises if e.exercise_id in contraindicated]
+    exercise_out = len(safe)
 
-    result: dict[str, Any] = {}
+    latency_ms = int((time.monotonic() - t0) * 1000)
+    audit_entry = {
+        "event": "kg_generation_safety_gate",
+        "latency_ms": latency_ms,
+        "user_id": state.get("member_id"),
+        "exercise_in": exercise_in,
+        "exercise_out": exercise_out,
+        "violations_filtered": len(removed),
+    }
+
+    result: dict[str, Any] = {"audit_log": state.get("audit_log", []) + [audit_entry]}
     if removed:
         rec = rec.model_copy(
             update={
@@ -246,6 +400,9 @@ def _fallback_node(state: GenerationState) -> dict[str, Any]:
     when no safe exercises exist, or _safety_gate_node when fewer than 2
     exercises survive contraindication filtering).
     """
+    t0 = time.monotonic()
+    fallback_triggered: bool = state.get("fallback_triggered", True)
+
     context: dict[str, Any] = dict(state.get("context") or {})
     raw_ids: list[str] = [str(x) for x in context.get("contraindicated_ids", [])]
     contraindicated: set[str] = set(raw_ids)
@@ -258,8 +415,10 @@ def _fallback_node(state: GenerationState) -> dict[str, Any]:
             sets=3,
             reps=10,
             reasoning="Selected as a safe alternative given your current injury profile.",
+            source_type="FALLBACK",
+            source_id=f"fallback_{i}",
         )
-        for e in safe
+        for i, e in enumerate(safe)
     ]
     existing_rec: WorkoutRecommendation | None = state.get("recommendation")
     rec = WorkoutRecommendation(
@@ -271,7 +430,19 @@ def _fallback_node(state: GenerationState) -> dict[str, Any]:
         member_id=state.get("member_id", "") or "",
         skipped_exercise_ids=existing_rec.skipped_exercise_ids if existing_rec else [],
     )
-    return {"recommendation": rec}
+
+    latency_ms = int((time.monotonic() - t0) * 1000)
+    audit_entry = {
+        "event": "kg_generation_fallback",
+        "latency_ms": latency_ms,
+        "user_id": state.get("member_id"),
+        "fallback_triggered": fallback_triggered,
+        "exercise_count": len(exercises),
+    }
+    return {
+        "recommendation": rec,
+        "audit_log": state.get("audit_log", []) + [audit_entry],
+    }
 
 
 # ---------------------------------------------------------------------------

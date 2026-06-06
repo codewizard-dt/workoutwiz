@@ -88,12 +88,12 @@ async def kg_explain_tool(member_id: str, exercise_id: str) -> dict[str, object]
         auth=(settings.neo4j_user, settings.neo4j_password),
     )
     try:
-        explanation = await explain_skipped_exercise(
+        explanation, _audit_entry, confidence = await explain_skipped_exercise(
             member_id=member_id,
             exercise_id=exercise_id,
             driver=driver,
         )
-        return {"explanation": explanation}
+        return {"explanation": explanation, "confidence": confidence}
     except Exception:
         logger.exception(
             "Error in kg_explain_tool for member %s, exercise %s", member_id, exercise_id

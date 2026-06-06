@@ -73,7 +73,7 @@ async def test_kg_explain_tool_returns_explanation_string() -> None:
         patch("app.kg.tools.neo4j.AsyncGraphDatabase.driver", return_value=mock_driver),
         patch(
             "app.kg.tools.explain_skipped_exercise",
-            new=AsyncMock(return_value="'Deadlift' was skipped because it is contraindicated for: lower back strain."),
+            new=AsyncMock(return_value=("'Deadlift' was skipped because it is contraindicated for: lower back strain.", {"event": "kg_explainability", "latency_ms": 5, "query_count": 1, "result_count": 1, "path_depth": 2, "reason_type": "contraindication", "user_id": "member-1", "confidence": 0.625}, 0.625)),
         ),
     ):
         result = await kg_explain_tool.ainvoke({"member_id": "member-1", "exercise_id": "exercise-99"})

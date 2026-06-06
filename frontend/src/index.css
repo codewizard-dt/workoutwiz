@@ -10,4 +10,14 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  textarea {
+    background-color: var(--stone-0);
+    color: var(--stone-900);
+  }
+
+  textarea::placeholder {
+    color: var(--stone-500);
+    opacity: 1;
+  }
 }

@@ -7,10 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from langchain_core.messages import HumanMessage, ToolMessage
 
 from app.agents.hub import hub
+from app.agents.audit_persist import persist_audit_log
 from app.auth import current_active_user
+from app.database import get_async_session
 from app.models.user import User
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.errors import ErrorResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -36,6 +39,7 @@ _sessions: dict[str, dict[str, Any]] = {}
 async def chat(
     request: ChatRequest,
     user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
 ) -> ChatResponse:
     """Send a message to the fitness coaching multi-agent system.
 
@@ -58,6 +62,12 @@ async def chat(
 
     result = hub.invoke(state)
     _sessions[session_id] = result
+
+    await persist_audit_log(
+        session_id=session_id,
+        entries=result.get("audit_log", []),
+        db=db,
+    )
 
     ai_messages = [
         m for m in result["messages"]

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -60,6 +61,9 @@ class RetrievalState(TypedDict, total=False):
     context: ContextSlice | None
     # Error message if any node fails non-fatally
     error: str | None
+    # Observability: optional caller-provided user_id and accumulated audit entries
+    user_id: str | None
+    audit_log: list[dict[str, Any]]
 
 
 # ---------------------------------------------------------------------------
@@ -80,47 +84,128 @@ def _make_nodes(
 
     async def lookup_member(state: RetrievalState) -> dict[str, Any]:
         member_id = state["member_id"]
+        t0 = time.monotonic()
         profile = await get_member_profile(member_id, driver)
         if profile is None:
             logger.warning("Member '%s' not found in Neo4j — returning empty profile.", member_id)
             profile = {}
-        return {"member_profile": profile}
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        audit_entry = {
+            "event": "retrieval_lookup_member",
+            "latency_ms": latency_ms,
+            "user_id": state.get("user_id"),
+            "result_count": 1 if profile else 0,
+        }
+        return {
+            "member_profile": profile,
+            "audit_log": state.get("audit_log", []) + [audit_entry],
+        }
 
     async def run_injury_traversal(state: RetrievalState) -> dict[str, Any]:
         member_id = state["member_id"]
+        t0 = time.monotonic()
         contraindicated, safe = await asyncio.gather(
             get_contraindicated_exercise_ids(member_id, driver),
             get_safe_exercises(member_id, driver),
         )
-        return {"contraindicated_ids": contraindicated, "safe_exercises": safe}
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        audit_entry = {
+            "event": "retrieval_injury_traversal",
+            "latency_ms": latency_ms,
+            "user_id": state.get("user_id"),
+            "result_count": len(safe),
+            "constraint_count": len(contraindicated),
+        }
+        return {
+            "contraindicated_ids": contraindicated,
+            "safe_exercises": safe,
+            "audit_log": state.get("audit_log", []) + [audit_entry],
+        }
 
     async def run_preference_traversal(state: RetrievalState) -> dict[str, Any]:
         member_id = state["member_id"]
+        t0 = time.monotonic()
         preferred, performed = await asyncio.gather(
             get_preferred_exercises(member_id, driver),
             get_performed_exercises(member_id, driver),
         )
-        return {"preferred_exercises": preferred, "performed_exercises": performed}
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        audit_entry = {
+            "event": "retrieval_preference_traversal",
+            "latency_ms": latency_ms,
+            "user_id": state.get("user_id"),
+            "result_count": len(preferred) + len(performed),
+        }
+        return {
+            "preferred_exercises": preferred,
+            "performed_exercises": performed,
+            "audit_log": state.get("audit_log", []) + [audit_entry],
+        }
 
     async def run_vector_search(state: RetrievalState) -> dict[str, Any]:
         query = state.get("query", "")
+        t0 = time.monotonic()
         try:
             vector_store = get_exercise_vector_store()
             loop = asyncio.get_event_loop()
+            embed_t0 = time.monotonic()
             docs = await loop.run_in_executor(
                 None, lambda: vector_store.similarity_search(query, k=10)
             )
-            return {"vector_docs": docs}
+            embedding_latency_ms = int((time.monotonic() - embed_t0) * 1000)
+            latency_ms = int((time.monotonic() - t0) * 1000)
+            audit_entry = {
+                "event": "retrieval_vector_search",
+                "latency_ms": latency_ms,
+                "user_id": state.get("user_id"),
+                "result_count": len(docs),
+                "embedding_latency_ms": embedding_latency_ms,
+            }
+            return {
+                "vector_docs": docs,
+                "audit_log": state.get("audit_log", []) + [audit_entry],
+            }
         except Exception as exc:
+            latency_ms = int((time.monotonic() - t0) * 1000)
             logger.warning("Vector search failed: %s", exc)
-            return {"vector_docs": [], "error": str(exc)}
+            audit_entry = {
+                "event": "retrieval_vector_search",
+                "latency_ms": latency_ms,
+                "user_id": state.get("user_id"),
+                "result_count": 0,
+                "error": str(exc),
+            }
+            return {
+                "vector_docs": [],
+                "error": str(exc),
+                "audit_log": state.get("audit_log", []) + [audit_entry],
+            }
 
     async def assemble(state: RetrievalState) -> dict[str, Any]:
         member_id = state["member_id"]
         query = state.get("query", "")
+        # Count inputs before assembling
+        input_count = (
+            len(state.get("safe_exercises") or [])
+            + len(state.get("preferred_exercises") or [])
+            + len(state.get("vector_docs") or [])
+        )
+        t0 = time.monotonic()
         # Delegate to context assembler — it handles dedup and budget
         context = await assemble_context(member_id, query, driver)
-        return {"context": context}
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        output_count = len((context or {}).get("safe_exercises", [])) if context else 0
+        audit_entry = {
+            "event": "retrieval_assemble",
+            "latency_ms": latency_ms,
+            "user_id": state.get("user_id"),
+            "input_count": input_count,
+            "output_count": output_count,
+        }
+        return {
+            "context": context,
+            "audit_log": state.get("audit_log", []) + [audit_entry],
+        }
 
     return lookup_member, run_injury_traversal, run_preference_traversal, run_vector_search, assemble
 

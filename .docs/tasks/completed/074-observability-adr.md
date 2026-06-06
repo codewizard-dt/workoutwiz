@@ -126,3 +126,6 @@ Leave `### Links` section empty (will be filled when this task links to the ADR)
 - [x] Decision D4 documents in-process scope with trade-offs table
 - [x] All decisions reference the existing code (hub.py, state.py, chat.py, generation_graph.py) by line number
 - [x] ADR is committed to the repository <!-- Completed: 2026-06-06 -->
+
+---
+**UAT**: [`.docs/uat/074-observability-adr.uat.md`](../uat/074-observability-adr.uat.md)

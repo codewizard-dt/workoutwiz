@@ -1,18 +1,23 @@
-"""KG router: /kg/recommend, /kg/explain, /kg/feedback."""
+"""KG router: /kg/recommend, /kg/explain, /kg/feedback, /kg/audit."""
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import neo4j
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import current_active_user
 from app.config import settings
+from app.database import get_async_session
 from app.kg.explainability import explain_skipped_exercise
 from app.kg.feedback_service import write_feedback
 from app.kg.generation_graph import RecommendedExercise, build_generation_graph
 from app.kg.retrieval_graph import build_retrieval_graph
+from app.models.audit_log import AuditLogEntry
 from app.models.user import User
 from app.schemas.errors import ErrorResponse
 from app.schemas.kg import FeedbackPayload, KGExplainRequest, KGRecommendRequest
@@ -38,11 +43,18 @@ class KGRecommendResponse(BaseModel):
 class KGExplainResponse(BaseModel):
     exercise_id: str
     explanation: str
+    confidence: float
 
 
 class KGFeedbackResponse(BaseModel):
     feedback_id: str
     message: str
+
+
+class KgAuditResponse(BaseModel):
+    session_id: str
+    audit_log: list[dict[str, Any]]
+    total_entries: int
 
 
 # ---------------------------------------------------------------------------
@@ -136,12 +148,17 @@ async def kg_explain(
         auth=(settings.neo4j_user, settings.neo4j_password),
     )
     try:
-        explanation = await explain_skipped_exercise(
+        explanation, audit_entry, confidence = await explain_skipped_exercise(
             member_id=member_id,
             exercise_id=request.exercise_id,
             driver=driver,
         )
-        return KGExplainResponse(exercise_id=request.exercise_id, explanation=explanation)
+        logger.debug("kg_explain audit: %s", audit_entry)
+        return KGExplainResponse(
+            exercise_id=request.exercise_id,
+            explanation=explanation,
+            confidence=confidence,
+        )
     except Exception as exc:
         logger.exception(
             "Error in /kg/explain for member %s, exercise %s",
@@ -187,3 +204,79 @@ async def kg_feedback(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
         await driver.close()
+
+
+@router.get(
+    "/audit/{session_id}",
+    response_model=KgAuditResponse,
+    summary="Get KG session audit log",
+    description=(
+        "Retrieve knowledge graph-specific audit log entries for a session. "
+        "Returns ordered KG layer events (kg_*, retrieval_*) excluding chat routing events."
+    ),
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        404: {"model": ErrorResponse, "description": "Session not found or no KG audit entries exist"},
+    },
+)
+async def get_kg_audit(
+    session_id: str,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+) -> KgAuditResponse:
+    """Retrieve KG-specific audit log entries for a session.
+    
+    Filters audit entries to only include those with event starting with 'kg_'
+    or 'retrieval_', excluding chat router entries and other non-KG events.
+    """
+    # Query audit_log table for this session with KG-specific events
+    stmt = select(AuditLogEntry).where(
+        AuditLogEntry.session_id == session_id
+    ).order_by(AuditLogEntry.created_at)
+    
+    result = await db.execute(stmt)
+    entries = result.scalars().all()
+    
+    # Filter to only KG-related events
+    kg_entries = [
+        e for e in entries
+        if e.event.startswith(("kg_", "retrieval_"))
+    ]
+    
+    # Convert to dict format for response
+    audit_log = []
+    for entry in kg_entries:
+        entry_dict = {
+            "event": entry.event,
+            "session_id": entry.session_id,
+        }
+        # Add known fields if they exist
+        if entry.model:
+            entry_dict["model"] = entry.model
+        if entry.provider:
+            entry_dict["provider"] = entry.provider
+        if entry.latency_ms is not None:
+            entry_dict["latency_ms"] = entry.latency_ms
+        if entry.tokens_in is not None:
+            entry_dict["tokens_in"] = entry.tokens_in
+        if entry.tokens_out is not None:
+            entry_dict["tokens_out"] = entry.tokens_out
+        if entry.node_name:
+            entry_dict["node_name"] = entry.node_name
+        if entry.source_type:
+            entry_dict["source_type"] = entry.source_type
+        if entry.source_id:
+            entry_dict["source_id"] = entry.source_id
+        if entry.extra:
+            entry_dict.update(entry.extra)
+        entry_dict["created_at"] = entry.created_at.isoformat()
+        audit_log.append(entry_dict)
+    
+    if not kg_entries and not entries:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+    
+    return KgAuditResponse(
+        session_id=session_id,
+        audit_log=audit_log,
+        total_entries=len(audit_log),
+    )
