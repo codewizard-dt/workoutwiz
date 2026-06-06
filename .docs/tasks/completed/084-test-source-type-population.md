@@ -197,3 +197,7 @@ TASK-084 acceptance criteria are **fully satisfied** by the tests implemented in
 5. 100% source_type coverage regression test
 
 No additional tests are needed; TASK-079 already delivered all requirements.
+
+---
+
+**UAT**: [`.docs/uat/084-test-source-type-population.uat.md`](../uat/084-test-source-type-population.uat.md)

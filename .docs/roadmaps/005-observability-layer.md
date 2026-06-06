@@ -4,7 +4,7 @@
 
 - **Status**: active
 - **Created**: 2026-06-06
-- **Last updated**: 2026-06-06 (TASK-085 created)
+- **Last updated**: 2026-06-06 (TASK-082 completed)
 - **Owner**: David Taylor
 - **Linked PRD**: —
 - **Linked ADRs**: —
@@ -39,7 +39,7 @@ Every agent routing decision in the hub and all knowledge graph sub-graph nodes 
 
 > Add structured metric fields that the assessor and future monitoring can query against.
 
-- [ ] [TASK-079: Add source_id/source_type to RecommendedExercise](../tasks/079-add-source-fields-to-recommended-exercise.md)
+- [x] [TASK-079: Add source_id/source_type to RecommendedExercise](../tasks/completed/079-add-source-fields-to-recommended-exercise.md)
 - [x] [TASK-080: Add Explainability Confidence Score](../tasks/completed/080-add-explainability-confidence-score.md)
 - [ ] [TASK-081: Add GET /kg/audit/{session_id} Endpoint](../tasks/081-add-kg-audit-endpoint.md)
 
@@ -47,7 +47,7 @@ Every agent routing decision in the hub and all knowledge graph sub-graph nodes 
 
 > Verify trace coverage and metric population end-to-end.
 
-- [ ] [TASK-082: Test Routing Trace Coverage](../tasks/082-test-routing-trace-coverage.md)
+- [x] [TASK-082: Test Routing Trace Coverage](../tasks/completed/082-test-routing-trace-coverage.md)
 - [ ] [TASK-084: Test source_id/source_type population](../tasks/084-test-source-type-population.md)
 - [x] Test explainability confidence — assert explain_skipped_exercise() returns a confidence float between 0 and 1
 - [ ] [TASK-085: Test KG Audit Endpoint](../tasks/085-test-kg-audit-endpoint.md)

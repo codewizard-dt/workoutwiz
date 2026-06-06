@@ -11,9 +11,7 @@
 |---|------|----------|------------|--------|-----------|
 | 060 | [generation-agent-subgraph](060-generation-agent-subgraph.md) | 6/6 ✓ | 059 | 061,062,063 | Generation sub-graph: ContextSlice → WorkoutRecommendation via LLM |
 | 071 | [feedback-submission-ui](071-feedback-submission-ui.md) | 5/5 ✓ | 065 | — | FeedbackForm component: star rating + text, POST /kg/feedback |
-| 079 | [add-source-fields-to-recommended-exercise](079-add-source-fields-to-recommended-exercise.md) | 0/5 | 074,075,076,077 | 081 | Add source_type/source_id fields to RecommendedExercise model, populate during recommendation assembly |
 | 081 | [add-kg-audit-endpoint](081-add-kg-audit-endpoint.md) | 0/5 | 074,075,076,077,079 | — | Create GET /kg/audit/{session_id} endpoint to expose KG-specific audit log entries |
-| 082 | [test-routing-trace-coverage](082-test-routing-trace-coverage.md) | 0/5 | 074,075,076,077 | — | Write integration tests verifying complete audit_log trace coverage for all hub and KG nodes |
 | 084 | [test-source-type-population](084-test-source-type-population.md) | 0/5 | 079 | — | Write tests asserting every exercise in KG recommendation has source_type set to valid enum |
 | 085 | [test-kg-audit-endpoint](085-test-kg-audit-endpoint.md) | 0/6 | 081 | — | Write integration tests verifying GET /kg/audit/{session_id} returns expected KG event keys |
 
