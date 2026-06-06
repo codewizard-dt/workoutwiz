@@ -235,3 +235,6 @@ All tests must pass without errors.
 - [x] Each audit entry has required keys: event, latency_ms, created_at
 - [x] Latency_ms values are non-negative numbers
 - [x] Authentication required: test_kg_audit_requires_auth() confirms 401 without JWT
+
+---
+**UAT**: [`.docs/uat/085-test-kg-audit-endpoint.uat.md`](../uat/085-test-kg-audit-endpoint.uat.md)

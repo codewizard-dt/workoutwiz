@@ -1,6 +1,6 @@
 # Project Status
 
-**Last updated:** 2026-06-06 (updated with TASK-084: Test source_type population)
+**Last updated:** 2026-06-06 (ROADMAP-005 completed: all observability instrumentation and testing done)
 
 ## Current Focus
 
@@ -34,7 +34,6 @@
 | 058 | [context-assembler](.docs/tasks/058-context-assembler.md) | Create context_assembler.py with assemble_context() that merges traversal + vector results into a 2048-token-budgeted ContextSlice dict. |
 | 059 | [retrieval-subgraph](.docs/tasks/059-retrieval-subgraph.md) | Create retrieval_graph.py with a LangGraph StateGraph orchestrating the full GraphRAG retrieval pipeline, and wire KNOWLEDGE_GRAPH intent into the hub. |
 | 074 | [observability-adr](.docs/tasks/074-observability-adr.md) | Write Observability Stack ADR — document in-process audit_log extension to all agent nodes and KG layers. |
-| 084 | [test-source-type-population](.docs/tasks/084-test-source-type-population.md) | Write tests asserting every exercise in KG recommendation has source_type set to valid enum (SAFE_SET \| PREFERRED \| VECTOR_SEARCH \| FALLBACK). |
 
 ## Recently Completed
 

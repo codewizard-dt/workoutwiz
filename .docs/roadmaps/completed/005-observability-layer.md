@@ -2,9 +2,9 @@
 
 > Instrument every agent routing decision and KG sub-graph node with in-process audit tracing, add source provenance and explainability confidence metrics, and expose all telemetry via REST endpoints — no external stack required.
 
-- **Status**: active
+- **Status**: done
 - **Created**: 2026-06-06
-- **Last updated**: 2026-06-06 (TASK-084 completed)
+- **Last updated**: 2026-06-06 (TASK-085 completed)
 - **Owner**: David Taylor
 - **Linked PRD**: —
 - **Linked ADRs**: —
@@ -50,7 +50,7 @@ Every agent routing decision in the hub and all knowledge graph sub-graph nodes 
 - [x] [TASK-082: Test Routing Trace Coverage](../tasks/completed/082-test-routing-trace-coverage.md)
 - [x] [TASK-084: Test source_id/source_type population](../tasks/completed/084-test-source-type-population.md)
 - [x] Test explainability confidence — assert explain_skipped_exercise() returns a confidence float between 0 and 1
-- [ ] [TASK-085: Test KG Audit Endpoint](../tasks/085-test-kg-audit-endpoint.md)
+- [x] [TASK-085: Test KG Audit Endpoint](../tasks/completed/085-test-kg-audit-endpoint.md)
 
 ## Notes
 

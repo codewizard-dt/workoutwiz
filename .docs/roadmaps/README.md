@@ -201,7 +201,7 @@ One row per roadmap. Sort by file number ascending.
 |------|-------|--------|----------|-------|------------|
 | [ROADMAP-003](completed/003-openapi-swagger-annotations.md) | OpenAPI/Swagger Annotations | done | 8/8 | David Taylor | — |
 | [ROADMAP-004](completed/004-knowledge-graph-coaching-system.md) | Knowledge Graph Coaching System | done | 29/29 | David Taylor | — |
-| [ROADMAP-005](005-observability-layer.md) | Observability Layer | active | 9/13 | David Taylor | — |
+| [ROADMAP-005](completed/005-observability-layer.md) | Observability Layer | done | 13/13 | David Taylor | — |
 
 When adding a row:
 
