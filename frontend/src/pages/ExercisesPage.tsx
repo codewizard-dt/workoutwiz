@@ -14,8 +14,8 @@ import {
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(t)
+    const t = setTimeout(() => { setDebounced(value); }, delay)
+    return () => { clearTimeout(t); }
   }, [value, delay])
   return debounced
 }
@@ -52,7 +52,7 @@ export default function ExercisesPage() {
             id="name-filter"
             placeholder="Search by name…"
             value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
+            onChange={(e) => { setNameInput(e.target.value); }}
           />
         </div>
         <div className="space-y-1">
@@ -61,7 +61,7 @@ export default function ExercisesPage() {
             id="muscle-filter"
             placeholder="e.g. chest, triceps"
             value={muscleInput}
-            onChange={(e) => setMuscleInput(e.target.value)}
+            onChange={(e) => { setMuscleInput(e.target.value); }}
           />
         </div>
         <div className="space-y-1">
@@ -70,7 +70,7 @@ export default function ExercisesPage() {
             id="equipment-filter"
             placeholder="e.g. barbell, dumbbell"
             value={equipmentInput}
-            onChange={(e) => setEquipmentInput(e.target.value)}
+            onChange={(e) => { setEquipmentInput(e.target.value); }}
           />
         </div>
       </div>

@@ -8,7 +8,7 @@
 ## Prerequisites
 
 - [ ] Task 019 (python-package-setup) is complete — `.venv` exists at `1-multi-agent/.venv/`
-- [ ] Working directory is the repo root (`workout-wiz/`)
+- [ ] Working directory is the repo root (`workoutwiz/`)
 - [ ] `.env` file does NOT exist at `1-multi-agent/.env` (to avoid polluting import test with pre-set vars)
 
 ---

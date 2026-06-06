@@ -29,7 +29,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.backends.legacy:build"
 
 [project]
-name = "workout-wiz-backend"
+name = "workoutwiz-backend"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [

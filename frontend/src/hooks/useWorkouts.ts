@@ -11,7 +11,7 @@ export function useWorkouts() {
   return useQuery({
     queryKey: ['workouts'],
     queryFn: async () => {
-      const res = await fetch('/api/workouts/', { headers: authHeaders(token!) })
+      const res = await fetch('/api/workouts/', { headers: authHeaders(token ?? '') })
       if (!res.ok) throw new Error('Failed to fetch workouts')
       return res.json() as Promise<Workout[]>
     },
@@ -24,7 +24,7 @@ export function useWorkout(id: string) {
   return useQuery({
     queryKey: ['workouts', id],
     queryFn: async () => {
-      const res = await fetch(`/api/workouts/${id}`, { headers: authHeaders(token!) })
+      const res = await fetch(`/api/workouts/${id}`, { headers: authHeaders(token ?? '') })
       if (!res.ok) throw new Error('Failed to fetch workout')
       return res.json() as Promise<Workout>
     },
@@ -39,7 +39,7 @@ export function useCreateWorkout() {
     mutationFn: async (data: WorkoutCreate) => {
       const res = await fetch('/api/workouts/', {
         method: 'POST',
-        headers: authHeaders(token!),
+        headers: authHeaders(token ?? ''),
         body: JSON.stringify(data),
       })
       if (!res.ok) throw new Error('Failed to create workout')
@@ -56,15 +56,15 @@ export function useUpdateWorkout() {
     mutationFn: async ({ id, data }: { id: string; data: WorkoutCreate }) => {
       const res = await fetch(`/api/workouts/${id}`, {
         method: 'PUT',
-        headers: authHeaders(token!),
+        headers: authHeaders(token ?? ''),
         body: JSON.stringify(data),
       })
       if (!res.ok) throw new Error('Failed to update workout')
       return res.json() as Promise<Workout>
     },
     onSuccess: (_, { id }) => {
-      qc.invalidateQueries({ queryKey: ['workouts'] })
-      qc.invalidateQueries({ queryKey: ['workouts', id] })
+      void qc.invalidateQueries({ queryKey: ['workouts'] })
+      void qc.invalidateQueries({ queryKey: ['workouts', id] })
     },
   })
 }
@@ -76,7 +76,7 @@ export function useDeleteWorkout() {
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/workouts/${id}`, {
         method: 'DELETE',
-        headers: authHeaders(token!),
+        headers: authHeaders(token ?? ''),
       })
       if (!res.ok) throw new Error('Failed to delete workout')
     },

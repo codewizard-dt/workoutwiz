@@ -73,7 +73,7 @@ test('logout → redirected to /login', async ({ page }) => {
 test('accessing /workouts without auth → redirected to /login', async ({ page }) => {
   // Clear storage to ensure no auth token
   await page.goto('/login')
-  await page.evaluate(() => localStorage.removeItem('auth_token'))
+  await page.evaluate(() => { localStorage.removeItem('auth_token'); })
   await page.goto('/workouts')
   await expect(page).toHaveURL('/login', { timeout: 5000 })
 })

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from langchain_core.messages import HumanMessage
@@ -13,7 +14,7 @@ from app.schemas.chat import ChatRequest, ChatResponse
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 # In-memory session store: session_id → AgentState snapshot
-_sessions: dict[str, dict] = {}
+_sessions: dict[str, dict[str, Any]] = {}
 
 
 @router.post("/", response_model=ChatResponse)
@@ -68,7 +69,7 @@ async def chat(
 async def get_audit(
     session_id: str,
     user: User = Depends(current_active_user),
-) -> dict:
+) -> dict[str, Any]:
     """Retrieve the full LLM audit log for a session."""
     state = _sessions.get(session_id)
     if state is None:

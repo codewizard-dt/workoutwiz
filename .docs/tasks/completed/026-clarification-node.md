@@ -124,3 +124,6 @@ Run: `cd 1-multi-agent && .venv/bin/pytest tests/test_clarification.py -v`
 - [ ] Message lists all three system capabilities (coaching, planning, logging)
 - [ ] Audit log gets a `clarification` entry with trigger, confidence, user_id
 - [ ] `pytest tests/test_clarification.py` passes (3/3)
+
+---
+**UAT**: [`.docs/uat/026-clarification-node.uat.md`](../uat/026-clarification-node.uat.md)

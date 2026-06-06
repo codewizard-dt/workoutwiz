@@ -9,7 +9,7 @@
 
 - [ ] Working directory: `1-multi-agent/` (all commands below assume this cwd)
 - [ ] Python virtual environment exists at `1-multi-agent/.venv/`
-- [ ] Package installed in editable mode: `.venv/bin/pip show workout-wiz` shows the package
+- [ ] Package installed in editable mode: `.venv/bin/pip show workoutwiz` shows the package
 - [ ] `1-multi-agent/src/workout_wiz/state.py` exists
 - [ ] `1-multi-agent/tests/test_state.py` exists
 - [ ] `1-multi-agent/tests/__init__.py` exists

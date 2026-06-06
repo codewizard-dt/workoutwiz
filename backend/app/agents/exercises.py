@@ -6,7 +6,6 @@ be called safely from within synchronous LangGraph node functions.
 """
 from __future__ import annotations
 
-from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,9 +42,9 @@ def get_exercise_by_id(exercise_id: str) -> ExerciseModel | None:
 
 
 def search_exercises(
-    muscle_groups: Optional[list[str]] = None,
-    equipment: Optional[list[str]] = None,
-    movement_patterns: Optional[list[str]] = None,
+    muscle_groups: list[str] | None = None,
+    equipment: list[str] | None = None,
+    movement_patterns: list[str] | None = None,
     max_results: int = 10,
 ) -> list[ExerciseModel]:
     """Filter exercises from the cache by muscle group, equipment, or movement pattern.

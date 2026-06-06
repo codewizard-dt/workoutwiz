@@ -180,3 +180,6 @@ Run: `cd 1-multi-agent && .venv/bin/pytest tests/test_chat_endpoint.py::test_ui_
 - [ ] `GET /` serves `index.html` (status 200, content-type text/html, body contains "Workout Wiz")
 - [ ] Session ID persisted in `sessionStorage`
 - [ ] `pytest tests/test_chat_endpoint.py::test_ui_served` passes
+
+---
+**UAT**: [`.docs/uat/031-web-ui.uat.md`](../uat/031-web-ui.uat.md)

@@ -1,19 +1,19 @@
 import uuid
 from datetime import datetime
-from enum import Enum as PyEnum
+from enum import StrEnum
 from sqlalchemy import ForeignKey, Integer, DateTime, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 
-class WorkoutPhase(str, PyEnum):
+class WorkoutPhase(StrEnum):
     WARMUP = "warmup"
     MAIN = "main"
     COOLDOWN = "cooldown"
 
 
-class SetType(str, PyEnum):
+class SetType(StrEnum):
     STRENGTH = "STRENGTH"
     CARDIO = "CARDIO"
 

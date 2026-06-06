@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
@@ -22,14 +23,16 @@ logger = logging.getLogger(__name__)
 # still delegating to the registered error handler for logging.
 # ---------------------------------------------------------------------------
 
-async def _patched_server_error_call(self, scope, receive, send):
+async def _patched_server_error_call(
+    self: Any, scope: dict[str, Any], receive: Any, send: Any
+) -> None:
     if scope["type"] != "http":
         await self.app(scope, receive, send)
         return
 
     response_started = False
 
-    async def _send(message):
+    async def _send(message: dict[str, Any]) -> None:
         nonlocal response_started
         if message["type"] == "http.response.start":
             response_started = True
@@ -53,7 +56,7 @@ async def _patched_server_error_call(self, scope, receive, send):
         # Do NOT re-raise: allow the 500 response to reach the caller cleanly.
 
 
-_sme.ServerErrorMiddleware.__call__ = _patched_server_error_call
+_sme.ServerErrorMiddleware.__call__ = _patched_server_error_call  # type: ignore[assignment]
 
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:

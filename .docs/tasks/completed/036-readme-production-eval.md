@@ -143,3 +143,6 @@ print(f'OK: {fences} code fences (all closed)')
 - [ ] Health signals list is actionable (tells operator what to check, in what order)
 - [ ] Demo runbook shows a single startup command and golden-path prompts for all 4 routes
 - [ ] No unclosed markdown code fences in the README
+
+---
+**UAT**: [`.docs/uat/036-readme-production-eval.uat.md`](../uat/036-readme-production-eval.uat.md)

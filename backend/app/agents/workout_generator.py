@@ -1,5 +1,5 @@
 import time
-from typing import Optional
+from typing import Any
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage
@@ -15,15 +15,15 @@ from app.config import settings
 
 
 class SearchExercisesInput(BaseModel):
-    muscle_groups: Optional[list[str]] = Field(
+    muscle_groups: list[str] | None = Field(
         default=None,
         description="Muscle groups to target, e.g. ['chest', 'triceps']. Case-insensitive substring match.",
     )
-    equipment: Optional[list[str]] = Field(
+    equipment: list[str] | None = Field(
         default=None,
         description="Equipment available, e.g. ['barbell', 'dumbbell']. Use 'bodyweight' for no equipment.",
     )
-    movement_patterns: Optional[list[str]] = Field(
+    movement_patterns: list[str] | None = Field(
         default=None,
         description="Movement patterns to include, e.g. ['push', 'hinge', 'squat', 'pull', 'carry'].",
     )
@@ -52,11 +52,11 @@ class BuildWorkoutInput(BaseModel):
 
 @tool(args_schema=SearchExercisesInput)
 def search_exercises_tool(
-    muscle_groups: Optional[list[str]] = None,
-    equipment: Optional[list[str]] = None,
-    movement_patterns: Optional[list[str]] = None,
+    muscle_groups: list[str] | None = None,
+    equipment: list[str] | None = None,
+    movement_patterns: list[str] | None = None,
     max_results: int = 8,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Search the exercise database by muscle group, equipment, or movement pattern.
     Returns a list of matching exercises with their IDs, names, and key properties.
     Always call this before build_workout to get valid exercise IDs."""
@@ -86,7 +86,7 @@ def build_workout_tool(
     exercise_ids: list[str],
     sets: int = 3,
     rest_seconds: int = 90,
-) -> dict:
+) -> dict[str, Any]:
     """Build a structured workout plan from a list of exercise IDs.
     Returns a workout plan with warmup/main/cooldown phases.
     Only use exercise IDs returned by search_exercises — never invent IDs."""
@@ -96,9 +96,9 @@ def build_workout_tool(
 
     warmup = valid[:2] if len(valid) >= 3 else []
     main = valid[2:] if len(valid) >= 3 else valid
-    cooldown: list[dict] = []
+    cooldown: list[dict[str, Any]] = []
 
-    def exercise_to_dict(e: object) -> dict:
+    def exercise_to_dict(e: object) -> dict[str, Any]:
         return {
             "id": str(e.id),  # type: ignore[attr-defined]
             "name": e.name,  # type: ignore[attr-defined]
@@ -135,7 +135,7 @@ If the user asks for equipment you don't find results for, fall back to bodyweig
 _TOOLS = [search_exercises_tool, build_workout_tool]
 
 
-def _should_continue(state: AgentState) -> str:
+def _should_continue(state: AgentState) -> Any:
     """Route to tool executor or end based on last message."""
     last = state["messages"][-1]
     if hasattr(last, "tool_calls") and last.tool_calls:
@@ -143,7 +143,7 @@ def _should_continue(state: AgentState) -> str:
     return END
 
 
-def _generate_node(state: AgentState) -> dict:
+def _generate_node(state: AgentState) -> dict[str, Any]:
     model_name = settings.generator_model
     llm = ChatAnthropic(model=model_name).bind_tools(_TOOLS)
     messages = [SystemMessage(content=_GENERATOR_SYSTEM_PROMPT)] + list(state["messages"])

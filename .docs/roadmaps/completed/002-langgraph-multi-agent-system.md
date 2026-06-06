@@ -2,9 +2,9 @@
 
 > Build and wire the LangGraph hub + three specialized sub-agent graphs that power the fitness coaching chat interface, satisfying all assessment requirements for public GitHub submission.
 
-- **Status**: active
+- **Status**: done
 - **Created**: 2026-06-04
-- **Last updated**: 2026-06-05 (tasks 024, 025, 027, 028, 029 completed; Phase 5 tasks 033–036 created)
+- **Last updated**: 2026-06-05 (tasks 024, 025, 026, 027, 028, 029, 030, 031, 032 completed; Phase 5 tasks 033–036 created; TASK-035, TASK-036 completed)
 - **Owner**: David Taylor
 - **Linked PRD**: PRD-001
 - **Linked ADRs**: —
@@ -30,7 +30,7 @@ When complete, the LangGraph multi-agent hub is operational: a typed `StateGraph
 - [x] [TASK-023: Hub StateGraph with Typed State and Explicit Edges](../tasks/completed/023-hub-stategraph.md)
 - [x] [TASK-024: Router Node with Structured Output](../tasks/completed/024-router-node.md)
 - [x] [TASK-025: Conditional Edge Routing Integration Tests](../tasks/completed/025-conditional-edge-routing.md)
-- [ ] [TASK-026: Clarification Node Finalization](../tasks/026-clarification-node.md)
+- [x] [TASK-026: Clarification Node Finalization](../tasks/completed/026-clarification-node.md)
 
 ## Phase 3: Sub-Agents
 
@@ -44,18 +44,18 @@ When complete, the LangGraph multi-agent hub is operational: a typed `StateGraph
 
 > Wire the hub into a chat-capable FastAPI app with full per-call LLM observability.
 
-- [ ] [TASK-030: POST /chat Endpoint with Session Support](../tasks/030-chat-endpoint.md)
-- [ ] [TASK-031: Minimal HTML/JS Web UI](../tasks/031-web-ui.md)
-- [ ] [TASK-032: Per-Call LLM Audit Log](../tasks/032-llm-audit-log.md)
+- [x] [TASK-030: POST /chat Endpoint with Session Support](../tasks/completed/030-chat-endpoint.md)
+- [x] [TASK-031: Minimal HTML/JS Web UI](../tasks/completed/031-web-ui.md)
+- [x] [TASK-032: Per-Call LLM Audit Log](../tasks/completed/032-llm-audit-log.md)
 
 ## Phase 5: Tests, Demo & Docs
 
 > Prove the system works with tests and a runnable demo, then document production thinking in the README.
 
-- [ ] [TASK-033: Critical-Path Test A — Router Intent Classification](../tasks/033-critical-path-router-test.md)
-- [ ] [TASK-034: Critical-Path Test B — Workout Generator Grounding](../tasks/034-critical-path-generator-test.md)
-- [ ] [TASK-035: End-to-End Smoke Test (Golden Path per Route)](../tasks/035-e2e-smoke-test.md)
-- [ ] [TASK-036: README Production Evaluation Section](../tasks/036-readme-production-eval.md)
+- [x] [TASK-033: Critical-Path Test A — Router Intent Classification](../tasks/completed/033-critical-path-router-test.md)
+- [x] [TASK-034: Critical-Path Test B — Workout Generator Grounding](../tasks/completed/034-critical-path-generator-test.md)
+- [x] [TASK-035: End-to-End Smoke Test (Golden Path per Route)](../tasks/completed/035-e2e-smoke-test.md)
+- [x] [TASK-036: README Production Evaluation Section](../tasks/completed/036-readme-production-eval.md)
 
 ## Notes
 

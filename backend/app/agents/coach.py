@@ -1,4 +1,5 @@
 import time
+from typing import Any
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage
 from langgraph.graph import StateGraph, START, END
@@ -19,7 +20,7 @@ If asked to log a workout, explain that's handled separately.
 """
 
 
-def _chat_node(state: AgentState) -> dict:
+def _chat_node(state: AgentState) -> dict[str, Any]:
     model_name = settings.coach_model
     llm = ChatAnthropic(model=model_name)
 

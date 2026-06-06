@@ -1,5 +1,5 @@
 import time
-from typing import Optional
+from typing import Any
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, SystemMessage
@@ -15,7 +15,7 @@ from app.config import settings
 
 class LoggedSet(BaseModel):
     exercise_name: str = Field(description="The name of the exercise as stated by the user")
-    exercise_id: Optional[str] = Field(
+    exercise_id: str | None = Field(
         default=None,
         description="UUID of the matched exercise from the database (null if no match found)",
     )
@@ -23,12 +23,12 @@ class LoggedSet(BaseModel):
         default=0.0,
         description="Fuzzy match confidence 0.0-1.0 (1.0 = exact match)",
     )
-    sets: Optional[int] = Field(default=None, description="Number of sets performed")
-    reps: Optional[int] = Field(default=None, description="Reps per set")
-    weight_kg: Optional[float] = Field(default=None, description="Weight in kg (if applicable)")
-    duration_s: Optional[int] = Field(default=None, description="Duration in seconds (if applicable)")
-    distance_m: Optional[float] = Field(default=None, description="Distance in metres (if applicable)")
-    notes: Optional[str] = Field(default=None, description="Any additional notes for this set")
+    sets: int | None = Field(default=None, description="Number of sets performed")
+    reps: int | None = Field(default=None, description="Reps per set")
+    weight_kg: float | None = Field(default=None, description="Weight in kg (if applicable)")
+    duration_s: int | None = Field(default=None, description="Duration in seconds (if applicable)")
+    distance_m: float | None = Field(default=None, description="Distance in metres (if applicable)")
+    notes: str | None = Field(default=None, description="Any additional notes for this set")
 
 
 class WorkoutLog(BaseModel):
@@ -40,7 +40,7 @@ class WorkoutLog(BaseModel):
         default_factory=list,
         description="Exercise names mentioned that could not be matched to any exercise (confidence < 0.75)",
     )
-    parse_notes: Optional[str] = Field(
+    parse_notes: str | None = Field(
         default=None,
         description="Any ambiguity or assumptions made during parsing",
     )
@@ -61,7 +61,7 @@ If you're making assumptions, note them in parse_notes.
 """
 
 
-def _fuzzy_match_exercise(name: str, exercises: list) -> tuple[str | None, float]:
+def _fuzzy_match_exercise(name: str, exercises: list[Any]) -> tuple[str | None, float]:
     """Fuzzy-match exercise name against the dataset. Returns (exercise_id, confidence 0-1)."""
     if not exercises:
         return None, 0.0
@@ -76,16 +76,15 @@ def _fuzzy_match_exercise(name: str, exercises: list) -> tuple[str | None, float
     return str(exercises[idx].id), confidence
 
 
-def _log_node(state: AgentState) -> dict:
+def _log_node(state: AgentState) -> dict[str, Any]:
     model_name = settings.logger_model
     llm = ChatAnthropic(model=model_name).with_structured_output(WorkoutLog, include_raw=True)
     exercises = get_all_exercises()
 
-    last_human = next(
+    next(
         (m for m in reversed(state["messages"]) if hasattr(m, "type") and m.type == "human"),
         None,
     )
-    user_text = last_human.content if last_human else ""
 
     t0 = time.monotonic()
     raw_result = llm.invoke([

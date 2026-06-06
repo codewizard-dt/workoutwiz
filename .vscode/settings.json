@@ -1,0 +1,16 @@
+{
+  // --- Python (backend/.venv) ---
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+  "python.analysis.extraPaths": ["backend"],
+  "python.testing.pytestEnabled": true,
+  "python.testing.cwd": "${workspaceFolder}/backend",
+
+  // --- TypeScript (frontend/node_modules) ---
+  // Use the exact TypeScript version the project builds with.
+  // VS Code discovers tsconfig.json files in subdirectories automatically;
+  // this just ensures the SDK version matches.
+  "typescript.tsdk": "${workspaceFolder}/frontend/node_modules/typescript/lib",
+
+  // Prefer per-file tsconfigs over the auto-detected workspace root.
+  "typescript.preferences.includePackageJsonAutoImports": "on"
+}

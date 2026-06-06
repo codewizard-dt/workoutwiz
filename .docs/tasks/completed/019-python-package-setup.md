@@ -43,7 +43,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "workout-wiz"
+name = "workoutwiz"
 version = "0.1.0"
 description = "LangGraph fitness coaching multi-agent system"
 requires-python = ">=3.11"

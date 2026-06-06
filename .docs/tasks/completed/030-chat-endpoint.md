@@ -230,3 +230,6 @@ print('Health:', r.json())
 - [ ] `X-User-ID` header flows through to `AgentState.user_id`
 - [ ] Response includes `route` and `confidence` from the audit log
 - [ ] `pytest tests/test_chat_endpoint.py` passes (5/5)
+
+---
+**UAT**: [`.docs/uat/030-chat-endpoint.uat.md`](../uat/030-chat-endpoint.uat.md)

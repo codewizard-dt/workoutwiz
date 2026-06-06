@@ -15,7 +15,7 @@ function toLocalDatetimeString(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-type DraftSet = {
+interface DraftSet {
   exercise_id: string
   set_type: SetType
   reps: string
@@ -23,7 +23,7 @@ type DraftSet = {
   duration_s: string
 }
 
-type DraftSequence = {
+interface DraftSequence {
   phase: WorkoutPhase
   sets: DraftSet[]
 }
@@ -85,7 +85,7 @@ export default function WorkoutNewPage() {
     )
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     const payload = {
@@ -111,7 +111,7 @@ export default function WorkoutNewPage() {
     }
 
     createWorkout.mutate(payload, {
-      onSuccess: () => navigate('/workouts'),
+      onSuccess: () => { navigate('/workouts'); },
     })
   }
 
@@ -142,7 +142,7 @@ export default function WorkoutNewPage() {
             id="started-at"
             type="datetime-local"
             value={startedAt}
-            onChange={(e) => setStartedAt(e.target.value)}
+            onChange={(e) => { setStartedAt(e.target.value); }}
             required
           />
         </div>
@@ -170,7 +170,7 @@ export default function WorkoutNewPage() {
                     className="border rounded px-2 py-1 text-sm bg-background"
                     value={seq.phase}
                     onChange={(e) =>
-                      updateSequencePhase(seqIdx, e.target.value as WorkoutPhase)
+                      { updateSequencePhase(seqIdx, e.target.value as WorkoutPhase); }
                     }
                   >
                     {PHASES.map((p) => (
@@ -185,7 +185,7 @@ export default function WorkoutNewPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => addSet(seqIdx)}
+                    onClick={() => { addSet(seqIdx); }}
                   >
                     + Add Set
                   </Button>
@@ -193,7 +193,7 @@ export default function WorkoutNewPage() {
                     type="button"
                     variant="destructive"
                     size="sm"
-                    onClick={() => removeSequence(seqIdx)}
+                    onClick={() => { removeSequence(seqIdx); }}
                   >
                     Remove
                   </Button>
@@ -212,7 +212,7 @@ export default function WorkoutNewPage() {
                       value={s.exercise_id}
                       required
                       onChange={(e) =>
-                        updateSet(seqIdx, setIdx, { exercise_id: e.target.value })
+                        { updateSet(seqIdx, setIdx, { exercise_id: e.target.value }); }
                       }
                     >
                       <option value="">Select exercise…</option>
@@ -230,7 +230,7 @@ export default function WorkoutNewPage() {
                       className="w-full border rounded px-2 py-1 text-sm bg-background"
                       value={s.set_type}
                       onChange={(e) =>
-                        updateSet(seqIdx, setIdx, { set_type: e.target.value as SetType })
+                        { updateSet(seqIdx, setIdx, { set_type: e.target.value as SetType }); }
                       }
                     >
                       {SET_TYPES.map((t) => (
@@ -251,7 +251,7 @@ export default function WorkoutNewPage() {
                           placeholder="e.g. 8"
                           value={s.reps}
                           onChange={(e) =>
-                            updateSet(seqIdx, setIdx, { reps: e.target.value })
+                            { updateSet(seqIdx, setIdx, { reps: e.target.value }); }
                           }
                         />
                       </div>
@@ -264,7 +264,7 @@ export default function WorkoutNewPage() {
                           placeholder="e.g. 60"
                           value={s.weight_kg}
                           onChange={(e) =>
-                            updateSet(seqIdx, setIdx, { weight_kg: e.target.value })
+                            { updateSet(seqIdx, setIdx, { weight_kg: e.target.value }); }
                           }
                         />
                       </div>
@@ -278,7 +278,7 @@ export default function WorkoutNewPage() {
                         placeholder="e.g. 1800"
                         value={s.duration_s}
                         onChange={(e) =>
-                          updateSet(seqIdx, setIdx, { duration_s: e.target.value })
+                          { updateSet(seqIdx, setIdx, { duration_s: e.target.value }); }
                         }
                       />
                     </div>
@@ -289,7 +289,7 @@ export default function WorkoutNewPage() {
                       type="button"
                       variant="destructive"
                       size="sm"
-                      onClick={() => removeSet(seqIdx, setIdx)}
+                      onClick={() => { removeSet(seqIdx, setIdx); }}
                     >
                       Remove Set
                     </Button>

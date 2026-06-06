@@ -1,4 +1,4 @@
-.PHONY: install run test clean
+.PHONY: install run test clean migrate migrate-auto migrate-down migrate-history migrate-current typecheck typecheck-py typecheck-ts
 
 VENV := backend/.venv
 PYTHON := $(VENV)/bin/python
@@ -19,12 +19,50 @@ test:
 clean:
 	rm -rf $(VENV) backend/__pycache__ backend/.pytest_cache backend/*.egg-info
 
+## typecheck-py — mypy strict + ruff lint on backend/app
+typecheck-py:
+	$(PYTHON) -m mypy --config-file backend/pyproject.toml backend/app
+	$(VENV)/bin/ruff check backend/app
+
+## typecheck-ts — tsc + eslint on frontend/src
+typecheck-ts:
+	cd frontend && npx tsc --noEmit
+	cd frontend && npx eslint src --max-warnings=0
+
+## typecheck — run both language checks
+typecheck: typecheck-py typecheck-ts
+
+ALEMBIC := $(VENV)/bin/alembic
+ALEMBIC_DIR := backend
+
+## migrate — apply all pending migrations (head)
+migrate:
+	cd $(ALEMBIC_DIR) && ../$(ALEMBIC) upgrade head
+
+## migrate-auto — generate a new autogenerate migration (MSG required)
+## Usage: make migrate-auto MSG="add users table"
+migrate-auto:
+	@test -n "$(MSG)" || (echo "Error: MSG is required. Usage: make migrate-auto MSG=\"your message\"" && exit 1)
+	cd $(ALEMBIC_DIR) && ../$(ALEMBIC) revision --autogenerate -m "$(MSG)"
+
+## migrate-down — downgrade by one revision
+migrate-down:
+	cd $(ALEMBIC_DIR) && ../$(ALEMBIC) downgrade -1
+
+## migrate-history — show full migration history
+migrate-history:
+	cd $(ALEMBIC_DIR) && ../$(ALEMBIC) history --verbose
+
+## migrate-current — show current revision
+migrate-current:
+	cd $(ALEMBIC_DIR) && ../$(ALEMBIC) current
+
 # --- Docker / deployment ---
 
 -include .env
 export
 
-GHCR_REPO   = ghcr.io/future-research/workout-wiz
+GHCR_REPO   = ghcr.io/codewizard-dt/workoutwiz
 DROPLET_IP ?=
 PROJECT     = $(shell basename $(CURDIR))
 GITHUB_USER ?= $(shell gh api user --jq .login 2>/dev/null)
@@ -52,6 +90,10 @@ down:
 ## dev — build from source with hot-reload bind mounts
 dev:
 	docker compose -f docker-compose.yml -f docker-compose.build.yml up --wait
+	@echo "Services are running at the following URLs:"
+	@echo "Backend: http://localhost:$(BACKEND_PORT)"
+	@echo "Frontend: http://localhost:$(FRONTEND_PORT)"
+	@echo "Database: http://localhost:$(DB_PORT)"
 
 ## up — pull latest GHCR images and start the production stack (no build)
 up:

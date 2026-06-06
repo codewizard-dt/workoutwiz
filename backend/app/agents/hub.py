@@ -1,4 +1,5 @@
 import time
+from typing import Any, cast
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -23,7 +24,7 @@ Return a confidence score (0.0–1.0). Use < 0.6 only when genuinely ambiguous.
 """
 
 
-def _router_node(state: AgentState) -> dict:
+def _router_node(state: AgentState) -> dict[str, Any]:
     """LLM-based routing node using ChatAnthropic with_structured_output(RouteDecision)."""
     model_name = settings.router_model
     llm = ChatAnthropic(model=model_name).with_structured_output(RouteDecision, include_raw=True)
@@ -56,7 +57,7 @@ def _router_node(state: AgentState) -> dict:
         tokens_in = usage_meta.get("input_tokens", 0)
         tokens_out = usage_meta.get("output_tokens", 0)
     else:
-        route_decision = raw_result
+        route_decision = cast(RouteDecision, raw_result)
         tokens_in = 0
         tokens_out = 0
 
@@ -78,7 +79,7 @@ def _router_node(state: AgentState) -> dict:
     }
 
 
-def _clarification_node(state: AgentState) -> dict:
+def _clarification_node(state: AgentState) -> dict[str, Any]:
     """Returns a clarification prompt when routing confidence is below threshold or intent is FALLBACK."""
     rd = state.get("route_decision")
     reason_hint = ""
@@ -86,12 +87,12 @@ def _clarification_node(state: AgentState) -> dict:
         reason_hint = f" (reason: {rd.reasoning})"
 
     content = (
-        "I'm not sure what you're asking{}. I can help with:\n\n"
+        f"I'm not sure what you're asking{reason_hint}. I can help with:\n\n"
         "• **Fitness coaching** — questions about exercises, form, programming, recovery\n"
         "• **Workout planning** — generating a workout plan tailored to your goals\n"
         "• **Workout logging** — recording a workout you just completed\n\n"
         "Could you rephrase your request?"
-    ).format(reason_hint)
+    )
 
     audit_entry = {
         "event": "clarification",

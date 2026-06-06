@@ -1,12 +1,16 @@
 import uuid as _uuid
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError, WebSocketRequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
 
 from app.config import settings
 from app.exception_handlers import (
@@ -18,7 +22,7 @@ from app.logging_config import configure_logging
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging(settings.log_level)
     # Load exercise cache for the agent subsystem
     from app.database import AsyncSessionLocal
@@ -48,7 +52,7 @@ class _UnhandledExceptionCatcher(BaseHTTPMiddleware):
     Delegates to unhandled_exception_handler for the actual response.
     """
 
-    async def dispatch(self, request, call_next):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         try:
             return await call_next(request)
         except Exception as exc:
@@ -61,7 +65,7 @@ app.add_middleware(_UnhandledExceptionCatcher)
 class _RequestIDDispatch(BaseHTTPMiddleware):
     """Inner ASGI handler: reads/generates X-Request-ID and echoes it back."""
 
-    async def dispatch(self, request, call_next):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         request_id = request.headers.get("X-Request-ID", str(_uuid.uuid4()))
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
@@ -81,8 +85,8 @@ class RequestIDMiddleware(Middleware):
 
 app.user_middleware.insert(0, RequestIDMiddleware())
 
-app.add_exception_handler(HTTPException, http_exception_handler)
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore[arg-type]
+app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
 # FastAPI auto-registers WebSocketRequestValidationError via setdefault; remove it
@@ -92,15 +96,14 @@ app.exception_handlers.pop(WebSocketRequestValidationError, None)
 
 
 @app.get("/healthz")
-async def health_check():
+async def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.get("/", include_in_schema=False)
-async def demo_ui():
+async def demo_ui() -> HTMLResponse:
     """Serve the fitness coaching chat demo UI."""
     from pathlib import Path
-    from fastapi.responses import HTMLResponse
     index = Path(__file__).parent.parent.parent / "demo" / "index.html"
     if not index.exists():
         return HTMLResponse("<h1>Demo UI not found at backend/demo/index.html</h1>", status_code=404)
@@ -108,7 +111,8 @@ async def demo_ui():
 
 from fastapi import Depends
 from app.auth import auth_backend, fastapi_users, current_active_user
-from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.models.user import User
+from app.schemas.user import UserCreate, UserRead
 
 app.include_router(
     fastapi_users.get_auth_router(auth_backend),
@@ -123,7 +127,7 @@ app.include_router(
 
 
 @app.get("/auth/me", tags=["auth"])
-async def get_me(user=Depends(current_active_user)):
+async def get_me(user: User = Depends(current_active_user)) -> dict[str, str]:
     return {"id": str(user.id), "email": user.email}
 
 from app.routers import workouts

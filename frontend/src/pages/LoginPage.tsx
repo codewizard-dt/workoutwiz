@@ -11,11 +11,11 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const login = useLogin()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     login.mutate(
       { email, password },
-      { onSuccess: () => navigate('/workouts') }
+      { onSuccess: () => { navigate('/workouts'); } }
     )
   }
 
@@ -45,7 +45,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); }}
               required
               autoComplete="email"
             />
@@ -56,7 +56,7 @@ export default function LoginPage() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); }}
               required
               autoComplete="current-password"
             />

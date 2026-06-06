@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const register = useRegister()
   const login = useLogin()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     register.mutate(
       { email, password },
@@ -21,7 +21,7 @@ export default function RegisterPage() {
         onSuccess: () => {
           login.mutate(
             { email, password },
-            { onSuccess: () => navigate('/workouts') }
+            { onSuccess: () => { navigate('/workouts'); } }
           )
         },
       }
@@ -29,7 +29,7 @@ export default function RegisterPage() {
   }
 
   const isPending = register.isPending || login.isPending
-  const error = register.error || login.error
+  const error = register.error ?? login.error
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -57,7 +57,7 @@ export default function RegisterPage() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); }}
               required
               autoComplete="email"
             />
@@ -68,7 +68,7 @@ export default function RegisterPage() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); }}
               required
               autoComplete="new-password"
             />

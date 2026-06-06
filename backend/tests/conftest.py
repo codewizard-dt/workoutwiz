@@ -60,7 +60,7 @@ async def seed_exercises(apply_migrations):
     from app.schemas.exercise_seed import ExerciseSeedRecord
 
     data = json.loads(
-        (Path(__file__).parent.parent.parent / "1-multi-agent/exercises.json").read_text()
+        (Path(__file__).parent.parent.parent / ".docs/guides/1-multi-agent/exercises.json").read_text()
     )
     records = [ExerciseSeedRecord(**e) for e in data]
 

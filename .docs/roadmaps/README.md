@@ -199,7 +199,7 @@ One row per roadmap. Sort by file number ascending.
 
 | File | Title | Status | Progress | Owner | Linked PRD |
 |------|-------|--------|----------|-------|------------|
-| _No roadmaps yet — use `/roadmap-create <topic>` to draft the first one._ | | | | | |
+| [ROADMAP-003](003-openapi-swagger-annotations.md) | OpenAPI/Swagger Annotations | active | 0/8 | David Taylor | — |
 
 When adding a row:
 

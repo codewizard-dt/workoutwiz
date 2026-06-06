@@ -11,10 +11,10 @@ export function useLogin() {
       form.append('password', password)
       const res = await fetch('/api/auth/jwt/login', { method: 'POST', body: form })
       if (!res.ok) throw new Error('Invalid credentials')
-      const { access_token } = await res.json()
-      return access_token as string
+      const data = await res.json() as { access_token: string }
+      return data.access_token
     },
-    onSuccess: (token) => setToken(token),
+    onSuccess: (token) => { setToken(token); },
   })
 }
 
@@ -38,7 +38,7 @@ export function useMe() {
     queryKey: ['me'],
     queryFn: async () => {
       const res = await fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token!}` },
+        headers: { Authorization: `Bearer ${token ?? ''}` },
       })
       if (!res.ok) throw new Error('Failed to fetch user')
       return res.json() as Promise<User>

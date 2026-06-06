@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_async_session
 from app.auth import current_active_user
 from app.models.user import User
+from app.models.workout import Workout
 from app.schemas.workout import WorkoutCreate, WorkoutRead
 from app.services import workouts as workout_service
 
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/workouts", tags=["workouts"])
 async def list_workouts(
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_active_user),
-):
+) -> list[Workout]:
     return await workout_service.get_user_workouts(session, user.id)
 
 
@@ -23,7 +24,7 @@ async def create_workout(
     data: WorkoutCreate,
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_active_user),
-):
+) -> Workout:
     return await workout_service.create_workout(session, user.id, data)
 
 
@@ -32,7 +33,7 @@ async def get_workout(
     workout_id: uuid.UUID,
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_active_user),
-):
+) -> Workout:
     workout = await workout_service.get_workout(session, workout_id, user.id)
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
@@ -45,7 +46,7 @@ async def update_workout(
     data: WorkoutCreate,
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_active_user),
-):
+) -> Workout:
     workout = await workout_service.get_workout(session, workout_id, user.id)
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
@@ -57,7 +58,7 @@ async def delete_workout(
     workout_id: uuid.UUID,
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_active_user),
-):
+) -> None:
     workout = await workout_service.get_workout(session, workout_id, user.id)
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")

@@ -8,7 +8,7 @@
 ## Prerequisites
 
 - [ ] Python virtual environment exists at `1-multi-agent/.venv/`
-- [ ] `workout-wiz` package is installed in dev mode (`pip install -e ".[dev]"` from `1-multi-agent/`)
+- [ ] `workoutwiz` package is installed in dev mode (`pip install -e ".[dev]"` from `1-multi-agent/`)
 - [ ] `1-multi-agent/exercises.json` exists with 50 exercises (source of truth — no DB required for tool tests)
 - [ ] `1-multi-agent/src/workout_wiz/agents/workout_generator.py` exists
 

@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 from sqlalchemy import String, Boolean, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSON
 from sqlalchemy.orm import Mapped, mapped_column
@@ -13,7 +14,7 @@ class Exercise(Base):
     category: Mapped[str] = mapped_column(String(100), nullable=False)
     muscle_groups: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, server_default="{}")
     equipment_required: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, server_default="{}")
-    movement_patterns: Mapped[dict] = mapped_column(JSON, nullable=False, server_default="{}")
+    movement_patterns: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, server_default="{}")
     is_reps: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_duration: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     supports_weight: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

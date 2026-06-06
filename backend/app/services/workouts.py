@@ -42,7 +42,9 @@ async def create_workout(session: AsyncSession, user_id: uuid.UUID, data: Workou
 
     await session.commit()
     await session.refresh(workout)
-    return await get_workout(session, workout.id, user_id)
+    result = await get_workout(session, workout.id, user_id)
+    assert result is not None
+    return result
 
 
 async def update_workout(session: AsyncSession, workout: Workout, data: WorkoutCreate) -> Workout:
@@ -62,7 +64,9 @@ async def update_workout(session: AsyncSession, workout: Workout, data: WorkoutC
     user_id = workout.user_id
     await session.commit()
     session.expunge_all()
-    return await get_workout(session, workout_id, user_id)
+    result = await get_workout(session, workout_id, user_id)
+    assert result is not None
+    return result
 
 
 async def delete_workout(session: AsyncSession, workout: Workout) -> None:

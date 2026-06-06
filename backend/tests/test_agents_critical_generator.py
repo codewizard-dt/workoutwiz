@@ -22,7 +22,7 @@ import pytest
 from pathlib import Path
 
 # Load the real exercises dataset once
-_EXERCISES_PATH = Path(__file__).parent.parent.parent / "1-multi-agent" / "exercises.json"
+_EXERCISES_PATH = Path(__file__).parent.parent.parent / ".docs" / "guides" / "1-multi-agent" / "exercises.json"
 with _EXERCISES_PATH.open() as f:
     _ALL_EXERCISES: list[dict] = json.load(f)
 

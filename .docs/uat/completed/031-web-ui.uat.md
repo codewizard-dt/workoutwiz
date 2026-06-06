@@ -111,7 +111,7 @@ print(f'PASS: _DEMO_DIR={_DEMO_DIR}')
 "
   ```
 - **Expected Result**: Exits 0. Prints `PASS: _DEMO_DIR=<path>/.docs/guides/1-multi-agent/demo`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-05 -->
 
 ---
 
@@ -138,7 +138,7 @@ print('PASS')
 "
   ```
 - **Expected Result**: Exits 0 and prints `PASS`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-05 -->
 
 ### UAT-EDGE-002: UI response body includes routing metadata display logic
 
@@ -159,7 +159,7 @@ print('PASS')
 "
   ```
 - **Expected Result**: Exits 0 and prints `PASS`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-05 -->
 
 ### UAT-EDGE-003: UI response body includes Enter-key send handler
 
@@ -179,7 +179,7 @@ print('PASS')
 "
   ```
 - **Expected Result**: Exits 0 and prints `PASS`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-05 -->
 
 ### UAT-EDGE-004: Welcome bubble is present in initial HTML
 
@@ -199,7 +199,7 @@ print('PASS')
 "
   ```
 - **Expected Result**: Exits 0 and prints `PASS`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-05 -->
 
 ---
 
@@ -216,7 +216,7 @@ print('PASS')
   cd 1-multi-agent && .venv/bin/pytest tests/test_chat_endpoint.py -v
   ```
 - **Expected Result**: Exits 0. All tests pass, including `test_ui_served`. No regressions to `test_health`, `test_chat_returns_session_id`, `test_chat_reuses_session`, `test_chat_user_id_header`, `test_clear_session`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-05 -->
 
 ### UAT-INT-002: `demo/index.html` file content matches expected structure
 
@@ -237,4 +237,4 @@ print('PASS')
 "
   ```
 - **Expected Result**: Exits 0 and prints `PASS`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-05 -->

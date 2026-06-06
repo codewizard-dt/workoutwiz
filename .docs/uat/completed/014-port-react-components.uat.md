@@ -10,7 +10,7 @@
 - [ ] Node.js 18+ is available (`node --version`)
 - [ ] `frontend/` directory exists in the project root
 - [ ] Dependencies installed: run `npm install` from `frontend/`
-- [ ] Working directory for all `node -e` scripts: project root (i.e. `workout-wiz/`)
+- [ ] Working directory for all `node -e` scripts: project root (i.e. `workoutwiz/`)
 
 ---
 

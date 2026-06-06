@@ -163,3 +163,6 @@ Run: `cd 1-multi-agent && .venv/bin/pytest tests/test_audit.py -v`
 - [ ] `GET /audit/{session_id}` returns the full audit log for a session
 - [ ] `GET /audit/{unknown}` returns 404
 - [ ] `pytest tests/test_audit.py` passes (3/3)
+
+---
+**UAT**: [`.docs/uat/032-llm-audit-log.uat.md`](../uat/032-llm-audit-log.uat.md)

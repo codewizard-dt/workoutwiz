@@ -16,7 +16,7 @@ services:
       retries: 5
 
   backend:
-    image: ghcr.io/future-research/workout-wiz-backend:latest
+    image: ghcr.io/codewizard-dt/workoutwiz-backend:latest
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
@@ -28,7 +28,7 @@ services:
         condition: service_healthy
 
   frontend:
-    image: ghcr.io/future-research/workout-wiz-frontend:latest
+    image: ghcr.io/codewizard-dt/workoutwiz-frontend:latest
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     environment:

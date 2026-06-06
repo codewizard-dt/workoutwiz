@@ -66,7 +66,7 @@ export default function WorkoutsPage() {
               ) : (
                 workouts.map((w) => {
                   const totalSets = w.sequences.reduce(
-                    (acc, seq) => acc + (seq.sets?.length ?? 0),
+                    (acc, seq) => acc + seq.sets.length,
                     0
                   )
                   return (
@@ -81,7 +81,7 @@ export default function WorkoutsPage() {
                           variant="destructive"
                           size="sm"
                           disabled={deleteWorkout.isPending}
-                          onClick={() => deleteWorkout.mutate(w.id)}
+                          onClick={() => { deleteWorkout.mutate(w.id); }}
                         >
                           Delete
                         </Button>

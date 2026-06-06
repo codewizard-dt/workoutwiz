@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**IMPORTANT**
+ - you are never allowed to read or write to any .env* file except for .env.example
+ - you ARE allowed to use `set -a && source .env && set +a ` as a way to access those variables for cli commands
+
 ---
 
 ## Project Context

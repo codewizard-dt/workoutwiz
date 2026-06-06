@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_async_session
+from app.models.exercise import Exercise
 from app.schemas.exercise import ExerciseRead
 from app.services.exercises import list_exercises
 
@@ -14,5 +15,5 @@ async def get_exercises(
     equipment: list[str] | None = Query(None, description="Filter by equipment (any match)"),
     priority_tier: int | None = Query(None, ge=1, le=3, description="Filter by priority tier (1=highest)"),
     session: AsyncSession = Depends(get_async_session),
-) -> list[ExerciseRead]:
+) -> list[Exercise]:
     return await list_exercises(session, name=name, muscle_groups=muscle_groups, equipment=equipment, priority_tier=priority_tier)

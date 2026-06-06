@@ -1,11 +1,11 @@
-from enum import Enum
-from typing import Annotated
+from enum import StrEnum
+from typing import Annotated, Any
 from typing_extensions import TypedDict
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
 
 
-class Intent(str, Enum):
+class Intent(StrEnum):
     COACH = "COACH"
     WORKOUT_GENERATE = "WORKOUT_GENERATE"
     WORKOUT_LOG = "WORKOUT_LOG"
@@ -41,7 +41,7 @@ class AgentState(TypedDict):
     """Shared state flowing through the hub StateGraph and all sub-agent graphs."""
 
     # Conversation history — LangGraph accumulates messages with add_messages reducer
-    messages: Annotated[list, add_messages]
+    messages: Annotated[list[Any], add_messages]
 
     # Set by the router node after classification
     route_decision: RouteDecision | None
@@ -51,4 +51,4 @@ class AgentState(TypedDict):
 
     # Audit fields — populated as the graph executes
     session_id: str | None
-    audit_log: list[dict]
+    audit_log: list[dict[str, Any]]
