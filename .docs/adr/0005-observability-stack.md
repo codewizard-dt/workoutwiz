@@ -55,7 +55,11 @@ Extending the existing `audit_log` pattern to these nodes closes the gap without
 
 ## D1: Audit Entry Schema
 
-**Status**: Proposed
+**Status**: accepted  
+**Date**: 2026-06-06  
+**Deciders**: David Taylor  
+**Tags**: observability, audit-log, instrumentation  
+**Supersedes**: none
 
 ### Current Schema
 
@@ -93,11 +97,25 @@ The schema is append-only and backward-compatible: existing hub nodes continue w
 - Entries are session-scoped and lost when the session is evicted from `_sessions` in `chat.py`
 - No correlation IDs in Phase 1 (deferred enhancement)
 
+### Validation
+
+| Signal | Threshold | When |
+|--------|-----------|------|
+| Unit tests verify all hub and KG nodes append audit entries with schema fields (`event`, `latency_ms`, `tokens_in`, `tokens_out`, `model`, `provider`, `user_id`, `node_name`, and optional `source_type`, `source_id`) | ≥95% of node invocations captured in test suite; no missing-field crashes | During Phase 2 implementation (TASK-075, 076, 077, 078) |
+
+### Links
+
+- Source task(s): `.docs/tasks/075-instrument-kg-hub-node.md`, `.docs/tasks/076-instrument-retrieval-nodes.md`, `.docs/tasks/077-instrument-generation-nodes.md`, `.docs/tasks/078-instrument-explainability-tool.md`
+
 ---
 
 ## D2: Token Tracking Strategy
 
-**Status**: Proposed
+**Status**: accepted  
+**Date**: 2026-06-06  
+**Deciders**: David Taylor  
+**Tags**: observability, token-tracking, defensive-fallback  
+**Supersedes**: none
 
 ### Current Approach
 
@@ -131,11 +149,25 @@ Missing LLM metadata → `tokens_in = 0`, `tokens_out = 0`. The node still appen
 
 Token counts are the primary signal for LLM cost estimation. Defensive fallback prevents runtime errors during unit tests (where LLM calls are mocked and return synthetic objects without `usage_metadata`) and prevents crashes if the provider API changes the response shape.
 
+### Validation
+
+| Signal | Threshold | When |
+|--------|-----------|------|
+| Integration tests confirm defensive fallback pattern works: all 7 node types (hub router, coach, generator, logger, KG retrieval, KG generation, explainability) tested with missing `usage_metadata` and return 0 tokens without crashing | All 7 node types pass test suite; no `AttributeError` or `KeyError` in logs | During Phase 2 (TASK-075, 076, 077, 078) |
+
+### Links
+
+- Source task(s): `.docs/tasks/075-instrument-kg-hub-node.md`, `.docs/tasks/076-instrument-retrieval-nodes.md`, `.docs/tasks/077-instrument-generation-nodes.md`, `.docs/tasks/078-instrument-explainability-tool.md`
+
 ---
 
 ## D3: Endpoint Exposure and RecommendedExercise Fields
 
-**Status**: Proposed
+**Status**: accepted  
+**Date**: 2026-06-06  
+**Deciders**: David Taylor  
+**Tags**: observability, endpoints, provenance  
+**Supersedes**: none
 
 ### Existing Endpoint
 
@@ -172,6 +204,16 @@ These fields are optional with defaults, so existing callers that construct `Rec
 ### Rationale
 
 `/kg/audit/{session_id}` provides a scoped view for KG debugging without polluting the chat audit endpoint. `RecommendedExercise` provenance fields close the explainability loop: the frontend can display why a specific exercise was recommended (SAFE_SET → curated; VECTOR_SEARCH → semantic match; FALLBACK → default).
+
+### Validation
+
+| Signal | Threshold | When |
+|--------|-----------|------|
+| Integration test: GET `/kg/audit/{session_id}` returns non-empty list with expected event keys after KNOWLEDGE_GRAPH intent; RecommendedExercise includes `source_type` field set to one of SAFE_SET, PREFERRED, VECTOR_SEARCH, FALLBACK | Response code 200, ≥1 audit entry per call, 100% of exercises in recommendation have `source_type` set | During Phase 2 (TASK-081: Add GET /kg/audit/{session_id} Endpoint) |
+
+### Links
+
+- Source task(s): `.docs/tasks/079-add-source-fields-to-recommended-exercise.md`, `.docs/tasks/081-add-kg-audit-endpoint.md`
 
 ---
 
