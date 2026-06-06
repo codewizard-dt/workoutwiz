@@ -1,0 +1,19 @@
+# Local dev overlay: builds images from source instead of pulling from GHCR.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.build.yml up --build --wait
+#        (or simply: make dev)
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      - /app/.venv        # shields the container's venv from the host mount
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # shields the container's node_modules from the host mount

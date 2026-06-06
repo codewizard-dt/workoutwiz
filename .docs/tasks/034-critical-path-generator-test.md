@@ -16,7 +16,7 @@ The grounding guarantee comes from the tool contract: `build_workout_tool` recei
 
 ### 1. Create tests/test_critical_path_generator.py  <!-- agent: general-purpose -->
 
-Create `1-multi-agent/tests/test_critical_path_generator.py`:
+Create `.docs/guides/1-multi-agent/tests/test_critical_path_generator.py`:
 
 ```python
 """
@@ -119,7 +119,7 @@ def test_all_workout_exercise_ids_exist_in_dataset():
         )
 ```
 
-- [x] File exists at `1-multi-agent/tests/test_critical_path_generator.py`
+- [x] File exists at `.docs/guides/1-multi-agent/tests/test_critical_path_generator.py`
 - [x] Three test functions defined (one per bullet in acceptance criteria)
 - [x] Tests load `exercises.json` from the real file path (no mocking of data)
 - [x] No `ANTHROPIC_API_KEY` import or real LLM instantiation

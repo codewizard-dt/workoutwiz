@@ -89,7 +89,7 @@ async def get_audit(session_id: str):
 
 ### 4. Write audit tests  <!-- agent: general-purpose -->
 
-Create `1-multi-agent/tests/test_audit.py`:
+Create `.docs/guides/1-multi-agent/tests/test_audit.py`:
 
 ```python
 import pytest

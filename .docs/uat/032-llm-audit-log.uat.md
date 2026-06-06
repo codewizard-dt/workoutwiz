@@ -7,9 +7,9 @@
 
 ## Prerequisites
 
-- [ ] `1-multi-agent/.venv` exists and dependencies are installed (`cd 1-multi-agent && pip install -e ".[dev]"` if not)
-- [ ] Working directory for all shell commands is `1-multi-agent/`
-- [ ] `exercises.json` is present at `1-multi-agent/exercises.json` (50 exercises)
+- [ ] `.docs/guides/1-multi-agent/.venv` exists and dependencies are installed (`cd 1-multi-agent && pip install -e ".[dev]"` if not)
+- [ ] Working directory for all shell commands is `.docs/guides/1-multi-agent/`
+- [ ] `exercises.json` is present at `.docs/guides/1-multi-agent/exercises.json` (50 exercises)
 - [ ] No `ANTHROPIC_API_KEY` required — all tests use mocks or direct session state injection
 
 ---
@@ -21,7 +21,7 @@
 - **Endpoint**: `GET /audit/{session_id}`
 - **Description**: Verify the audit endpoint returns a session's full audit log including `total_entries`, `session_id`, and the `audit_log` array.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/pytest tests/test_audit.py::test_audit_endpoint_returns_log -v
@@ -34,7 +34,7 @@
 - **Endpoint**: `GET /audit/{session_id}`
 - **Description**: Verify the endpoint returns HTTP 404 when the given `session_id` is not present in `_sessions`.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/pytest tests/test_audit.py::test_audit_404_unknown_session -v
@@ -47,7 +47,7 @@
 - **Endpoint**: `POST /chat`
 - **Description**: Verify the `/chat` response's `audit_log` field is populated with at least one router entry containing `tokens_in`, `route`, and `confidence`.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/pytest tests/test_audit.py::test_chat_response_includes_audit -v
@@ -60,7 +60,7 @@
 - **Endpoint**: `GET /audit/{session_id}`, `POST /chat`
 - **Description**: Run the entire `test_audit.py` suite to confirm all three tests pass together with the `clear_sessions` fixture operating correctly.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/pytest tests/test_audit.py -v
@@ -73,7 +73,7 @@
 - **Endpoint**: `GET /audit/{session_id}`
 - **Description**: Verify the endpoint handles a session that exists but has no audit entries (e.g. session was manually inserted without `audit_log`).
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -100,7 +100,7 @@ print('PASS')
 - **Endpoint**: `GET /audit/{session_id}`
 - **Description**: Verify that `state.get("audit_log", [])` in `get_audit` is defensive — a session stored without the `audit_log` key still returns `total_entries: 0` rather than raising a `KeyError`.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -130,7 +130,7 @@ print('PASS')
 
 - **Scenario**: A router audit entry injected into a session must contain all fields specified in the task: `event`, `model`, `provider`, `route`, `confidence`, `latency_ms`, `tokens_in`, `tokens_out`, `user_id`.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -167,7 +167,7 @@ print('PASS')
 
 - **Scenario**: The `_chat_node` in `coach.py` must produce an entry with `event == "coach"` — not `"router"` or anything else. Verify via source inspection.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -188,7 +188,7 @@ print('PASS')
 
 - **Scenario**: The `_generate_node` in `workout_generator.py` must use `event == "generator"`. Verify via source inspection.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -209,7 +209,7 @@ print('PASS')
 
 - **Scenario**: The `_log_node` in `workout_logger.py` must use `event == "logger"`. Verify via source inspection.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -230,7 +230,7 @@ print('PASS')
 
 - **Scenario**: If LangChain does not return usage metadata (e.g. mock returns an AIMessage with no `usage_metadata`), token counts must be 0 rather than raising `AttributeError` or `TypeError`.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -251,7 +251,7 @@ print('PASS')
 
 - **Scenario**: When a session has multiple chat turns, audit entries must accumulate (not overwrite). Inject two turns' worth of audit entries and confirm `total_entries == 2`.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -286,7 +286,7 @@ print('PASS')
 - **Components**: `_sessions`, `clear_sessions` fixture, `GET /audit/{session_id}`, `POST /chat`
 - **Flow**: Run both `test_audit.py` and `test_chat_endpoint.py` together. The `clear_sessions` autouse fixture must prevent state from leaking between tests.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/pytest tests/test_audit.py tests/test_chat_endpoint.py -v
@@ -299,7 +299,7 @@ print('PASS')
 - **Components**: `ChatResponse` Pydantic model, `POST /chat`
 - **Flow**: Confirm `ChatResponse` declares `audit_log: list[dict]` and that a mocked `/chat` call returns it in the JSON response.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -320,7 +320,7 @@ print(f'PASS: ChatResponse fields = {list(fields.keys())}')
 - **Components**: `_router_node` in `hub.py`, `AgentState`
 - **Flow**: Verify via source inspection that `_router_node` returns a dict containing `audit_log` with the router entry appended (not replacing the full list).
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "

@@ -16,7 +16,7 @@ The clarification node was stubbed in task 023. This task replaces the stub with
 
 ### 1. Replace clarification stub in hub.py  <!-- agent: general-purpose -->
 
-Replace `_clarification_node` in `1-multi-agent/src/workout_wiz/hub.py` with:
+Replace `_clarification_node` in `.docs/guides/1-multi-agent/src/workout_wiz/hub.py` with:
 
 ```python
 def _clarification_node(state: AgentState) -> dict:
@@ -56,7 +56,7 @@ def _clarification_node(state: AgentState) -> dict:
 
 ### 2. Test clarification node  <!-- agent: general-purpose -->
 
-Create `1-multi-agent/tests/test_clarification.py`:
+Create `.docs/guides/1-multi-agent/tests/test_clarification.py`:
 
 ```python
 from langchain_core.messages import HumanMessage

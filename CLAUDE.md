@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Context
 
-This is an **AI engineering take-home assessment** being built as a public GitHub repo. The deliverable is Assessment 1 from `1-multi-agent/ASSESSMENT.md`: a fitness coaching multi-agent system. The full product spec lives in `.docs/prd/001-fitness-coaching-multi-agent.md`.
+This is an **AI engineering take-home assessment** being built as a public GitHub repo. The deliverable is Assessment 1 from `.docs/guides/1-multi-agent/ASSESSMENT.md`: a fitness coaching multi-agent system. The full product spec lives in `.docs/prd/001-fitness-coaching-multi-agent.md`.
 
 **Assessors judge**: routing correctness (LLM structured output, not regex), LangGraph architecture quality (typed `StateGraph`, separate sub-agent graphs), resilience (edge cases handled without exceptions), and a production-readiness README section.
 
@@ -15,19 +15,15 @@ This is an **AI engineering take-home assessment** being built as a public GitHu
 ## Repository Layout
 
 ```
-1-multi-agent/        Assessment spec and exercises.json dataset (50 exercises)
-2-knowledge-graph/    Second assessment (not being implemented)
-legacy/               Reference-only: old Node/Express/Mongoose/React app
-  client/             Legacy React frontend (CRA + Redux + Semantic UI)
-  src/                Legacy Express backend (Mongoose schemas, JWT auth)
+backend/              FastAPI app (Python) — agents, routers, models, migrations
+frontend/             Vite + React + TypeScript app
 .docs/                Planning and spec documents
   prd/                PRD-001: product requirements
-  roadmaps/           ROADMAP-001: execution plan
-  legacy.md           Full inventory of legacy system (schema, APIs, components)
+  roadmaps/           ROADMAP-001 (completed), ROADMAP-002 (active)
   guides/             MCP tool rules, task lifecycle, deployment strategy
+    1-multi-agent/    Assessment 1 spec + exercises.json dataset (50 exercises)
+    2-knowledge-graph/ Assessment 2 spec (not being implemented)
 ```
-
-The app itself **does not exist yet** — all application code will be created during implementation.
 
 ---
 
@@ -44,7 +40,7 @@ The app itself **does not exist yet** — all application code will be created d
 
 ## The Exercise Dataset
 
-`1-multi-agent/exercises.json` — 50 exercises, UUID primary keys. This is the **sole data source** for exercises; no external APIs. Key fields for agents:
+`.docs/guides/1-multi-agent/exercises.json` — 50 exercises, UUID primary keys. This is the **sole data source** for exercises; no external APIs. Key fields for agents:
 
 - `muscle_groups`, `movement_patterns`, `equipment_required` — used by `WORKOUT_GENERATE` sub-agent for `search_exercises` tool
 - `is_reps`, `is_duration`, `supports_weight` — determine valid tracking fields per exercise
@@ -82,7 +78,7 @@ Three entities beyond exercises:
 | `workout_sequences` | `id`, `workout_id`, `phase` (warmup/main/cooldown), `position` |
 | `workout_sets` | `id`, `sequence_id`, `exercise_id`, `set_type` (STRENGTH/CARDIO), `reps`, `weight_kg`, `duration_s`, `speed`, `distance`, `calories` |
 
-Not porting from legacy: `gifUrl`, `barWeight`, `weightAssist`.
+Excluded fields: `gifUrl`, `barWeight`, `weightAssist`.
 
 ---
 
@@ -129,8 +125,8 @@ All planning lives in `.docs/`. Do not skip these — they contain decisions tha
 | File | Contains |
 |------|----------|
 | `.docs/prd/001-fitness-coaching-multi-agent.md` | User stories, acceptance criteria, success metrics |
-| `.docs/roadmaps/001-port-legacy-to-modern-stack.md` | Execution plan + all Phase 0 design decisions (auth, DB schema, state management, etc.) |
-| `.docs/legacy.md` | Complete inventory of the legacy system: every API endpoint, schema, Redux slice, component |
+| `.docs/roadmaps/completed/001-port-legacy-to-modern-stack.md` | Phase 0 design decisions (auth, DB schema, state management, etc.) |
+| `.docs/roadmaps/002-langgraph-multi-agent-system.md` | Active execution plan for the LangGraph multi-agent system |
 | `.docs/guides/mcp-tools.md` | MCP tool rules — read before touching any file |
 | `.docs/guides/task-lifecycle.md` | How tasks and UAT files move through `.docs/tasks/` |
 | `.docs/guides/evals-framework.md` | Evaluation framework for AI systems (5-stage model) |

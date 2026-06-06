@@ -7,9 +7,9 @@
 
 ## Prerequisites
 
-- [ ] `1-multi-agent/.venv` exists and dependencies are installed (`cd 1-multi-agent && pip install -e ".[dev]"` if not)
-- [ ] Working directory for all shell commands is `1-multi-agent/`
-- [ ] `1-multi-agent/demo/index.html` exists
+- [ ] `.docs/guides/1-multi-agent/.venv` exists and dependencies are installed (`cd 1-multi-agent && pip install -e ".[dev]"` if not)
+- [ ] Working directory for all shell commands is `.docs/guides/1-multi-agent/`
+- [ ] `.docs/guides/1-multi-agent/demo/index.html` exists
 - [ ] No `ANTHROPIC_API_KEY` required — all tests are pure-function (no real LLM calls)
 
 ---
@@ -21,7 +21,7 @@
 - **Endpoint**: `GET /`
 - **Description**: Verify FastAPI serves `demo/index.html` at the root path with status 200 and `text/html` content-type.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/pytest tests/test_chat_endpoint.py::test_ui_served -v
@@ -34,7 +34,7 @@
 - **Endpoint**: `GET /`
 - **Description**: Verify the served HTML includes the application title so assessors can confirm the correct file is being served.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -56,7 +56,7 @@ print('PASS')
 - **Endpoint**: `GET /`
 - **Description**: Verify the HTML contains the `#msg` input, the `#send` button, and the `#chat` container — the three structural elements required by the task.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -78,7 +78,7 @@ print('PASS')
 - **Endpoint**: `GET /`
 - **Description**: Verify the embedded JavaScript references `sessionStorage` for session persistence and `fetch` against `/chat` for API calls.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -97,9 +97,9 @@ print('PASS')
 ### UAT-API-005: `_DEMO_DIR` path resolution points to the correct directory
 
 - **Endpoint**: N/A (module-level constant)
-- **Description**: Verify `_DEMO_DIR` in `main.py` resolves to the `1-multi-agent/demo/` directory and that `demo/index.html` exists there — confirming the 3-parent traversal is correct.
+- **Description**: Verify `_DEMO_DIR` in `main.py` resolves to the `.docs/guides/1-multi-agent/demo/` directory and that `demo/index.html` exists there — confirming the 3-parent traversal is correct.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -110,7 +110,7 @@ assert _DEMO_DIR.name == 'demo', f'Expected directory named demo, got {_DEMO_DIR
 print(f'PASS: _DEMO_DIR={_DEMO_DIR}')
 "
   ```
-- **Expected Result**: Exits 0. Prints `PASS: _DEMO_DIR=<path>/1-multi-agent/demo`.
+- **Expected Result**: Exits 0. Prints `PASS: _DEMO_DIR=<path>/.docs/guides/1-multi-agent/demo`.
 - [ ] Pass
 
 ---
@@ -121,7 +121,7 @@ print(f'PASS: _DEMO_DIR={_DEMO_DIR}')
 
 - **Scenario**: Mounting the UI at `GET /` must not shadow or break `/health`, `/chat`, or `/audit/{session_id}`.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -144,7 +144,7 @@ print('PASS')
 
 - **Scenario**: The JavaScript must format and display route + confidence metadata under each agent reply. Verify the meta-display code is present.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -165,7 +165,7 @@ print('PASS')
 
 - **Scenario**: The JS must bind Enter (without Shift) to the send function so keyboard-only interaction works.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -185,7 +185,7 @@ print('PASS')
 
 - **Scenario**: The initial page load must include a pre-rendered agent bubble with a greeting, so assessors see content immediately without sending a message.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "
@@ -210,7 +210,7 @@ print('PASS')
 - **Components**: `GET /`, `demo/index.html`, `_DEMO_DIR` path, FastAPI `HTMLResponse`
 - **Flow**: Run the complete `test_chat_endpoint.py` suite; `test_ui_served` must pass and existing tests must not regress.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/pytest tests/test_chat_endpoint.py -v
@@ -223,7 +223,7 @@ print('PASS')
 - **Components**: `demo/index.html` (static file)
 - **Flow**: Confirm the file on disk has a `<!DOCTYPE html>` declaration, the correct `<title>`, and the required CSS classes for user/agent bubbles.
 - **Steps**:
-  1. Run the command below from inside `1-multi-agent/`.
+  1. Run the command below from inside `.docs/guides/1-multi-agent/`.
 - **Command**:
   ```bash
   cd 1-multi-agent && .venv/bin/python -c "

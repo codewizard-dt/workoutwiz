@@ -6,23 +6,23 @@
 
 ## Objective
 
-Add a `## Production Evaluation` section to `1-multi-agent/README.md` that gives assessors (and future operators) a concrete picture of how to monitor this system in production — key metrics, known failure modes, health signals, and the one-command demo.
+Add a `## Production Evaluation` section to `.docs/guides/1-multi-agent/README.md` that gives assessors (and future operators) a concrete picture of how to monitor this system in production — key metrics, known failure modes, health signals, and the one-command demo.
 
 ## Approach
 
-Write the section directly in `1-multi-agent/README.md` after any existing content. The section must cover four subsections: metrics (latency per route, routing accuracy, fallback rate), failure modes (LLM timeout, low-confidence routing, fuzzy match failures), health signals (what to observe when the system misbehaves), and the demo runbook (single command to start, what to type for each route). Keep it concise — assessors read this on GitHub; it should be scannable, not a wall of prose.
+Write the section directly in `.docs/guides/1-multi-agent/README.md` after any existing content. The section must cover four subsections: metrics (latency per route, routing accuracy, fallback rate), failure modes (LLM timeout, low-confidence routing, fuzzy match failures), health signals (what to observe when the system misbehaves), and the demo runbook (single command to start, what to type for each route). Keep it concise — assessors read this on GitHub; it should be scannable, not a wall of prose.
 
 ## Steps
 
 ### 1. Read the existing README  <!-- agent: general-purpose -->
 
-Read `1-multi-agent/README.md` to understand the current structure. Find the last heading so the new section can be appended cleanly after it.
+Read `.docs/guides/1-multi-agent/README.md` to understand the current structure. Find the last heading so the new section can be appended cleanly after it.
 
 - [ ] Existing README content noted — no existing "Production Evaluation" section
 
 ### 2. Append the Production Evaluation section  <!-- agent: general-purpose -->
 
-Append the following section to `1-multi-agent/README.md` (after all existing content):
+Append the following section to `.docs/guides/1-multi-agent/README.md` (after all existing content):
 
 ```markdown
 ## Production Evaluation
@@ -106,7 +106,7 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 Each response includes the route taken and confidence score. The full per-call audit trail is available at `GET /audit/{session_id}` using the `session_id` from the chat response.
 ```
 
-- [ ] Section appended to `1-multi-agent/README.md`
+- [ ] Section appended to `.docs/guides/1-multi-agent/README.md`
 - [ ] Four subsections present: Key Metrics, Failure Modes, Health Signals, Running the Demo
 - [ ] Metrics table has ≥5 rows with target values and measurement methods
 - [ ] Failure modes section covers LLM timeout, low-confidence routing, and fuzzy match failures
@@ -114,7 +114,7 @@ Each response includes the route taken and confidence score. The full per-call a
 
 ### 3. Verify markdown renders cleanly  <!-- agent: general-purpose -->
 
-Open `1-multi-agent/README.md` in a markdown previewer or push to GitHub and verify:
+Open `.docs/guides/1-multi-agent/README.md` in a markdown previewer or push to GitHub and verify:
 - No unclosed code fences
 - Table columns align (GitHub auto-formats, but check locally)
 - All hyperlinks in the document are valid (no broken relative paths)
@@ -123,7 +123,7 @@ Open `1-multi-agent/README.md` in a markdown previewer or push to GitHub and ver
 # Quick lint: check for unclosed triple-backtick fences
 python3 -c "
 import sys
-content = open('1-multi-agent/README.md').read()
+content = open('.docs/guides/1-multi-agent/README.md').read()
 fences = content.count('\`\`\`')
 if fences % 2 != 0:
     print('ERROR: odd number of code fences — likely unclosed block')
@@ -137,7 +137,7 @@ print(f'OK: {fences} code fences (all closed)')
 
 ## Acceptance Criteria
 
-- [ ] `1-multi-agent/README.md` contains a `## Production Evaluation` section
+- [ ] `.docs/guides/1-multi-agent/README.md` contains a `## Production Evaluation` section
 - [ ] Key metrics table includes: router latency, routing accuracy, fallback rate, invalid ID rate, token budget
 - [ ] Failure modes cover: LLM timeout, low-confidence routing, fuzzy match failure
 - [ ] Health signals list is actionable (tells operator what to check, in what order)

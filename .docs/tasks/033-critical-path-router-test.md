@@ -16,7 +16,7 @@ Use `unittest.mock.patch` to replace the LangChain LLM call inside the router no
 
 ### 1. Create tests/test_critical_path_router.py  <!-- agent: general-purpose -->
 
-Create `1-multi-agent/tests/test_critical_path_router.py`:
+Create `.docs/guides/1-multi-agent/tests/test_critical_path_router.py`:
 
 ```python
 """
@@ -156,7 +156,7 @@ def test_router_low_confidence_triggers_clarification():
     )
 ```
 
-- [x] File exists at `1-multi-agent/tests/test_critical_path_router.py`
+- [x] File exists at `.docs/guides/1-multi-agent/tests/test_critical_path_router.py`
 - [x] Five test functions are defined (one per bullet in acceptance criteria)
 - [x] No `ANTHROPIC_API_KEY` import or real LLM instantiation in tests
 

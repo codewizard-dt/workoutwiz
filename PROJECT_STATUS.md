@@ -36,6 +36,7 @@ Phase 4 of [ROADMAP-002: LangGraph Fitness Coaching Multi-Agent System](.docs/ro
 ### Infrastructure (ROADMAP-001)
 - FastAPI project structure, logging/error handling, exercise seed data, workout endpoints, integration tests
 - Vite + React + TypeScript scaffold, Tailwind + shadcn/ui, React Query state, production README, Python package setup
+- Docker dev stack: `docker-compose.yml` (all services with image refs), `docker-compose.build.yml` (slim build/volume overlay), `backend/Dockerfile.dev`, `frontend/Dockerfile.dev`, Makefile Docker targets, `security.yml` CodeQL matrix, `vite.config.ts` PROXY_TARGET patch
 
 ## Upcoming
 

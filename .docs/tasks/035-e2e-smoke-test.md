@@ -16,7 +16,7 @@ Use FastAPI's `TestClient` (backed by `httpx`) to make synchronous HTTP requests
 
 ### 1. Create tests/test_e2e_smoke.py  <!-- agent: general-purpose -->
 
-Create `1-multi-agent/tests/test_e2e_smoke.py`:
+Create `.docs/guides/1-multi-agent/tests/test_e2e_smoke.py`:
 
 ```python
 """
@@ -158,7 +158,7 @@ def test_delete_session_clears_state():
     assert session_id not in _sessions
 ```
 
-- [ ] File exists at `1-multi-agent/tests/test_e2e_smoke.py`
+- [ ] File exists at `.docs/guides/1-multi-agent/tests/test_e2e_smoke.py`
 - [ ] Five test functions defined (one per route in acceptance criteria)
 - [ ] Hub is mocked — no real LangGraph or Anthropic calls
 - [ ] `autouse` fixture clears `_sessions` before/after each test

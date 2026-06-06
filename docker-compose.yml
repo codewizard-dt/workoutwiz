@@ -15,5 +15,27 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    image: ghcr.io/future-research/workout-wiz-backend:latest
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/workoutwiz
+      SECRET_KEY: ${SECRET_KEY:-changeme-in-development}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: ghcr.io/future-research/workout-wiz-frontend:latest
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      PROXY_TARGET: http://backend:8000
+    command: npx vite --host
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:

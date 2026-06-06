@@ -60,7 +60,18 @@ The hub routes natural-language input to the appropriate sub-agent using LLM str
 
 - Python 3.11+
 - Node.js 20+
-- Docker (for PostgreSQL)
+- Docker (for PostgreSQL or the full dev stack)
+
+### Docker (full stack)
+
+Runs the database, backend, and frontend together with hot-reload. Requires `ANTHROPIC_API_KEY` in a `.env` file at the repo root.
+
+```bash
+cp backend/.env.example .env   # edit ANTHROPIC_API_KEY (and SECRET_KEY for production)
+make dev
+```
+
+Services come up at `http://localhost:5173` (frontend), `http://localhost:8000` (backend), and `localhost:5433` (Postgres). The first run builds the images; subsequent starts are fast. Use `make down` to stop.
 
 ### Multi-Agent Demo (Assessment 1)
 

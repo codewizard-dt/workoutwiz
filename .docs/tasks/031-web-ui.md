@@ -16,7 +16,7 @@ A single `demo/index.html` file served by FastAPI's `StaticFiles` mount (or inli
 
 ### 1. Create demo/index.html  <!-- agent: general-purpose -->
 
-Create `1-multi-agent/demo/index.html`:
+Create `.docs/guides/1-multi-agent/demo/index.html`:
 
 ```html
 <!DOCTYPE html>
@@ -149,8 +149,8 @@ async def ui():
 Note: The path `Path(__file__).parent.parent.parent.parent / "demo"` resolves from `src/workout_wiz/main.py`:
 - `.parent` = `src/workout_wiz/`
 - `.parent.parent` = `src/`
-- `.parent.parent.parent` = `1-multi-agent/`
-- `/ "demo"` = `1-multi-agent/demo/`
+- `.parent.parent.parent` = `.docs/guides/1-multi-agent/`
+- `/ "demo"` = `.docs/guides/1-multi-agent/demo/`
 
 That's 3 `.parent` calls, not 4. Verify and fix if needed.
 

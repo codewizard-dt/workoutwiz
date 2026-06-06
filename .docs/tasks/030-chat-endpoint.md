@@ -16,7 +16,7 @@ The FastAPI app lives at `src/workout_wiz/main.py`. The `/chat` endpoint uses an
 
 ### 1. Create src/workout_wiz/main.py  <!-- agent: general-purpose -->
 
-Create `1-multi-agent/src/workout_wiz/main.py`:
+Create `.docs/guides/1-multi-agent/src/workout_wiz/main.py`:
 
 ```python
 import uuid
@@ -115,7 +115,7 @@ async def clear_session(session_id: str):
 
 ### 2. Write endpoint tests  <!-- agent: general-purpose -->
 
-Create `1-multi-agent/tests/test_chat_endpoint.py`:
+Create `.docs/guides/1-multi-agent/tests/test_chat_endpoint.py`:
 
 ```python
 import pytest
