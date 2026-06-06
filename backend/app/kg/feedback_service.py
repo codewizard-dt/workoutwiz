@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 from neo4j import AsyncDriver
 
@@ -34,9 +34,9 @@ async def write_feedback(payload: FeedbackPayload, driver: AsyncDriver) -> str:
         The ``id`` of the created ``FeedbackEvent`` node.
     """
     feedback_id = str(uuid.uuid4())
-    created_at = datetime.now(timezone.utc).isoformat()
+    created_at = datetime.now(UTC).isoformat()
 
-    async with driver.session() as neo4j_session:  # type: ignore[attr-defined]
+    async with driver.session() as neo4j_session:
 
         async def _write(tx: object) -> None:
             # Step A: MERGE FeedbackEvent node

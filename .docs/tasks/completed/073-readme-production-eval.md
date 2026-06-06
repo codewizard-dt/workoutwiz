@@ -23,7 +23,7 @@ The section should be substantive (~400–600 words), demonstrating production e
 
 Use the `Read` tool on `README.md`. Find the last major section heading (e.g., "## Production Evaluation" if one exists, or the end of the file). Identify the exact line where the new section should be inserted.
 
-- [ ] Insertion point identified
+- [x] Insertion point identified <!-- Completed: 2026-06-06 -->
 
 ### 2. Add the production evaluation section  <!-- agent: general-purpose -->
 
@@ -73,26 +73,26 @@ The 2048-token context budget (ADR-001 D3) is enforced by `_truncate_to_budget()
 4. **Vector store warm-up**: the sentence-transformers model loads lazily; pre-warm on startup to avoid cold-start latency spikes.
 ```
 
-- [ ] Section added to `README.md`
+- [x] Section added to `README.md` <!-- Completed: 2026-06-06 -->
 
 ### 3. Verify section renders correctly  <!-- agent: general-purpose -->
 
 Use `Read` on `README.md` to confirm the section was inserted correctly, headings are at the right level, and the table is properly formatted.
 
-- [ ] Section renders correctly in Markdown
+- [x] Section renders correctly in Markdown <!-- Completed: 2026-06-06 -->
 
 ### 4. Update roadmap  <!-- agent: general-purpose -->
 
 Replace the inline Phase 7 README placeholder with `[TASK-073: README production evaluation section...](../tasks/073-readme-production-eval.md)`.
 
-- [ ] Roadmap updated
+- [x] Roadmap updated <!-- Completed: 2026-06-06 -->
 
 ## Acceptance Criteria
 
-- [ ] `README.md` contains `## How I Would Evaluate This System in Production` section
-- [ ] Section covers: retrieval quality, safety monitoring, latency, token efficiency
-- [ ] Latency table present with per-component budgets
-- [ ] Section length ~400–600 words (substantive, not a stub)
+- [x] `README.md` contains `## How I Would Evaluate This System in Production` section
+- [x] Section covers: retrieval quality, safety monitoring, latency, token efficiency
+- [x] Latency table present with per-component budgets
+- [x] Section length ~400–600 words (substantive, not a stub)
 
 ---
 **UAT**: `.docs/uat/073-readme-production-eval.uat.md`

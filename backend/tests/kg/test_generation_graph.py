@@ -14,6 +14,8 @@ from app.kg.generation_graph import (
     GenerationState,
     RecommendedExercise,
     WorkoutRecommendation,
+    _fallback_node,
+    _safety_gate_node,
     _validate_context_node,
     build_generation_graph,
 )
@@ -190,3 +192,166 @@ async def test_validate_context_triggers_fallback_when_context_is_none() -> None
     result = _validate_context_node(state)
 
     assert result["fallback_triggered"] is True
+
+
+# ---------------------------------------------------------------------------
+# Safety gate tests
+# ---------------------------------------------------------------------------
+
+
+def test_safety_gate_removes_contraindicated_exercise() -> None:
+    """Safety gate removes exercises whose IDs appear in contraindicated_ids."""
+    context = _make_context_slice()
+    context["contraindicated_ids"] = ["ex-0"]
+
+    rec = _make_recommendation()  # contains ex-0
+    state: GenerationState = {
+        "member_id": "m1",
+        "query": "upper body workout",
+        "context": context,
+        "recommendation": rec,
+        "fallback_triggered": False,
+        "error": None,
+    }
+
+    result = _safety_gate_node(state)
+
+    assert "recommendation" in result
+    final_rec = result["recommendation"]
+    exercise_ids = [e.exercise_id for e in final_rec.exercises]
+    assert "ex-0" not in exercise_ids
+    assert "ex-0" in final_rec.skipped_exercise_ids
+    assert "(Removed 1 contraindicated exercise(s).)" in final_rec.overall_reasoning
+
+
+def test_safety_gate_passes_clean_recommendation() -> None:
+    """Safety gate leaves recommendation unchanged when no contraindicated IDs match."""
+    context = _make_context_slice()
+    context["contraindicated_ids"] = ["some-other-id"]
+
+    # Build a recommendation with 2 exercises so the fallback threshold (< 2) is not hit
+    rec = WorkoutRecommendation(
+        exercises=[
+            RecommendedExercise(
+                exercise_id="ex-1",
+                name="Exercise 1",
+                sets=3,
+                reps=10,
+                reasoning="Good for back.",
+            ),
+            RecommendedExercise(
+                exercise_id="ex-2",
+                name="Exercise 2",
+                sets=3,
+                reps=12,
+                reasoning="Good for legs.",
+            ),
+        ],
+        overall_reasoning="Balanced workout.",
+        member_id="m1",
+        skipped_exercise_ids=[],
+    )
+    state: GenerationState = {
+        "member_id": "m1",
+        "query": "upper body workout",
+        "context": context,
+        "recommendation": rec,
+        "fallback_triggered": False,
+        "error": None,
+    }
+
+    result = _safety_gate_node(state)
+
+    # No exercises removed, no fallback triggered
+    assert result.get("fallback_triggered") is not True
+    # recommendation unchanged (either not in result or identical)
+    if "recommendation" in result:
+        assert result["recommendation"].exercises == rec.exercises
+        assert result["recommendation"].skipped_exercise_ids == rec.skipped_exercise_ids
+
+
+def test_safety_gate_triggers_fallback_when_too_few_exercises() -> None:
+    """Safety gate sets fallback_triggered=True when ≤1 exercise survives filtering."""
+    context = _make_context_slice()
+    # Mark ex-0 (the only exercise) as contraindicated → 0 survivors
+    context["contraindicated_ids"] = ["ex-0"]
+
+    rec = _make_recommendation()  # only has ex-0
+    state: GenerationState = {
+        "member_id": "m1",
+        "query": "upper body workout",
+        "context": context,
+        "recommendation": rec,
+        "fallback_triggered": False,
+        "error": None,
+    }
+
+    result = _safety_gate_node(state)
+
+    assert result.get("fallback_triggered") is True
+    # The contraindicated exercise should still be removed
+    final_rec = result.get("recommendation")
+    if final_rec is not None:
+        assert "ex-0" not in [e.exercise_id for e in final_rec.exercises]
+
+
+# ---------------------------------------------------------------------------
+# Fallback node tests
+# ---------------------------------------------------------------------------
+
+
+def test_fallback_node_uses_safe_exercises_when_triggered() -> None:
+    """Fallback node builds a recommendation from the first 3 safe exercises."""
+    safe = _make_safe_exercises(5)  # 5 exercises; fallback should pick first 3
+    state: GenerationState = {
+        "member_id": "m1",
+        "query": "workout",
+        "context": _make_context_slice(safe_exercises=safe),
+        "fallback_triggered": True,
+        "recommendation": None,
+        "error": None,
+    }
+
+    result = _fallback_node(state)
+
+    rec: WorkoutRecommendation = result["recommendation"]
+    assert len(rec.exercises) <= 3
+    safe_ids = {e["id"] for e in safe}
+    for ex in rec.exercises:
+        assert ex.exercise_id in safe_ids
+    assert "injury" in rec.overall_reasoning.lower() or "constraint" in rec.overall_reasoning.lower()
+
+
+def test_fallback_node_uses_empty_list_when_no_safe_exercises() -> None:
+    """Fallback node produces empty exercises list when safe_exercises is empty."""
+    state: GenerationState = {
+        "member_id": "m1",
+        "query": "workout",
+        "context": _make_context_slice(safe_exercises=[]),
+        "fallback_triggered": True,
+        "recommendation": None,
+        "error": None,
+    }
+
+    result = _fallback_node(state)
+
+    rec: WorkoutRecommendation = result["recommendation"]
+    assert rec.exercises == []
+    assert rec.overall_reasoning != ""
+
+
+def test_fallback_triggered_by_empty_context() -> None:
+    """Graph invoked with context=None or context={} triggers fallback_triggered=True."""
+    from app.kg.generation_graph import _validate_context_node
+
+    for ctx in (None, {}):
+        state: GenerationState = {
+            "member_id": "m1",
+            "query": "workout",
+            "context": ctx,  # type: ignore[typeddict-item]
+            "fallback_triggered": False,
+            "recommendation": None,
+            "error": None,
+        }
+        result = _validate_context_node(state)
+        assert result.get("fallback_triggered") is True, f"Expected fallback for context={ctx!r}"

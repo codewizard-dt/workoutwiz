@@ -2,7 +2,7 @@ from __future__ import annotations
 import uuid
 from enum import StrEnum
 from datetime import datetime
-from sqlalchemy import String, Integer, Text, ForeignKey, CheckConstraint, func, Enum as SAEnum
+from sqlalchemy import Integer, Text, ForeignKey, CheckConstraint, func, Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base

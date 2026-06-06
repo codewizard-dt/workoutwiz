@@ -32,7 +32,7 @@ RETURN e.name AS exercise_name, collect(i.name) AS injury_names
 
 Use Serena `get_symbols_overview` on `backend/app/knowledge_graph/traversal.py` to confirm field names on `Injury` and `Exercise` nodes (especially `name`, `id`). Check `ingest_injuries.py` for the `CONTRAINDICATED_BY` relationship direction.
 
-- [ ] Node property names and relationship direction confirmed
+- [x] Node property names and relationship direction confirmed <!-- Completed: 2026-06-06 -->
 
 ### 2. Create `backend/app/kg/explainability.py`  <!-- agent: general-purpose -->
 
@@ -68,7 +68,7 @@ async def explain_skipped_exercise(
     return f"'{exercise_name}' was skipped because it is contraindicated for: {injuries}."
 ```
 
-- [ ] `backend/app/kg/explainability.py` created
+- [x] `backend/app/kg/explainability.py` created <!-- Completed: 2026-06-06 -->
 
 ### 3. Write unit tests `backend/tests/kg/test_explainability.py`  <!-- agent: general-purpose -->
 
@@ -81,20 +81,20 @@ Tests (mocked Neo4j session):
 set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_explainability.py -v
 ```
 
-- [ ] Tests pass
+- [x] Tests pass <!-- Completed: 2026-06-06 -->
 
 ### 4. Update roadmap  <!-- agent: general-purpose -->
 
 Replace the inline Phase 5 explainability placeholder with `[TASK-062: Explainability tool...](../tasks/062-explainability-tool.md)`.
 
-- [ ] Roadmap updated
+- [x] Roadmap updated <!-- Completed: 2026-06-06 -->
 
 ## Acceptance Criteria
 
-- [ ] `backend/app/kg/explainability.py` with `explain_skipped_exercise(member_id, exercise_id, driver) -> str`
-- [ ] Returns `"'{name}' was skipped because it is contraindicated for: {injuries}."` format
-- [ ] Returns graceful fallback string (not raises) when no contraindication found
-- [ ] ≥3 tests passing
+- [x] `backend/app/kg/explainability.py` with `explain_skipped_exercise(member_id, exercise_id, driver) -> str`
+- [x] Returns `"'{name}' was skipped because it is contraindicated for: {injuries}."` format
+- [x] Returns graceful fallback string (not raises) when no contraindication found
+- [x] ≥3 tests passing
 
 ---
-**UAT**: `.docs/uat/062-explainability-tool.uat.md`
+**UAT**: [`.docs/uat/062-explainability-tool.uat.md`](../uat/062-explainability-tool.uat.md)

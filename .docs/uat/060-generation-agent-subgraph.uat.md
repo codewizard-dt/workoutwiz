@@ -35,7 +35,7 @@ These tests exercise the `GenerationState` graph directly via pytest. All LLM ca
   - `test_generate_workout_skips_generation_when_fallback_triggered`
 
   No `FAILED`, `ERROR`, or `WARNING: no tests ran` lines appear.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-UNIT-002: `build_generation_graph()` returns a compiledgraph with `.ainvoke`
 
@@ -47,7 +47,7 @@ These tests exercise the `GenerationState` graph directly via pytest. All LLM ca
   set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_generation_graph.py::test_build_generation_graph_returns_compiled_graph -v
   ```
 - **Expected Result**: `PASSED` — `hasattr(graph, "ainvoke")` assertion holds. No `AttributeError` or `AssertionError`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-UNIT-003: `validate_context` triggers fallback when `safe_exercises` is empty
 
@@ -59,7 +59,7 @@ These tests exercise the `GenerationState` graph directly via pytest. All LLM ca
   set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_generation_graph.py::test_validate_context_triggers_fallback_when_no_safe_exercises -v
   ```
 - **Expected Result**: `PASSED` — `result["fallback_triggered"]` is `True` when `safe_exercises=[]`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-UNIT-004: `validate_context` does NOT trigger fallback when safe exercises are present
 
@@ -71,7 +71,7 @@ These tests exercise the `GenerationState` graph directly via pytest. All LLM ca
   set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_generation_graph.py::test_validate_context_passes_when_safe_exercises_present -v
   ```
 - **Expected Result**: `PASSED` — `result["fallback_triggered"]` is `False`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-UNIT-005: Happy path — graph returns a `WorkoutRecommendation`
 
@@ -83,7 +83,7 @@ These tests exercise the `GenerationState` graph directly via pytest. All LLM ca
   set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_generation_graph.py::test_generate_workout_returns_recommendation -v
   ```
 - **Expected Result**: `PASSED` — `result["recommendation"]` is not None, and `recommendation.exercises` (or `recommendation["exercises"]`) has length ≥ 1.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-UNIT-006: Fallback path — `generate_workout` node never called when `fallback_triggered`
 
@@ -95,7 +95,7 @@ These tests exercise the `GenerationState` graph directly via pytest. All LLM ca
   set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_generation_graph.py::test_generate_workout_skips_generation_when_fallback_triggered -v
   ```
 - **Expected Result**: `PASSED` — `mock_chat_cls.assert_not_called()` holds; `result["fallback_triggered"]` is `True`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ---
 
@@ -111,7 +111,7 @@ These tests exercise the `GenerationState` graph directly via pytest. All LLM ca
   set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_generation_graph.py::test_validate_context_triggers_fallback_when_context_is_none -v
   ```
 - **Expected Result**: `PASSED` — `result["fallback_triggered"]` is `True`, no `KeyError` or `TypeError` raised.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-EDGE-002: LLM error path — graph returns empty recommendation with error field
 
@@ -145,7 +145,7 @@ asyncio.run(run())
 "
   ```
 - **Expected Result**: Prints `PASS: LLM error path returns empty recommendation with error field` with no exception raised. `recommendation.exercises` is `[]` and `result["error"]` contains the error string.
-- [ ] Pass
+- [FAIL: auto-judge: AssertionError — expected exercises=[] on LLM error but fallback returns safe_exercises=[RecommendedExercise(exercise_id='ex-0', ...)]] <!-- 2026-06-06 -->
 
 ---
 
@@ -168,7 +168,7 @@ print('RecommendedExercise fields:', list(RecommendedExercise.model_fields.keys(
 "
   ```
 - **Expected Result**: Prints `PASS: module imports and graph compiles`. `WorkoutRecommendation` fields include `exercises`, `overall_reasoning`, `member_id`, `skipped_exercise_ids`. `RecommendedExercise` fields include `exercise_id`, `name`, `sets`, `reps`, `duration_seconds`, `weight_kg`, `reasoning`. No `ImportError` or `AttributeError`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-INT-002: Roadmap updated with task link for TASK-060
 
@@ -177,4 +177,4 @@ print('RecommendedExercise fields:', list(RecommendedExercise.model_fields.keys(
   1. Open `.docs/roadmaps/004-knowledge-graph-coaching-system.md`
   2. Search for `060` or `generation-agent-subgraph` within the file
 - **Expected Result**: The roadmap contains a link to `../tasks/060-generation-agent-subgraph.md` (or similar) and does not show an inline placeholder for the generation sub-graph task.
-- [ ] Pass
+- [FAIL: auto-judge: manual test requires human verification] <!-- 2026-06-06 -->

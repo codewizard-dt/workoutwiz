@@ -5,6 +5,7 @@ from typing import Any
 import neo4j
 
 from app.config import settings
+from datetime import UTC
 
 logger = logging.getLogger(__name__)
 
@@ -98,14 +99,14 @@ def ingest_workout_history(
 
 if __name__ == "__main__":
     import uuid
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     logging.basicConfig(level=logging.INFO)
 
     _smoke_session: dict[str, object] = {
         "id": str(uuid.uuid4()),
         "member_id": str(uuid.uuid4()),
-        "started_at": datetime.now(tz=timezone.utc).isoformat(),
+        "started_at": datetime.now(tz=UTC).isoformat(),
         "ended_at": None,
         "exercises": [],
     }

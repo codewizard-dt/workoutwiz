@@ -12,8 +12,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any, cast
+from datetime import datetime, UTC
 
 import neo4j
 
@@ -34,8 +33,7 @@ def ingest_members(
                     stored in Neo4j, ensuring cross-store consistency.
     """
     with driver.session() as session:
-        for _persona in PERSONAS:
-            persona: dict[str, Any] = cast("dict[str, Any]", _persona)
+        for persona in PERSONAS:
             email = str(persona["email"])
             member_id = str(member_map[email])
             name = str(persona["name"])
@@ -60,7 +58,7 @@ def ingest_members(
                 goals=goals,
                 equipment=equipment,
                 sessions_per_week=sessions_per_week,
-                created_at=datetime.now(timezone.utc).isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             )
             logger.info("Merged Member: %s (%s)", name, email)
 

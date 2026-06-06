@@ -143,7 +143,7 @@ Please design a personalized workout for this member using only the exercises in
 # ---------------------------------------------------------------------------
 
 
-def _validate_context_node(state: GenerationState) -> dict:
+def _validate_context_node(state: GenerationState) -> dict[str, Any]:
     """Check that safe_exercises is non-empty; trigger fallback if not."""
     context = state.get("context")
     if not context or not context.get("safe_exercises"):
@@ -155,7 +155,7 @@ def _validate_context_node(state: GenerationState) -> dict:
     return {"fallback_triggered": False}
 
 
-async def _generate_workout_node(state: GenerationState) -> dict:
+async def _generate_workout_node(state: GenerationState) -> dict[str, Any]:
     """Call Claude with structured output to produce a WorkoutRecommendation."""
     context = state["context"]
     member_id = state.get("member_id", "")
@@ -165,7 +165,7 @@ async def _generate_workout_node(state: GenerationState) -> dict:
         api_key=settings.anthropic_api_key,
     ).with_structured_output(WorkoutRecommendation)
 
-    messages = _build_generation_prompt(state["query"], context)
+    messages = _build_generation_prompt(state["query"], context)  # type: ignore[arg-type]
 
     try:
         recommendation: WorkoutRecommendation = await llm.ainvoke(messages)
@@ -183,7 +183,47 @@ async def _generate_workout_node(state: GenerationState) -> dict:
         }
 
 
-def _format_response_node(state: GenerationState) -> dict:
+def _safety_gate_node(state: GenerationState) -> dict[str, Any]:
+    """Post-generation safety gate: remove contraindicated exercises.
+
+    Even if the LLM ignores the safe_exercises constraint, this node
+    filters out any exercise whose ID is in context.contraindicated_ids
+    before the response is returned. If fewer than 2 safe exercises
+    remain, sets fallback_triggered=True so the fallback handler can
+    pick it up.
+    """
+    if state.get("fallback_triggered") or not state.get("recommendation"):
+        return {}
+
+    raw_context: dict[str, Any] = dict(state.get("context") or {})
+    raw_ids: list[str] = [str(x) for x in raw_context.get("contraindicated_ids", [])]
+    contraindicated: set[str] = set(raw_ids)
+    rec: WorkoutRecommendation = state["recommendation"]  # type: ignore[assignment]
+
+    safe = [e for e in rec.exercises if e.exercise_id not in contraindicated]
+    removed = [e.exercise_id for e in rec.exercises if e.exercise_id in contraindicated]
+
+    result: dict[str, Any] = {}
+    if removed:
+        rec = rec.model_copy(
+            update={
+                "exercises": safe,
+                "skipped_exercise_ids": rec.skipped_exercise_ids + removed,
+                "overall_reasoning": (
+                    rec.overall_reasoning
+                    + f" (Removed {len(removed)} contraindicated exercise(s).)"
+                ),
+            }
+        )
+        result["recommendation"] = rec
+
+    if len(safe) < 2:
+        result["fallback_triggered"] = True
+
+    return result
+
+
+def _format_response_node(state: GenerationState) -> dict[str, Any]:
     """Final node — state already has the recommendation; nothing to do."""
     return {}
 
@@ -195,8 +235,43 @@ def _format_response_node(state: GenerationState) -> dict:
 
 def _route_after_validate(state: GenerationState) -> str:
     if state.get("fallback_triggered"):
-        return END
+        return "fallback"
     return "generate_workout"
+
+
+def _fallback_node(state: GenerationState) -> dict[str, Any]:
+    """Build a minimal WorkoutRecommendation from the top-3 safe exercises.
+
+    Runs when fallback_triggered=True (set by either _validate_context_node
+    when no safe exercises exist, or _safety_gate_node when fewer than 2
+    exercises survive contraindication filtering).
+    """
+    context: dict[str, Any] = dict(state.get("context") or {})
+    raw_ids: list[str] = [str(x) for x in context.get("contraindicated_ids", [])]
+    contraindicated: set[str] = set(raw_ids)
+    all_safe: list[dict[str, Any]] = context.get("safe_exercises", [])
+    safe: list[dict[str, Any]] = [e for e in all_safe if e.get("id") not in contraindicated][:3]
+    exercises = [
+        RecommendedExercise(
+            exercise_id=e["id"],
+            name=e.get("name", e["id"]),
+            sets=3,
+            reps=10,
+            reasoning="Selected as a safe alternative given your current injury profile.",
+        )
+        for e in safe
+    ]
+    existing_rec: WorkoutRecommendation | None = state.get("recommendation")
+    rec = WorkoutRecommendation(
+        exercises=exercises,
+        overall_reasoning=(
+            "Limited exercise options are available due to injury constraints. "
+            "These are the safest alternatives from your profile."
+        ),
+        member_id=state.get("member_id", "") or "",
+        skipped_exercise_ids=existing_rec.skipped_exercise_ids if existing_rec else [],
+    )
+    return {"recommendation": rec}
 
 
 # ---------------------------------------------------------------------------
@@ -220,6 +295,8 @@ def build_generation_graph() -> Any:
 
     builder.add_node("validate_context", _validate_context_node)
     builder.add_node("generate_workout", _generate_workout_node)
+    builder.add_node("safety_gate", _safety_gate_node)
+    builder.add_node("fallback", _fallback_node)
     builder.add_node("format_response", _format_response_node)
 
     builder.set_entry_point("validate_context")
@@ -227,7 +304,12 @@ def build_generation_graph() -> Any:
         "validate_context",
         _route_after_validate,
     )
-    builder.add_edge("generate_workout", "format_response")
+    builder.add_edge("generate_workout", "safety_gate")
+    builder.add_conditional_edges(
+        "safety_gate",
+        lambda s: "fallback" if s.get("fallback_triggered") else "format_response",
+    )
+    builder.add_edge("fallback", "format_response")
     builder.add_edge("format_response", END)
 
     return builder.compile()

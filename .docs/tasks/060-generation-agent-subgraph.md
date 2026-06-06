@@ -1,8 +1,8 @@
 # 060 — Generation Agent Sub-Graph: Context Slice → Structured Workout Recommendation
 
 > **Depends on**: [059-retrieval-subgraph](completed/059-retrieval-subgraph.md)
-> **Blocks**: [061-injury-safety-gate](061-injury-safety-gate.md), [062-explainability-tool](062-explainability-tool.md), [063-fallback-handler](063-fallback-handler.md)
-> **Parallel-safe with**: [064-feedback-writeback](064-feedback-writeback.md)
+> **Blocks**: [061-injury-safety-gate](completed/061-injury-safety-gate.md), [062-explainability-tool](completed/062-explainability-tool.md), [063-fallback-handler](completed/063-fallback-handler.md)
+> **Parallel-safe with**: [064-feedback-writeback](completed/064-feedback-writeback.md)
 
 ## Objective
 
@@ -48,7 +48,7 @@ Use Serena `write_memory` or `replace_content`; or the `Write` tool to create th
 - `GenerationState` TypedDict with fields: `member_id`, `query`, `context`, `recommendation`, `fallback_triggered`, `error`
 - `_GENERATION_SYSTEM_PROMPT` constant
 
-- [ ] File created with models and TypedDict
+- [x] File created with models and TypedDict
 
 ### 2. Implement the 3 node functions  <!-- agent: general-purpose -->
 
@@ -79,9 +79,9 @@ def _format_response_node(state: GenerationState) -> dict:
 
 Also implement `_build_generation_prompt(query, context) -> list[BaseMessage]` that constructs the human message with the context injected.
 
-- [ ] `_validate_context_node` implemented, returns `fallback_triggered: True` when no safe exercises
-- [ ] `_generate_workout_node` calls LLM with `with_structured_output(WorkoutRecommendation)`
-- [ ] `_build_generation_prompt` formats context into a structured prompt
+- [x] `_validate_context_node` implemented, returns `fallback_triggered: True` when no safe exercises
+- [x] `_generate_workout_node` calls LLM with `with_structured_output(WorkoutRecommendation)`
+- [x] `_build_generation_prompt` formats context into a structured prompt
 
 ### 3. Build and compile the StateGraph  <!-- agent: general-purpose -->
 
@@ -101,8 +101,8 @@ def build_generation_graph() -> CompiledGraph:
     return builder.compile()
 ```
 
-- [ ] `build_generation_graph()` builds and compiles the StateGraph
-- [ ] Conditional edge skips to END when `fallback_triggered`
+- [x] `build_generation_graph()` builds and compiles the StateGraph
+- [x] Conditional edge skips to END when `fallback_triggered`
 
 ### 4. Write unit tests in `backend/tests/kg/test_generation_graph.py`  <!-- agent: general-purpose -->
 
@@ -112,7 +112,7 @@ Tests (all mocked — no live LLM):
 - `test_generate_workout_returns_recommendation`: mock LLM to return a `WorkoutRecommendation`; assert result has `exercises` list
 - `test_generate_workout_skips_generation_when_fallback_triggered`: assert `generate_workout` node never called when fallback triggered
 
-- [ ] `backend/tests/kg/test_generation_graph.py` with ≥4 tests, all passing
+- [x] `backend/tests/kg/test_generation_graph.py` with ≥4 tests, all passing
 
 ### 5. Run tests  <!-- agent: general-purpose -->
 
@@ -122,22 +122,22 @@ set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_
 
 Fix any failures.
 
-- [ ] All tests pass
+- [x] All tests pass
 
 ### 6. Update roadmap  <!-- agent: general-purpose -->
 
 Edit `.docs/roadmaps/004-knowledge-graph-coaching-system.md`: replace the inline Phase 5 placeholder for the generation sub-graph with `[TASK-060: Generation agent sub-graph...](../tasks/060-generation-agent-subgraph.md)`. Update `**Last updated**`.
 
-- [ ] Roadmap updated with task link
+- [x] Roadmap updated with task link
 
 ## Acceptance Criteria
 
-- [ ] `backend/app/kg/generation_graph.py` with `WorkoutRecommendation`, `RecommendedExercise`, `GenerationState`, `build_generation_graph()`
-- [ ] `build_generation_graph().ainvoke({"member_id": ..., "query": ..., "context": <ContextSlice>})` returns dict with `recommendation: WorkoutRecommendation`
-- [ ] `fallback_triggered=True` when `safe_exercises` is empty; generation node never called in that case
-- [ ] `_generate_workout_node` uses `with_structured_output(WorkoutRecommendation)` — not JSON parsing
-- [ ] `backend/tests/kg/test_generation_graph.py` with ≥4 tests, all passing
-- [ ] Roadmap updated
+- [x] `backend/app/kg/generation_graph.py` with `WorkoutRecommendation`, `RecommendedExercise`, `GenerationState`, `build_generation_graph()`
+- [x] `build_generation_graph().ainvoke({"member_id": ..., "query": ..., "context": <ContextSlice>})` returns dict with `recommendation: WorkoutRecommendation`
+- [x] `fallback_triggered=True` when `safe_exercises` is empty; generation node never called in that case
+- [x] `_generate_workout_node` uses `with_structured_output(WorkoutRecommendation)` — not JSON parsing
+- [x] `backend/tests/kg/test_generation_graph.py` with ≥4 tests, all passing
+- [x] Roadmap updated
 
 ---
 **UAT**: `.docs/uat/060-generation-agent-subgraph.uat.md`

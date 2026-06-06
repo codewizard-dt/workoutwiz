@@ -36,7 +36,7 @@ These tests exercise the service function and schema directly via `pytest` — n
   - `test_feedback_payload_validates_rating_range PASSED`
   - `test_feedback_payload_optional_fields PASSED`
   - No warnings about missing neo4j driver or missing env vars
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-UNIT-002: `write_feedback` executes a Neo4j write transaction
 
@@ -48,7 +48,7 @@ These tests exercise the service function and schema directly via `pytest` — n
   set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_feedback_service.py::test_write_feedback_calls_ingestion -v
   ```
 - **Expected Result**: `test_write_feedback_calls_ingestion PASSED` — `execute_write` was called once and the return value is a valid UUID string.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-UNIT-003: `write_feedback` returns distinct UUIDs on each invocation
 
@@ -60,7 +60,7 @@ These tests exercise the service function and schema directly via `pytest` — n
   set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_feedback_service.py::test_write_feedback_returns_unique_ids -v
   ```
 - **Expected Result**: `test_write_feedback_returns_unique_ids PASSED` — `id1 != id2`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ---
 
@@ -80,7 +80,7 @@ These tests exercise the service function and schema directly via `pytest` — n
   - `FeedbackPayload(member_id="m1", exercise_id="e1", rating=6)` raises `ValidationError`
   - `FeedbackPayload(member_id="m1", exercise_id="e1", rating=1).rating == 1`
   - `FeedbackPayload(member_id="m1", exercise_id="e1", rating=5).rating == 5`
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-EDGE-002: `FeedbackPayload` optional fields default correctly
 
@@ -95,7 +95,7 @@ These tests exercise the service function and schema directly via `pytest` — n
   - `payload.text is None`
   - `payload.workout_session_id is None`
   - `payload.context_type == "post_workout"`
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ---
 
@@ -111,7 +111,7 @@ These tests exercise the service function and schema directly via `pytest` — n
   set -a && source .env && set +a && cd backend && python -c "from app.schemas.kg import FeedbackPayload, KGRecommendRequest, KGExplainRequest; print(FeedbackPayload.__name__, KGRecommendRequest.__name__, KGExplainRequest.__name__)"
   ```
 - **Expected Result**: Exits with code 0 and prints `FeedbackPayload KGRecommendRequest KGExplainRequest` (no import errors).
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-INT-002: `write_feedback` importable from service module
 
@@ -123,7 +123,7 @@ These tests exercise the service function and schema directly via `pytest` — n
   set -a && source .env && set +a && cd backend && python -c "from app.kg.feedback_service import write_feedback; import inspect; print(inspect.iscoroutinefunction(write_feedback))"
   ```
 - **Expected Result**: Exits with code 0 and prints `True` (confirming `write_feedback` is an async function).
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-INT-003: No duplicate Cypher logic — service delegates to `ingest_feedback` module constants
 
@@ -135,4 +135,4 @@ These tests exercise the service function and schema directly via `pytest` — n
   set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_feedback_service.py::test_write_feedback_writes_correct_cypher_queries -v
   ```
 - **Expected Result**: `test_write_feedback_writes_correct_cypher_queries PASSED` — the mock confirms that the three Cypher constants from `ingest_feedback.py` were passed to `_run_write_tx`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-06 -->

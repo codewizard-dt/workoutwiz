@@ -22,15 +22,6 @@ export default function WorkoutDetailPage() {
   const [enjoyment, setEnjoyment] = useState<1 | 2 | 3 | 4 | 5>(3)
   const [note, setNote] = useState('')
 
-  // Sync local state when workout loads
-  useEffect(() => {
-    if (workout) {
-      // enjoyment and note are not yet in the API type — default to 3 / ''
-      setEnjoyment(3)
-      setNote('')
-    }
-  }, [workout?.id])
-
   // Debounced auto-save for enjoyment and note changes
   useEffect(() => {
     if (!workout) return
@@ -58,7 +49,7 @@ export default function WorkoutDetailPage() {
         },
       })
     }, 300)
-    return () => clearTimeout(timer)
+    return () => { clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enjoyment, note])
 
@@ -247,7 +238,7 @@ export default function WorkoutDetailPage() {
         <button
           type="button"
           className="ww-btn ww-btn--gradient ww-btn--sm"
-          onClick={() => navigate('/workouts/new')}
+          onClick={() => { navigate('/workouts/new') }}
         >
           Replay All
         </button>
@@ -317,7 +308,7 @@ export default function WorkoutDetailPage() {
           </label>
           <EnjoymentScale
             value={enjoyment}
-            onChange={(v) => setEnjoyment(v as 1 | 2 | 3 | 4 | 5)}
+            onChange={(v) => { setEnjoyment(v as 1 | 2 | 3 | 4 | 5) }}
           />
         </div>
 
@@ -340,7 +331,7 @@ export default function WorkoutDetailPage() {
             rows={2}
             placeholder="Optional note about how this workout felt..."
             value={note}
-            onChange={(e) => setNote(e.target.value)}
+            onChange={(e) => { setNote(e.target.value) }}
             style={{
               resize: 'vertical',
               borderRadius: 'var(--radius-md)',

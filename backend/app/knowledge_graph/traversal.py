@@ -15,7 +15,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import neo4j
 from neo4j import AsyncDriver
 
 logger = logging.getLogger(__name__)

@@ -3,3 +3,5 @@ export { useWorkouts, useWorkout, useCreateWorkout, useUpdateWorkout, useDeleteW
 export { useLogin, useRegister, useMe } from "./useAuthMutations"
 export { useChat } from "./useChat"
 export type { ChatMessage, AgentStep } from "./useChat"
+export { useKGRecommend } from "./useKGRecommend"
+export { useKGFeedback } from "./useKGFeedback"

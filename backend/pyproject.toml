@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "workoutwiz-backend"
-version = "0.3.0"
+version = "0.4.0"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.111.0",
@@ -87,7 +87,7 @@ module = [
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
-module = ["app.agents.*"]
+module = ["app.agents.*", "app.kg.*"]
 disallow_untyped_decorators = false
 
 [[tool.mypy.overrides]]

@@ -9,6 +9,7 @@ interface AppShellProps {
 
 const NAV_LINKS = [
   { to: '/chat', label: 'Chat' },
+  { to: '/knowledge-graph', label: 'AI Coach' },
   { to: '/workouts', label: 'Workouts' },
   { to: '/exercises', label: 'Exercises' },
 ] as const
@@ -28,7 +29,7 @@ export function AppShell({ children }: AppShellProps) {
 
   const [draftCount, setDraftCount] = useState(() => {
     try {
-      const d = JSON.parse(localStorage.getItem('ww_workout_draft') ?? '[]')
+      const d: unknown = JSON.parse(localStorage.getItem('ww_workout_draft') ?? '[]')
       return Array.isArray(d) ? d.length : 0
     } catch { return 0 }
   })
@@ -36,7 +37,7 @@ export function AppShell({ children }: AppShellProps) {
   useEffect(() => {
     const refresh = () => {
       try {
-        const d = JSON.parse(localStorage.getItem('ww_workout_draft') ?? '[]')
+        const d: unknown = JSON.parse(localStorage.getItem('ww_workout_draft') ?? '[]')
         setDraftCount(Array.isArray(d) ? d.length : 0)
       } catch { setDraftCount(0) }
     }
@@ -149,7 +150,7 @@ export function AppShell({ children }: AppShellProps) {
             className="ww-btn ww-btn--ghost ww-iconbtn ww-btn--sm topnav-burger"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((v) => !v)}
+            onClick={() => { setMenuOpen((v) => !v) }}
           >
             {menuOpen ? '✕' : '☰'}
           </button>

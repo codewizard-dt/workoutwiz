@@ -16,8 +16,9 @@ import json
 import logging
 import random
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
+from typing import Any
 
 import neo4j
 from faker import Faker
@@ -38,7 +39,7 @@ logger = logging.getLogger(__name__)
 # Fixed personas
 # ---------------------------------------------------------------------------
 
-PERSONAS = [
+PERSONAS: list[dict[str, Any]] = [
     {
         "name": "Alex Chen",
         "email": "alex@example.com",
@@ -365,12 +366,12 @@ PERSONAS = [
 _EXERCISES_PATH = Path(__file__).parent.parent.parent / "exercises.json"
 
 
-def load_exercises() -> list[dict]:
+def load_exercises() -> list[dict[str, Any]]:
     with open(_EXERCISES_PATH) as f:
-        return json.load(f)
+        return json.load(f)  # type: ignore[no-any-return]
 
 
-def _safe_pool(persona: dict, exercises: list[dict]) -> list[dict]:
+def _safe_pool(persona: dict[str, Any], exercises: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Return exercises NOT contraindicated by this persona's active injuries."""
     active_joints: set[str] = set()
     for injury in persona["injuries"]:
@@ -389,7 +390,7 @@ def _safe_pool(persona: dict, exercises: list[dict]) -> list[dict]:
 
 
 def _now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # ---------------------------------------------------------------------------
@@ -427,6 +428,7 @@ def seed_postgres_users(session: Session) -> dict[str, uuid.UUID]:
                 text('SELECT id FROM "user" WHERE email = :email'),
                 {"email": persona["email"]},
             ).fetchone()
+            assert existing is not None, f"User {persona['email']} not found after conflict"
             member_map[persona["email"]] = existing[0]
             logger.info("Existing user: %s (%s)", persona["email"], existing[0])
 
@@ -437,7 +439,7 @@ def seed_postgres_users(session: Session) -> dict[str, uuid.UUID]:
 # Neo4j seeding
 # ---------------------------------------------------------------------------
 
-def seed_exercises_neo4j(driver: neo4j.Driver, exercises: list[dict]) -> None:
+def seed_exercises_neo4j(driver: neo4j.Driver, exercises: list[dict[str, Any]]) -> None:
     """Delegate to the standalone ingestion module."""
     ingest_exercises(driver, exercises)
 
@@ -455,7 +457,7 @@ def seed_members_neo4j(
 def seed_injuries_neo4j(
     driver: neo4j.Driver,
     member_map: dict[str, uuid.UUID],
-    exercises: list[dict],
+    exercises: list[dict[str, Any]],
 ) -> None:
     """MERGE Injury nodes, HAS_INJURY edges, and CONTRAINDICATED_BY edges."""
     with driver.session() as session:
@@ -521,12 +523,12 @@ def seed_injuries_neo4j(
 def seed_workout_history_neo4j(
     driver: neo4j.Driver,
     member_map: dict[str, uuid.UUID],
-    exercises: list[dict],
+    exercises: list[dict[str, Any]],
     fake: Faker,
 ) -> None:
     """15 WorkoutSession nodes per member with 4-6 safe exercises each."""
     sessions_per_member = 15
-    sessions: list[dict] = []
+    sessions: list[dict[str, Any]] = []
 
     for persona in PERSONAS:
         member_id = str(member_map[persona["email"]])
@@ -539,7 +541,7 @@ def seed_workout_history_neo4j(
             session_id = str(uuid.uuid4())
             started_at = fake.date_time_between(
                 start_date="-90d", end_date="now"
-            ).replace(tzinfo=timezone.utc)
+            ).replace(tzinfo=UTC)
             ended_at = started_at.replace(
                 hour=min(started_at.hour + 1, 23),
                 minute=random.randint(0, 59),
@@ -550,7 +552,7 @@ def seed_workout_history_neo4j(
             exercise_entries = []
             for ex in chosen:
                 reps = [random.randint(8, 12) for _ in range(3)]
-                props: dict = {"sets": 3, "reps": reps}
+                props: dict[str, Any] = {"sets": 3, "reps": reps}
                 if ex.get("supports_weight"):
                     props["weight_kg"] = round(random.uniform(20.0, 100.0), 1)
 
@@ -582,7 +584,7 @@ def seed_feedback(
     pg_session: Session,
     driver: neo4j.Driver,
     member_map: dict[str, uuid.UUID],
-    exercises: list[dict],
+    exercises: list[dict[str, Any]],
     fake: Faker,
 ) -> None:
     """20 FeedbackEvent nodes per member, written to both PostgreSQL and Neo4j."""
@@ -593,7 +595,7 @@ def seed_feedback(
             safe = _safe_pool(persona, exercises)
             pool = safe if safe else exercises
 
-            for i in range(feedback_per_member):
+            for _i in range(feedback_per_member):
                 ex = random.choice(pool)
                 rating = random.choices(
                     [1, 2, 3, 4, 5], weights=[3, 7, 20, 35, 35]
@@ -607,7 +609,7 @@ def seed_feedback(
                 # Spread created_at across the last 90 days (deterministic per i)
                 created_at = fake.date_time_between(
                     start_date="-90d", end_date="now"
-                ).replace(tzinfo=timezone.utc)
+                ).replace(tzinfo=UTC)
 
                 feedback_id = uuid.uuid4()
 

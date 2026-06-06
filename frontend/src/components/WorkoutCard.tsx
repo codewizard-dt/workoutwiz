@@ -17,7 +17,7 @@ function formatDate(iso: string): string {
 export function WorkoutCard({ workout, to }: WorkoutCardProps) {
   const phaseCount = workout.sequences.length
   const setCount = workout.sequences.reduce(
-    (acc, seq) => acc + (seq.sets?.length ?? 0),
+    (acc, seq) => acc + seq.sets.length,
     0,
   )
 

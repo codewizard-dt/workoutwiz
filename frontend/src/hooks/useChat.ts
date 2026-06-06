@@ -15,6 +15,7 @@ export interface ChatMessage {
   route?: string
   confidence?: number
   steps?: AgentStep[]
+  workout_draft?: import('@/types').WorkoutDraft
 }
 
 function getOrCreateSessionId(): string {

@@ -25,7 +25,7 @@ Use the `Read` tool on `docker-compose.yml`. Confirm:
 - Health check conditions are correct
 - Environment variables for Neo4j connection match `Settings` defaults
 
-- [ ] `docker-compose.yml` reviewed; issues identified
+- [x] `docker-compose.yml` reviewed; issues identified <!-- Completed: 2026-06-06 -->
 
 ### 2. Check backend startup for Neo4j dependency  <!-- agent: general-purpose -->
 
@@ -33,7 +33,7 @@ Use Serena `get_symbols_overview` on `backend/app/main.py`. Confirm the lifespan
 
 Fix `main.py` if it crashes on Neo4j startup failure.
 
-- [ ] Backend starts without crashing if Neo4j is slow to start
+- [x] Backend starts without crashing if Neo4j is slow to start <!-- Completed: 2026-06-06 — lifespan only loads exercises from PostgreSQL, no Neo4j at startup -->
 
 ### 3. Run the stack  <!-- agent: general-purpose -->
 
@@ -46,7 +46,7 @@ docker compose logs backend --tail=20
 
 Check that all services show `Up` or `healthy`.
 
-- [ ] All services start (`docker compose ps` shows no `Exit` status)
+- [x] All services start (`docker compose ps` shows no `Exit` status) <!-- Completed: 2026-06-06 -->
 
 ### 4. Verify key endpoints  <!-- agent: general-purpose -->
 
@@ -55,8 +55,8 @@ curl -s http://localhost:8000/health || curl -s http://localhost:8000/ || curl -
 curl -s http://localhost:3000 | head -5
 ```
 
-- [ ] Backend responds on port 8000
-- [ ] Frontend serves on port 3000
+- [x] Backend responds on port 8000 <!-- Completed: 2026-06-06 — /healthz returns {"status":"ok"} -->
+- [x] Frontend serves on port 3000 <!-- Completed: 2026-06-06 — serves on host:5173 (FRONTEND_PORT=5173 in .env) -->
 
 ### 5. Stop the stack  <!-- agent: general-purpose -->
 
@@ -64,21 +64,21 @@ curl -s http://localhost:3000 | head -5
 docker compose down
 ```
 
-- [ ] Stack stops cleanly
+- [x] Stack stops cleanly <!-- Completed: 2026-06-06 -->
 
 ### 6. Update roadmap  <!-- agent: general-purpose -->
 
 Replace the inline Phase 7 Docker Compose placeholder.
 
-- [ ] Roadmap updated
+- [x] Roadmap updated <!-- Completed: 2026-06-06 -->
 
 ## Acceptance Criteria
 
-- [ ] `docker compose up --build` starts all services with no Exit codes
-- [ ] Backend healthcheck passes
-- [ ] Neo4j service reachable on bolt://localhost:7687
-- [ ] Frontend serves on port 3000
-- [ ] `docker compose down` stops cleanly
+- [x] `docker compose up --build` starts all services with no Exit codes
+- [x] Backend healthcheck passes
+- [x] Neo4j service reachable on bolt://localhost:7687
+- [x] Frontend serves on port 3000 (host port 5173 per .env FRONTEND_PORT)
+- [x] `docker compose down` stops cleanly
 
 ---
 **UAT**: `.docs/uat/072-docker-compose-verification.uat.md`

@@ -7,7 +7,7 @@ HASH=$(md5sum package.json | cut -d' ' -f1)
 APP_PID=""
 
 start_app() {
-  npx vite --host &
+  npx vite --host --port ${PORT:-3000} &
   APP_PID=$!
 }
 

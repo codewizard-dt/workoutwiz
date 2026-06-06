@@ -91,7 +91,7 @@ VECTOR_INDEXES: list[str] = [
 ]
 
 
-def init_neo4j_schema(driver: "neo4j.Driver") -> None:
+def init_neo4j_schema(driver: neo4j.Driver) -> None:
     """Create all constraints, indexes, and vector indexes in Neo4j.
 
     Idempotent — uses ``IF NOT EXISTS`` on every DDL statement so it is safe

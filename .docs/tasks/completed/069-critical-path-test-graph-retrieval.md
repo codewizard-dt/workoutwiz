@@ -108,7 +108,7 @@ async def test_context_slice_has_positive_token_count(mock_driver):
     assert ctx["token_counts"]["total"] > 0
 ```
 
-- [ ] File created with 5 tests
+- [x] File created with 5 tests
 
 ### 2. Run the critical-path tests  <!-- agent: general-purpose -->
 
@@ -116,20 +116,20 @@ async def test_context_slice_has_positive_token_count(mock_driver):
 set -a && source .env && set +a && cd backend && python -m pytest tests/test_kg_critical_graph_retrieval.py -v
 ```
 
-- [ ] All 5 tests pass
+- [x] All 5 tests pass
 
 ### 3. Update roadmap  <!-- agent: general-purpose -->
 
 Replace the inline Phase 6 critical-path test 2 placeholder.
 
-- [ ] Roadmap updated
+- [x] Roadmap updated
 
 ## Acceptance Criteria
 
-- [ ] `backend/tests/test_kg_critical_graph_retrieval.py` with ≥5 tests
-- [ ] All tests pass — feedback and history correctly surfaced
-- [ ] Contraindicated exercises excluded from safe set and preferred list
-- [ ] `token_counts.total > 0` confirmed
+- [x] `backend/tests/test_kg_critical_graph_retrieval.py` with ≥5 tests
+- [x] All tests pass — feedback and history correctly surfaced
+- [x] Contraindicated exercises excluded from safe set and preferred list
+- [x] `token_counts.total > 0` confirmed
 
 ---
-**UAT**: `.docs/uat/069-critical-path-test-graph-retrieval.uat.md`
+**UAT**: [`.docs/uat/completed/069-critical-path-test-graph-retrieval.uat.md`](../uat/completed/069-critical-path-test-graph-retrieval.uat.md)

@@ -41,7 +41,7 @@ Wire `safety_gate` between `generate_workout` and `format_response` in the graph
 
 Use Serena `get_symbols_overview` on `backend/app/kg/generation_graph.py`. Confirm the exact node sequence and how `GenerationState` is defined.
 
-- [ ] Node sequence and `GenerationState` fields confirmed
+- [x] Node sequence and `GenerationState` fields confirmed <!-- Completed: 2026-06-06 -->
 
 ### 2. Add `_safety_gate_node` to `backend/app/kg/generation_graph.py`  <!-- agent: general-purpose -->
 
@@ -54,8 +54,8 @@ builder.add_edge("generate_workout", "safety_gate")
 builder.add_edge("safety_gate", "format_response")
 ```
 
-- [ ] `_safety_gate_node` added and wired into graph
-- [ ] `fallback_triggered` set to `True` when fewer than 2 safe exercises remain
+- [x] `_safety_gate_node` added and wired into graph <!-- Completed: 2026-06-06 -->
+- [x] `fallback_triggered` set to `True` when fewer than 2 safe exercises remain <!-- Completed: 2026-06-06 -->
 
 ### 3. Add tests to `backend/tests/kg/test_generation_graph.py`  <!-- agent: general-purpose -->
 
@@ -68,21 +68,21 @@ Add:
 set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_generation_graph.py -v
 ```
 
-- [ ] ≥3 new safety gate tests added and passing
+- [x] ≥3 new safety gate tests added and passing <!-- Completed: 2026-06-06 -->
 
 ### 4. Update roadmap  <!-- agent: general-purpose -->
 
 Replace the inline Phase 5 safety gate placeholder with `[TASK-061: Injury safety gate...](../tasks/061-injury-safety-gate.md)`.
 
-- [ ] Roadmap updated
+- [x] Roadmap updated <!-- Completed: 2026-06-06 -->
 
 ## Acceptance Criteria
 
-- [ ] `_safety_gate_node` added to `generation_graph.py`, wired between `generate_workout` and `format_response`
-- [ ] Any exercise in `context.contraindicated_ids` is removed from `recommendation.exercises`
-- [ ] Removed exercise IDs appended to `recommendation.skipped_exercise_ids`
-- [ ] `fallback_triggered=True` when ≤1 exercise survives the gate
-- [ ] ≥3 safety gate tests passing
+- [x] `_safety_gate_node` added to `generation_graph.py`, wired between `generate_workout` and `format_response`
+- [x] Any exercise in `context.contraindicated_ids` is removed from `recommendation.exercises`
+- [x] Removed exercise IDs appended to `recommendation.skipped_exercise_ids`
+- [x] `fallback_triggered=True` when ≤1 exercise survives the gate
+- [x] ≥3 safety gate tests passing
 
 ---
-**UAT**: `.docs/uat/061-injury-safety-gate.uat.md`
+**UAT**: [`.docs/uat/061-injury-safety-gate.uat.md`](../uat/061-injury-safety-gate.uat.md)

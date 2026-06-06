@@ -2,7 +2,7 @@
 
 > **Depends on**: [065-kg-fastapi-router](completed/065-kg-fastapi-router.md)
 > **Blocks**: none
-> **Parallel-safe with**: [070-kg-chat-dashboard](070-kg-chat-dashboard.md), [072-docker-compose-verification](072-docker-compose-verification.md), [073-readme-production-eval](073-readme-production-eval.md)
+> **Parallel-safe with**: [070-kg-chat-dashboard](completed/070-kg-chat-dashboard.md), [072-docker-compose-verification](completed/072-docker-compose-verification.md), [073-readme-production-eval](completed/073-readme-production-eval.md)
 
 ## Objective
 
@@ -36,7 +36,7 @@ export function useKGFeedback() {
 
 Write using the `Write` tool.
 
-- [ ] Hook created
+- [x] Hook created <!-- Completed: 2026-06-06 -->
 
 ### 2. Create `frontend/src/components/FeedbackForm.tsx`  <!-- agent: general-purpose -->
 
@@ -50,33 +50,33 @@ Write using the `Write` tool with:
 
 Use Tailwind classes for styling — match the existing component style (check another component for reference).
 
-- [ ] `FeedbackForm.tsx` created with star rating + text input + submit
+- [x] `FeedbackForm.tsx` created with star rating + text input + submit <!-- Completed: 2026-06-06 -->
 
 ### 3. Integrate `FeedbackForm` into `KnowledgeGraphPage.tsx`  <!-- agent: general-purpose -->
 
 Use Serena `get_symbols_overview` on `frontend/src/pages/KnowledgeGraphPage.tsx`. Add `FeedbackForm` after each exercise card in the recommendation list. Pass `exerciseId` and `memberId` props.
 
-- [ ] `FeedbackForm` shown per exercise in recommendation results
+- [x] `FeedbackForm` shown per exercise in recommendation results <!-- Completed: 2026-06-06 -->
 
 ### 4. Export hook from index  <!-- agent: general-purpose -->
 
 Add `export * from './useKGFeedback'` to `frontend/src/hooks/index.ts`.
 
-- [ ] Hook exported
+- [x] Hook exported <!-- Completed: 2026-06-06 -->
 
 ### 5. Update roadmap  <!-- agent: general-purpose -->
 
 Replace inline Phase 7 feedback UI placeholder.
 
-- [ ] Roadmap updated
+- [x] Roadmap updated <!-- Completed: 2026-06-06 -->
 
 ## Acceptance Criteria
 
-- [ ] `FeedbackForm` component renders star rating (1–5) + optional text + submit
-- [ ] Submit disabled until rating selected
-- [ ] Calls `POST /kg/feedback` with `member_id`, `exercise_id`, `rating`, `text`
-- [ ] Success/error feedback shown to user
-- [ ] `FeedbackForm` integrated into `KnowledgeGraphPage` per exercise
+- [x] `FeedbackForm` component renders star rating (1–5) + optional text + submit
+- [x] Submit disabled until rating selected
+- [x] Calls `POST /kg/feedback` with `member_id`, `exercise_id`, `rating`, `text`
+- [x] Success/error feedback shown to user
+- [x] `FeedbackForm` integrated into `KnowledgeGraphPage` per exercise
 
 ---
 **UAT**: `.docs/uat/071-feedback-submission-ui.uat.md`

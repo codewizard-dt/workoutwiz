@@ -152,3 +152,5 @@ from app.routers import exercises
 app.include_router(exercises.router)
 from app.routers import chat
 app.include_router(chat.router)
+from app.routers import kg as kg_router_module
+app.include_router(kg_router_module.router)

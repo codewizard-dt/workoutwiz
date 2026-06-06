@@ -53,8 +53,8 @@ Use Serena `replace_content` to:
    - After `fallback_node`: edge → `"format_response"`
 3. Also update the original `validate_context` conditional: route to `"fallback"` (not `END`) when `fallback_triggered=True`.
 
-- [ ] `_fallback_node` added and wired in graph
-- [ ] Conditional edges updated for both `validate_context` and `safety_gate`
+- [x] `_fallback_node` added and wired in graph <!-- Completed: 2026-06-06 -->
+- [x] Conditional edges updated for both `validate_context` and `safety_gate` <!-- Completed: 2026-06-06 -->
 
 ### 2. Add tests  <!-- agent: general-purpose -->
 
@@ -67,21 +67,21 @@ Add to `backend/tests/kg/test_generation_graph.py`:
 set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_generation_graph.py -v
 ```
 
-- [ ] Tests pass
+- [x] Tests pass <!-- Completed: 2026-06-06 -->
 
 ### 3. Update roadmap  <!-- agent: general-purpose -->
 
 Replace the inline Phase 5 fallback placeholder with `[TASK-063: Fallback handler...](../tasks/063-fallback-handler.md)`.
 
-- [ ] Roadmap updated
+- [x] Roadmap updated <!-- Completed: 2026-06-06 -->
 
 ## Acceptance Criteria
 
-- [ ] `_fallback_node` added to `generation_graph.py`, wired correctly
-- [ ] Fallback produces a `WorkoutRecommendation` with exercises from `context.safe_exercises[:3]`
-- [ ] `overall_reasoning` explains the fallback
-- [ ] Both `validate_context` and `safety_gate` can trigger the fallback path
-- [ ] ≥3 fallback tests passing
+- [x] `_fallback_node` added to `generation_graph.py`, wired correctly
+- [x] Fallback produces a `WorkoutRecommendation` with exercises from `context.safe_exercises[:3]`
+- [x] `overall_reasoning` explains the fallback
+- [x] Both `validate_context` and `safety_gate` can trigger the fallback path
+- [x] ≥3 fallback tests passing
 
 ---
 **UAT**: `.docs/uat/063-fallback-handler.uat.md`

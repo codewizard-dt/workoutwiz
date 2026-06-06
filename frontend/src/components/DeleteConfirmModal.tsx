@@ -33,7 +33,7 @@ export function DeleteConfirmModal({
       <div
         className="ww-card"
         style={{ width: 380, maxWidth: '90vw', padding: 'var(--space-5)' }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation() }}
       >
         <h3
           style={{

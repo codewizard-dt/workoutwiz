@@ -55,7 +55,7 @@ Use Serena `get_symbols_overview` on `backend/app/routers/exercises.py` to confi
 - How the router is declared (`APIRouter(prefix=..., tags=...)`)
 - How `main.py` registers routers
 
-- [ ] Import pattern and auth dependency confirmed
+- [x] Import pattern and auth dependency confirmed <!-- Completed: 2026-06-06 -->
 
 ### 2. Create `backend/app/routers/kg.py`  <!-- agent: general-purpose -->
 
@@ -67,7 +67,7 @@ Use the `Write` tool to create with:
 - Response models defined in the file
 - All 3 endpoints wrapped in `try/except` returning 500 on failure
 
-- [ ] `backend/app/routers/kg.py` created with 3 endpoints
+- [x] `backend/app/routers/kg.py` created with 3 endpoints <!-- Completed: 2026-06-06 -->
 
 ### 3. Register router in `backend/app/main.py`  <!-- agent: general-purpose -->
 
@@ -77,7 +77,7 @@ from app.routers.kg import router as kg_router
 app.include_router(kg_router)
 ```
 
-- [ ] Router registered in `main.py`
+- [x] Router registered in `main.py` <!-- Completed: 2026-06-06 -->
 
 ### 4. Test endpoints manually (smoke test)  <!-- agent: general-purpose -->
 
@@ -91,7 +91,7 @@ kill %1
 
 Verify the endpoint exists (400/422/401 is fine; 404 means not registered).
 
-- [ ] Router registered correctly (non-404 response on /kg/recommend)
+- [x] Router registered correctly (non-404 response on /kg/recommend) <!-- Completed: 2026-06-06 — got 405 Method Not Allowed, confirming endpoint exists -->
 
 ### 5. Write integration test `backend/tests/test_kg_router.py`  <!-- agent: general-purpose -->
 
@@ -104,22 +104,22 @@ Using FastAPI's `TestClient` (sync) or `AsyncClient`:
 set -a && source .env && set +a && cd backend && python -m pytest tests/test_kg_router.py -v
 ```
 
-- [ ] ≥3 router tests passing
+- [x] ≥3 router tests passing <!-- Completed: 2026-06-06 — 4 tests pass -->
 
 ### 6. Update roadmap  <!-- agent: general-purpose -->
 
 Replace the inline Phase 6 router placeholder with `[TASK-065: KG FastAPI router...](../tasks/065-kg-fastapi-router.md)`.
 
-- [ ] Roadmap updated
+- [x] Roadmap updated <!-- Completed: 2026-06-06 — roadmap already had task link; checkbox marked complete below -->
 
 ## Acceptance Criteria
 
-- [ ] `backend/app/routers/kg.py` with `POST /kg/recommend`, `POST /kg/explain`, `POST /kg/feedback`
-- [ ] Router registered in `main.py` — all 3 endpoints reachable
-- [ ] `POST /kg/recommend` runs retrieval → generation pipeline and returns `KGRecommendResponse`
-- [ ] `POST /kg/explain` returns explanation string
-- [ ] `POST /kg/feedback` persists to Neo4j and returns `feedback_id`
-- [ ] ≥3 tests passing
+- [x] `backend/app/routers/kg.py` with `POST /kg/recommend`, `POST /kg/explain`, `POST /kg/feedback`
+- [x] Router registered in `main.py` — all 3 endpoints reachable
+- [x] `POST /kg/recommend` runs retrieval → generation pipeline and returns `KGRecommendResponse`
+- [x] `POST /kg/explain` returns explanation string
+- [x] `POST /kg/feedback` persists to Neo4j and returns `feedback_id`
+- [x] ≥3 tests passing
 
 ---
-**UAT**: `.docs/uat/065-kg-fastapi-router.uat.md`
+**UAT**: [`.docs/uat/065-kg-fastapi-router.uat.md`](../uat/065-kg-fastapi-router.uat.md)

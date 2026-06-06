@@ -108,49 +108,50 @@ def _clarification_node(state: AgentState) -> dict[str, Any]:
 
 
 async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
-    """Invoke the GraphRAG retrieval sub-graph for KNOWLEDGE_GRAPH intent."""
+    """Run retrieval → generation pipeline and return formatted recommendation."""
     import neo4j
     from app.kg.retrieval_graph import build_retrieval_graph
+    from app.kg.generation_graph import build_generation_graph
 
-    # Extract the last human message as the query
     last_human = next(
         (m for m in reversed(state["messages"]) if hasattr(m, "type") and m.type == "human"),
         None,
     )
     query = last_human.content if last_human else ""
-
-    # Use user_id as member_id — the caller should pass a Neo4j member UUID
     member_id = state.get("user_id") or "unknown-member"
 
     try:
         async with neo4j.AsyncGraphDatabase.driver(
-            settings.neo4j_uri,
-            auth=(settings.neo4j_user, settings.neo4j_password),
+            settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password)
         ) as driver:
-            retrieval_graph = build_retrieval_graph(driver)
-            result = await retrieval_graph.ainvoke(
+            retrieval_result = await build_retrieval_graph(driver).ainvoke(
                 {"member_id": member_id, "query": query}
             )
+            context = retrieval_result.get("context")
+            gen_result = await build_generation_graph().ainvoke(
+                {"member_id": member_id, "query": query, "context": context}
+            )
 
-        context = result.get("context")
-        content = (
-            f"Knowledge graph context assembled for member '{member_id}'."
-            if context
-            else "No knowledge graph context could be assembled."
-        )
+        rec = gen_result.get("recommendation")
+        if rec and rec.exercises:
+            lines = ["Here is your personalized workout recommendation:\n"]
+            for i, ex in enumerate(rec.exercises, 1):
+                rep_str = f"{ex.reps} reps" if ex.reps else f"{ex.duration_seconds}s"
+                lines.append(f"{i}. {ex.name} — {ex.sets} sets × {rep_str}")
+                lines.append(f"   Why: {ex.reasoning}")
+            lines.append(f"\n{rec.overall_reasoning}")
+            if rec.skipped_exercise_ids:
+                lines.append(f"\nNote: {len(rec.skipped_exercise_ids)} exercise(s) excluded due to injury constraints.")
+            content = "\n".join(lines)
+        else:
+            content = "I couldn't build a recommendation with the available context. Please provide more details."
     except Exception as exc:
-        content = f"Knowledge graph retrieval failed: {exc}"
+        content = f"Knowledge graph recommendation failed: {exc}"
         context = None
-
-    audit_entry = {
-        "event": "knowledge_graph",
-        "member_id": member_id,
-        "user_id": state.get("user_id"),
-    }
 
     return {
         "messages": [AIMessage(content=content)],
-        "audit_log": state.get("audit_log", []) + [audit_entry],
+        "audit_log": state.get("audit_log", []) + [{"event": "knowledge_graph", "member_id": member_id}],
     }
 
 

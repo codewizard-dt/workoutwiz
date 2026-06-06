@@ -7,10 +7,9 @@
 
 ## Prerequisites
 
-- [ ] Working directory is `1-multi-agent/`
-- [ ] Python virtual environment is available at `1-multi-agent/.venv/`
-- [ ] Package installed in editable mode: `cd 1-multi-agent && .venv/bin/pip install -e .` (or already installed)
-- [ ] `1-multi-agent/tests/test_routing_integration.py` exists with 6 test functions
+- [ ] Python virtual environment is available at `backend/.venv/`
+- [ ] Package installed in editable mode: `cd backend && .venv/bin/pip install -e ".[dev]"` (or already installed)
+- [ ] `backend/tests/test_routing_integration.py` exists with 6 test functions
 - [ ] No `ANTHROPIC_API_KEY` required — all tests mock the LLM layer
 
 ---
@@ -25,10 +24,10 @@
   1. Run the command below from the repo root
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/pytest tests/test_routing_integration.py -v
+  set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py -v
   ```
 - **Expected Result**: All 6 tests collected and pass (`6 passed` in the summary line). Exit code 0. No errors, no warnings about missing mocks or import failures.
-- [ ] Pass <!-- 2026-06-05 -->
+- [ ] Pass
 
 ---
 
@@ -41,10 +40,10 @@
   1. Run the command below from the repo root
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/pytest tests/test_routing_integration.py::test_coach_intent_dispatches_to_coach -v
+  set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py::test_coach_intent_dispatches_to_coach -v
   ```
 - **Expected Result**: `PASSED`. Last message in state contains `"coach"` or `"stub"` (case-insensitive).
-- [ ] Pass <!-- 2026-06-05 -->
+- [ ] Pass
 
 ### UAT-EDGE-002: WORKOUT_GENERATE intent dispatches to workout_gen branch
 
@@ -53,10 +52,10 @@
   1. Run the command below from the repo root
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/pytest tests/test_routing_integration.py::test_workout_generate_dispatches_correctly -v
+  set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py::test_workout_generate_dispatches_correctly -v
   ```
 - **Expected Result**: `PASSED`. Last message contains `"workout_gen"` or `"stub"` (case-insensitive).
-- [ ] Pass <!-- 2026-06-05 -->
+- [ ] Pass
 
 ### UAT-EDGE-003: WORKOUT_LOG intent dispatches to workout_log branch
 
@@ -65,10 +64,10 @@
   1. Run the command below from the repo root
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/pytest tests/test_routing_integration.py::test_workout_log_dispatches_correctly -v
+  set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py::test_workout_log_dispatches_correctly -v
   ```
 - **Expected Result**: `PASSED`. Last message contains `"workout_log"` or `"stub"` (case-insensitive).
-- [ ] Pass <!-- 2026-06-05 -->
+- [ ] Pass
 
 ### UAT-EDGE-004: FALLBACK intent routes to clarification node
 
@@ -77,7 +76,7 @@
   1. Run the command below from the repo root
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/pytest tests/test_routing_integration.py::test_fallback_routes_to_clarification -v
+  set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py::test_fallback_routes_to_clarification -v
   ```
 - **Expected Result**: `PASSED`. Last message contains `"rephrase"`, `"sure"`, or `"help"` (case-insensitive). The clarification node response is: `"I'm not sure what you're asking…Could you rephrase your request?"`.
 - [x] Pass <!-- 2026-06-05 -->
@@ -89,7 +88,7 @@
   1. Run the command below from the repo root
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/pytest tests/test_routing_integration.py::test_low_confidence_routes_to_clarification -v
+  set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py::test_low_confidence_routes_to_clarification -v
   ```
 - **Expected Result**: `PASSED`. Last message contains `"rephrase"`, `"sure"`, or `"help"` (case-insensitive) — confirming clarification fired, not the coach stub.
 - [x] Pass <!-- 2026-06-05 -->
@@ -101,10 +100,10 @@
   1. Run the command below from the repo root
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/pytest tests/test_routing_integration.py::test_boundary_confidence_0_6_routes_to_intent -v
+  set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py::test_boundary_confidence_0_6_routes_to_intent -v
   ```
 - **Expected Result**: `PASSED`. Last message contains `"coach"` or `"stub"` (case-insensitive) — confirms `0.6` is NOT treated as low-confidence.
-- [ ] Pass <!-- 2026-06-05 -->
+- [ ] Pass
 
 ### UAT-EDGE-007: _route_selector uses strict less-than operator
 
@@ -113,7 +112,7 @@
   1. Run the command below from the repo root
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/python -c "import inspect, workout_wiz.hub as h; src = inspect.getsource(h); assert '< 0.6' in src and '<= 0.6' not in src, 'Wrong threshold operator'; print('OK: strict < 0.6 confirmed')"
+  set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/python -c "import inspect, app.agents.hub as h; src = inspect.getsource(h); assert '< 0.6' in src and '<= 0.6' not in src, 'Wrong threshold operator'; print('OK: strict < 0.6 confirmed')"
   ```
 - **Expected Result**: Prints `OK: strict < 0.6 confirmed`. No `AssertionError`.
 - [x] Pass <!-- 2026-06-05 -->

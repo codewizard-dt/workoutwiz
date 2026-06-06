@@ -163,7 +163,7 @@ def build_injury_records(
     for persona in PERSONAS:
         email = str(persona["email"])
         member_id = str(member_map[email])
-        injuries: list[dict[str, Any]] = persona["injuries"]  # type: ignore[assignment]
+        injuries: list[dict[str, Any]] = persona["injuries"]
         for injury in injuries:
             injury_id = str(
                 uuid.uuid5(uuid.NAMESPACE_URL, f"{email}:{injury['name']}")

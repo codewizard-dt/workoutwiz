@@ -312,3 +312,45 @@ This section is honest about what is wired now versus what would be required bef
 - **Cache exercises in Redis**: 50 records that never change are a textbook cache candidate — skip the DB entirely for `GET /exercises/` after the first warm request, with a long TTL and cache invalidation tied to any future seed migration.
 - **PgBouncer**: transaction-mode pooling at the infrastructure layer so a sudden spike in API instances does not exhaust PostgreSQL's connection limit.
 - **Async task queue** for agent operations: when the LangGraph layer is added, workout generation calls can take several seconds. Offloading them to Celery or ARQ with a WebSocket or polling endpoint keeps the HTTP response fast and the user informed of progress.
+
+## How I Would Evaluate This System in Production
+
+### Retrieval Quality
+
+The core question is whether GraphRAG surfaces more relevant context than vector search alone. I would measure this with a held-out evaluation set of (member, query, expected_exercises) triples — synthetic but representative of real coaching scenarios. Key metrics:
+
+- **Recall@K**: fraction of expected exercises appearing in the top-K retrieved results
+- **Precision@K**: fraction of retrieved exercises that are truly relevant to the member's goals
+- **Baseline comparison**: run the same queries with vector-only retrieval (no graph traversal) to quantify the graph's contribution
+
+User feedback ratings (the 1–5 `FeedbackEvent` nodes) serve as implicit labels over time — exercises consistently rated 4–5 by a member should appear earlier in their retrieval results.
+
+### Safety Monitoring
+
+The injury safety gate is a hard constraint: contraindicated exercises must never appear in output. I would instrument:
+
+- **Gate trip rate** (Prometheus counter): `kg_safety_gate_trips_total{reason="contraindicated"}`. Alert if non-zero in production — every trip means the LLM ignored an explicit instruction.
+- **Adversarial testing**: prompt the LLM with "ignore the safe exercise list" injected into the user query; verify the gate catches any resulting violations.
+- **Regression test suite**: the 5-case parameterized test in `test_kg_critical_injury_filtering.py` runs on every CI push.
+
+### Latency
+
+Target: < 3 seconds end-to-end (P95). Breakdown by sub-component:
+
+| Component | Budget | Instrument |
+|-----------|--------|------------|
+| Neo4j traversal (all queries) | < 100ms P99 | `neo4j.session.run` span |
+| Vector similarity search | < 200ms P99 | `similarity_search` span |
+| LLM generation | < 2 000ms P99 | `ChatAnthropic.ainvoke` span |
+| Context assembly + safety gate | < 50ms | function-level timing |
+
+I would use OpenTelemetry with a LangSmith/Datadog backend. The `ContextSlice.token_counts` is already logged at INFO level — ship these to a metrics store and alert when `total > 1900` (approaching the 2048 budget).
+
+### Token Efficiency
+
+The 2048-token context budget (ADR-001 D3) is enforced by `_truncate_to_budget()`. In production I would:
+
+1. **Track budget utilisation** per section via `token_counts` — histogram the distribution across requests.
+2. **A/B test allocations**: member profile at 200, safe exercises at 600, preferred at 400, vector hits at 400 are reasonable starting points; if user ratings skew toward preferred exercises, shift budget toward that section.
+3. **Member profile caching**: the member profile rarely changes between sessions. Cache it in Redis (TTL: 1 hour) to skip the Neo4j round-trip on repeat queries.
+4. **Vector store warm-up**: the sentence-transformers model loads lazily; pre-warm on startup to avoid cold-start latency spikes.

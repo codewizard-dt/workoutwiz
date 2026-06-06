@@ -82,7 +82,8 @@ def _make_nodes(
         member_id = state["member_id"]
         profile = await get_member_profile(member_id, driver)
         if profile is None:
-            raise ValueError(f"Member '{member_id}' not found in Neo4j.")
+            logger.warning("Member '%s' not found in Neo4j — returning empty profile.", member_id)
+            profile = {}
         return {"member_profile": profile}
 
     async def run_injury_traversal(state: RetrievalState) -> dict[str, Any]:

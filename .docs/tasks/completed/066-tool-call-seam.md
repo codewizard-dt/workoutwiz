@@ -41,7 +41,7 @@ Use the `Write` tool to create:
 - `kg_explain_tool`: opens driver → calls `explain_skipped_exercise` → returns `{"explanation": str}`
 - `KG_TOOLS: list` = `[kg_recommend_tool, kg_explain_tool]`
 
-- [ ] `backend/app/kg/tools.py` with 2 tools and `KG_TOOLS` list
+- [x] `backend/app/kg/tools.py` with 2 tools and `KG_TOOLS` list <!-- Completed: 2026-06-06 -->
 
 ### 2. Write unit tests `backend/tests/kg/test_tools.py`  <!-- agent: general-purpose -->
 
@@ -54,20 +54,20 @@ Tests (mock Neo4j driver and all sub-functions):
 set -a && source .env && set +a && cd backend && python -m pytest tests/kg/test_tools.py -v
 ```
 
-- [ ] Tests pass
+- [x] Tests pass <!-- Completed: 2026-06-06 -->
 
 ### 3. Update roadmap  <!-- agent: general-purpose -->
 
 Replace the inline Phase 6 tool-call seam placeholder with `[TASK-066: Tool-call seam...](../tasks/066-tool-call-seam.md)`.
 
-- [ ] Roadmap updated
+- [x] Roadmap updated <!-- Already formatted as task link; no change needed -->
 
 ## Acceptance Criteria
 
-- [ ] `backend/app/kg/tools.py` with `kg_recommend_tool`, `kg_explain_tool`, `KG_TOOLS`
-- [ ] Both tools have `args_schema` with `Field(description=...)` on each field
-- [ ] `KG_TOOLS` list is importable and contains both tools
-- [ ] Tests pass
+- [x] `backend/app/kg/tools.py` with `kg_recommend_tool`, `kg_explain_tool`, `KG_TOOLS`
+- [x] Both tools have `args_schema` with `Field(description=...)` on each field
+- [x] `KG_TOOLS` list is importable and contains both tools
+- [x] Tests pass
 
 ---
-**UAT**: `.docs/uat/066-tool-call-seam.uat.md`
+**UAT**: [`.docs/uat/066-tool-call-seam.uat.md`](../uat/066-tool-call-seam.uat.md)

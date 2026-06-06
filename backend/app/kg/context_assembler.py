@@ -11,7 +11,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Callable, TypedDict
+from typing import Any, TypedDict
+from collections.abc import Callable
 
 from neo4j import AsyncDriver
 
@@ -135,9 +136,7 @@ async def assemble_context(
 
     Returns:
         A ContextSlice TypedDict with all sections and token_counts.
-
-    Raises:
-        ValueError: If the member is not found in Neo4j (member_profile is None).
+        Returns an empty ContextSlice (with zero counts) when the member is not found.
     """
     # Step 1: Run all traversals in parallel
     (
@@ -153,7 +152,23 @@ async def assemble_context(
     )
 
     if member_profile is None:
-        raise ValueError(f"Member '{member_id}' not found in Neo4j knowledge graph.")
+        logger.warning(
+            "assemble_context: member '%s' not found in Neo4j — returning empty ContextSlice.",
+            member_id,
+        )
+        return ContextSlice(
+            member_profile={},
+            safe_exercises=[],
+            preferred_exercises=[],
+            vector_hits=[],
+            token_counts=SectionTokenCounts(
+                member_profile=0,
+                safe_exercises=0,
+                preferred_exercises=0,
+                vector_hits=0,
+                total=0,
+            ),
+        )
 
     # Step 2: Vector similarity search
     vector_docs = await _safe_vector_search(query, k=vector_k)

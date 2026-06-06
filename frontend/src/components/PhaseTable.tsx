@@ -41,7 +41,7 @@ export function PhaseTable({ sequences, exercises = [], onAddCurrent }: PhaseTab
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
       {ordered.map((seq) => {
-        const sortedSets = [...(seq.sets ?? [])].sort(
+        const sortedSets = [...seq.sets].sort(
           (a, b) => (a.position ?? 0) - (b.position ?? 0),
         )
 
@@ -97,7 +97,7 @@ export function PhaseTable({ sequences, exercises = [], onAddCurrent }: PhaseTab
                             <button
                               type="button"
                               className="ww-btn ww-btn--outline ww-btn--sm"
-                              onClick={() => onAddCurrent(set.exercise_id)}
+                              onClick={() => { onAddCurrent(set.exercise_id) }}
                             >
                               Add Current
                             </button>

@@ -7,6 +7,7 @@ import ExercisesPage from '@/pages/ExercisesPage'
 import WorkoutsPage from '@/pages/WorkoutsPage'
 import WorkoutNewPage from '@/pages/WorkoutNewPage'
 import ChatPage from '@/pages/ChatPage'
+import KnowledgeGraphPage from '@/pages/KnowledgeGraphPage'
 import WorkoutDetailPage from '@/pages/WorkoutDetailPage'
 import { AppShell } from '@/components/AppShell'
 
@@ -50,6 +51,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AppShell><WorkoutDetailPage /></AppShell>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/knowledge-graph',
+    element: (
+      <ProtectedRoute>
+        <AppShell><KnowledgeGraphPage /></AppShell>
       </ProtectedRoute>
     ),
   },

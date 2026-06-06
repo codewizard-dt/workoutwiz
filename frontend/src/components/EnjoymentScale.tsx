@@ -30,7 +30,7 @@ export function EnjoymentScale({ value, onChange, disabled = false }: EnjoymentS
           aria-label={`Rate ${n} out of 5`}
           aria-pressed={value === n}
           disabled={disabled}
-          onClick={() => onChange(n)}
+          onClick={() => { onChange(n) }}
           className={cn(
             'ww-btn ww-btn--ghost ww-iconbtn',
             value === n && 'ww-btn--accent',

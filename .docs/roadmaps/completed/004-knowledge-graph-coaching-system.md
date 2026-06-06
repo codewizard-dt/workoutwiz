@@ -2,9 +2,9 @@
 
 > Build a Neo4j-backed coaching layer with GraphRAG retrieval, injury-aware generation, and exercise feedback — delivering all Assessment 2 core requirements.
 
-- **Status**: active
+- **Status**: done
 - **Created**: 2026-06-06
-- **Last updated**: 2026-06-06 (TASK-060 complete)
+- **Last updated**: 2026-06-06 (TASK-066 complete — tool-call seam)
 - **Owner**: David Taylor
 - **Linked PRD**: — (PRD-002 to be created from `.docs/guides/2-knowledge-graph/KNOWLEDGE_GRAPH_ASSESSMENT.md`)
 - **Linked ADRs**: [ADR-001: GraphRAG Retrieval Strategy](../adr/001-graphrag-retrieval-strategy.md)
@@ -59,29 +59,29 @@ Build a Neo4j knowledge graph coaching layer integrated into the existing FastAP
 > Injury-aware, personalized, explainable workout recommendations.
 
 - [x] [TASK-060: Generation agent sub-graph — context slice → structured workout recommendation](../tasks/060-generation-agent-subgraph.md)
-- [ ] [TASK-061: Injury safety gate — post-generation validation, no contraindicated exercises in output](../tasks/061-injury-safety-gate.md)
-- [ ] [TASK-062: Explainability tool — traverse graph to explain why an exercise was skipped](../tasks/062-explainability-tool.md)
-- [ ] [TASK-063: Fallback handler — surface alternatives when safe exercises are too few](../tasks/063-fallback-handler.md)
-- [x] [TASK-064: Feedback write-back — persist post-workout ratings/text via FeedbackEvent ingestion](../tasks/064-feedback-writeback.md)
+- [x] [TASK-061: Injury safety gate — post-generation validation, no contraindicated exercises in output](../tasks/061-injury-safety-gate.md)
+- [x] [TASK-062: Explainability tool — traverse graph to explain why an exercise was skipped](../tasks/completed/062-explainability-tool.md)
+- [x] [TASK-063: Fallback handler — surface alternatives when safe exercises are too few](../tasks/completed/063-fallback-handler.md)
+- [x] [TASK-064: Feedback write-back — persist post-workout ratings/text via FeedbackEvent ingestion](../tasks/completed/064-feedback-writeback.md)
 
 ## Phase 6: Backend API Integration
 
 > Wire the knowledge graph layer into the existing FastAPI app via tool calls.
 
-- [ ] [TASK-065: KG FastAPI router — /kg/recommend, /kg/explain, /kg/feedback with typed Pydantic schemas](../tasks/065-kg-fastapi-router.md)
-- [ ] [TASK-066: Tool-call seam — expose retrieval + generation as LangChain tools callable from hub](../tasks/066-tool-call-seam.md)
-- [ ] [TASK-067: Hub integration — full KG recommendation flow in hub node](../tasks/067-hub-integration.md)
-- [ ] [TASK-068: Critical-path test 1 — injury filtering correctness](../tasks/068-critical-path-test-injury-filtering.md)
-- [ ] [TASK-069: Critical-path test 2 — graph retrieval returns member-relevant context](../tasks/069-critical-path-test-graph-retrieval.md)
+- [x] [TASK-065: KG FastAPI router — /kg/recommend, /kg/explain, /kg/feedback with typed Pydantic schemas](../tasks/completed/065-kg-fastapi-router.md)
+- [x] [TASK-066: Tool-call seam — expose retrieval + generation as LangChain tools callable from hub](../tasks/completed/066-tool-call-seam.md)
+- [x] [TASK-067: Hub integration — full KG recommendation flow in hub node](../tasks/completed/067-hub-integration.md)
+- [x] [TASK-068: Critical-path test 1 — injury filtering correctness](../tasks/completed/068-critical-path-test-injury-filtering.md)
+- [x] [TASK-069: Critical-path test 2 — graph retrieval returns member-relevant context](../tasks/completed/069-critical-path-test-graph-retrieval.md)
 
 ## Phase 7: Frontend Integration
 
 > Complete the Assessment 2 frontend and Docker Compose deliverable.
 
-- [ ] [TASK-070: KG chat/dashboard — knowledge graph frontend page](../tasks/070-kg-chat-dashboard.md)
-- [ ] [TASK-071: Feedback submission UI — rate exercise 1–5, submit text feedback](../tasks/071-feedback-submission-ui.md)
-- [ ] [TASK-072: Docker Compose verification — full stack starts clean](../tasks/072-docker-compose-verification.md)
-- [ ] [TASK-073: README production evaluation section — retrieval quality, safety, latency, token efficiency](../tasks/073-readme-production-eval.md)
+- [x] [TASK-070: KG chat/dashboard — knowledge graph frontend page](../tasks/completed/070-kg-chat-dashboard.md)
+- [x] [TASK-071: Feedback submission UI — rate exercise 1–5, submit text feedback](../tasks/071-feedback-submission-ui.md)
+- [x] [TASK-072: Docker Compose verification — full stack starts clean](../tasks/completed/072-docker-compose-verification.md)
+- [x] [TASK-073: README production evaluation section — retrieval quality, safety, latency, token efficiency](../tasks/completed/073-readme-production-eval.md)
 
 ## Notes
 

@@ -29,7 +29,7 @@ TEXT_NODE_PROPERTIES = ["name", "description"]
 EMBEDDING_NODE_PROPERTY = "embedding"
 
 
-def _get_embeddings() -> "Embeddings":
+def _get_embeddings() -> Embeddings:
     """Instantiate the configured embedding model."""
     provider = settings.EMBEDDING_PROVIDER
     model_name = settings.EMBEDDING_MODEL_NAME

@@ -40,7 +40,7 @@ export function useKGRecommend() {
 
 Write using the `Write` tool with the hook above.
 
-- [ ] Hook file created
+- [x] Hook file created <!-- Completed: 2026-06-06 -->
 
 ### 2. Create `frontend/src/pages/KnowledgeGraphPage.tsx`  <!-- agent: general-purpose -->
 
@@ -52,7 +52,7 @@ Write using the `Write` tool with:
 - Each exercise in a card with name, sets × reps/duration, reasoning text
 - Fallback notice: "Limited options due to injury constraints."
 
-- [ ] `KnowledgeGraphPage.tsx` created with form + results display
+- [x] `KnowledgeGraphPage.tsx` created with form + results display <!-- Completed: 2026-06-06 -->
 
 ### 3. Add route to `frontend/src/router.tsx`  <!-- agent: general-purpose -->
 
@@ -61,34 +61,34 @@ Use Serena `get_symbols_overview` on `frontend/src/router.tsx` to see current ro
 { path: '/knowledge-graph', element: <KnowledgeGraphPage /> }
 ```
 
-- [ ] Route registered
+- [x] Route registered <!-- Completed: 2026-06-06 -->
 
 ### 4. Add nav link  <!-- agent: general-purpose -->
 
 Find the main navigation component (check `frontend/src/` for `App.tsx`, `Layout.tsx`, or `Navbar.tsx`). Add a link to `/knowledge-graph` labeled "AI Coach".
 
-- [ ] Nav link added
+- [x] Nav link added <!-- Completed: 2026-06-06 -->
 
 ### 5. Update `frontend/src/hooks/index.ts` to export the new hook  <!-- agent: general-purpose -->
 
 Add `export * from './useKGRecommend'` if an index file exists.
 
-- [ ] Hook exported from index
+- [x] Hook exported from index <!-- Completed: 2026-06-06 -->
 
 ### 6. Update roadmap  <!-- agent: general-purpose -->
 
 Replace the inline Phase 7 KG dashboard placeholder.
 
-- [ ] Roadmap updated
+- [x] Roadmap updated <!-- Completed: 2026-06-06 -->
 
 ## Acceptance Criteria
 
-- [ ] `/knowledge-graph` route registered and renders `KnowledgeGraphPage`
-- [ ] Page has a query input form that calls `POST /kg/recommend`
-- [ ] Recommendation displayed with exercise cards (name, sets, reps/duration, reasoning)
-- [ ] Loading state shown during request
-- [ ] Error state shown on failure
-- [ ] Nav link present
+- [x] `/knowledge-graph` route registered and renders `KnowledgeGraphPage`
+- [x] Page has a query input form that calls `POST /kg/recommend`
+- [x] Recommendation displayed with exercise cards (name, sets, reps/duration, reasoning)
+- [x] Loading state shown during request
+- [x] Error state shown on failure
+- [x] Nav link present
 
 ---
 **UAT**: `.docs/uat/070-kg-chat-dashboard.uat.md`

@@ -5,11 +5,11 @@ import { useExercises } from '@/hooks/useExercises'
 import { useChat } from '@/hooks/useChat'
 import { ChatBubble } from '@/components/ChatBubble'
 import { PhaseTable } from '@/components/PhaseTable'
-import type { WorkoutSequence, WorkoutSequenceCreate, WorkoutSetCreate, WorkoutSet, SetType, WorkoutPhase } from '@/types'
+import type { WorkoutSequence, WorkoutSequenceCreate, WorkoutSetCreate, WorkoutSet, WorkoutPhase } from '@/types'
 
 function workoutDraftToSequences(draft: import('@/types').WorkoutDraft): WorkoutSequence[] {
   const result: WorkoutSequence[] = []
-  const phaseEntries: Array<[WorkoutPhase, import('@/types').WorkoutDraftExercise[]]> = [
+  const phaseEntries: [WorkoutPhase, import('@/types').WorkoutDraftExercise[]][] = [
     ['warmup', draft.phases.warmup],
     ['main', draft.phases.main],
     ['cooldown', draft.phases.cooldown],
@@ -21,7 +21,7 @@ function workoutDraftToSequences(draft: import('@/types').WorkoutDraft): Workout
         id: `gen-${phase}-${exIdx}-${setIdx}`,
         sequence_id: `gen-${phase}`,
         exercise_id: ex.id,
-        set_type: (ex.duration_s != null ? 'CARDIO' : 'STRENGTH') as SetType,
+        set_type: ex.duration_s != null ? 'CARDIO' : 'STRENGTH',
         position: exIdx * 100 + setIdx,
         reps: ex.reps ? parseInt(ex.reps.split('-')[0]) : undefined,
         weight_kg: undefined as number | undefined,
@@ -38,46 +38,44 @@ export default function WorkoutNewPage() {
   const createWorkout = useCreateWorkout()
   const { data: exercises } = useExercises()
   const { messages, sendMessage, isLoading: chatLoading, error: chatError, clearMessages } = useChat()
-  const [draftSequences, setDraftSequences] = useState<WorkoutSequence[]>([])
-  const [inputText, setInputText] = useState('')
-  const streamRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
+  const [draftSequences, setDraftSequences] = useState<WorkoutSequence[]>(() => {
     try {
       const raw = localStorage.getItem('ww_workout_draft')
-      if (!raw) return
-      const items = JSON.parse(raw) as Array<{
+      if (!raw) return []
+      const items = JSON.parse(raw) as {
         exercise_id: string
         sets: number
         reps: number | null
         weight_kg: number | null
         duration_s: number | null
         weight_unit: 'kg' | 'lb'
-      }>
-      if (!items.length) return
+      }[]
+      if (!items.length) return []
       const sets: WorkoutSet[] = items.flatMap((item, itemIdx) =>
         Array.from({ length: item.sets }, (_, setIdx) => ({
           id: `draft-${itemIdx}-${setIdx}`,
           sequence_id: 'draft',
           exercise_id: item.exercise_id,
-          set_type: (item.duration_s != null ? 'CARDIO' : 'STRENGTH') as SetType,
+          set_type: item.duration_s != null ? 'CARDIO' : 'STRENGTH',
           position: itemIdx * 100 + setIdx,
           reps: item.reps ?? undefined,
           weight_kg: item.weight_kg ?? undefined,
           duration_s: item.duration_s ?? undefined,
         }))
       )
-      setDraftSequences([{
+      return [{
         id: 'draft',
         workout_id: 'draft',
         phase: 'main',
         position: 0,
         sets,
-      }])
+      }]
     } catch {
-      // ignore malformed draft
+      return []
     }
-  }, [])
+  })
+  const [inputText, setInputText] = useState('')
+  const streamRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (streamRef.current) {
@@ -103,7 +101,7 @@ export default function WorkoutNewPage() {
     const payload: WorkoutSequenceCreate[] = draftSequences.map((seq, seqPos) => ({
       phase: seq.phase,
       position: seqPos,
-      sets: (seq.sets ?? []).map((s, setPos) => {
+      sets: seq.sets.map((s, setPos) => {
         const base: WorkoutSetCreate = {
           exercise_id: s.exercise_id,
           set_type: s.set_type,
@@ -236,7 +234,7 @@ export default function WorkoutNewPage() {
                     type="button"
                     className="ww-btn ww-btn--gradient ww-btn--sm"
                     style={{ alignSelf: 'flex-start' }}
-                    onClick={() => { setDraftSequences(workoutDraftToSequences(msg.workout_draft!)) }}
+                    onClick={() => { const d = msg.workout_draft; if (d) { setDraftSequences(workoutDraftToSequences(d)) } }}
                   >
                     ✓ Use This Workout
                   </button>
@@ -306,7 +304,7 @@ export default function WorkoutNewPage() {
               Current Sequence
             </span>
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)' }}>
-              {draftSequences.reduce((acc, s) => acc + (s.sets?.length ?? 0), 0)} sets
+              {draftSequences.reduce((acc, s) => acc + s.sets.length, 0)} sets
             </span>
           </div>
 

@@ -228,7 +228,7 @@ export default function ChatPage() {
                     key={text}
                     type="button"
                     className="ww-btn ww-btn--outline ww-btn--sm"
-                    onClick={() => handleChipClick(text)}
+                    onClick={() => { handleChipClick(text) }}
                   >
                     {text}
                   </button>
@@ -247,7 +247,7 @@ export default function ChatPage() {
                 rows={2}
                 placeholder="Ask a question, request a workout, or log a session…"
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={(e) => { setDraft(e.target.value) }}
                 onKeyDown={handleKeyDown}
                 style={{
                   flex: 1,
