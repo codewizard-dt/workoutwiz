@@ -114,7 +114,7 @@ Review the ADR for completeness:
 Leave `### Links` section empty (will be filled when this task links to the ADR).
 
 - [x] ADR reviewed for completeness; status set to "Proposed" <!-- Completed: 2026-06-06 -->
-- [ ] File committed with message referencing ROADMAP-005
+- [x] File committed with message referencing ROADMAP-005 <!-- Completed: 2026-06-06 -->
 
 ## Acceptance Criteria
 
@@ -125,4 +125,4 @@ Leave `### Links` section empty (will be filled when this task links to the ADR)
 - [x] Decision D3 specifies endpoint contracts (/kg/audit/{session_id}, RecommendedExercise fields)
 - [x] Decision D4 documents in-process scope with trade-offs table
 - [x] All decisions reference the existing code (hub.py, state.py, chat.py, generation_graph.py) by line number
-- [ ] ADR is committed to the repository
+- [x] ADR is committed to the repository <!-- Completed: 2026-06-06 -->
