@@ -199,7 +199,7 @@ One row per roadmap. Sort by file number ascending.
 
 | File | Title | Status | Progress | Owner | Linked PRD |
 |------|-------|--------|----------|-------|------------|
-| [ROADMAP-001](001-port-legacy-to-modern-stack.md) | Port Fitness Tracker to Modern Stack | active | 4/16 | David Taylor | PRD-001 |
+| _No roadmaps yet — use `/roadmap-create <topic>` to draft the first one._ | | | | | |
 
 When adding a row:
 

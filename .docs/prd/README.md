@@ -228,7 +228,7 @@ One row per PRD. Sort by file number ascending.
 
 | File | Title | Status | Created | Owner | Linked ADRs | Linked Tasks |
 |------|-------|--------|---------|-------|-------------|--------------|
-| [PRD-001](001-fitness-coaching-multi-agent.md) | Fitness Coaching Multi-Agent System | draft | 2026-06-03 | David Taylor | — | — |
+| _No PRDs yet — use `/prd-create <idea>` to draft the first one._ | | | | | | |
 
 When adding a row:
 

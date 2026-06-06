@@ -2,9 +2,9 @@
 
 > Replace the legacy Node.js/Express/Mongoose/React system with a modern FastAPI backend, PostgreSQL database, and Vite/React/TypeScript frontend — then integrate with the multi-agent routing hub.
 
-- **Status**: active
+- **Status**: done
 - **Created**: 2026-06-03
-- **Last updated**: 2026-06-03 (Phase 0 walkthrough complete)
+- **Last updated**: 2026-06-04 (all tasks completed)
 - **Owner**: David Taylor
 - **Linked PRD**: PRD-001
 - **Linked ADRs**: —
@@ -27,39 +27,38 @@ When complete, the legacy fitness tracker will be replaced with a production-rea
 
 > Set up modern backend and database infrastructure.
 
-- [ ] Create FastAPI project structure with Pydantic models, SQLAlchemy setup, and environment config
-- [ ] Set up PostgreSQL database, Alembic migrations tooling, and connection pooling
-- [ ] Design relational schema for User, Exercise, Workout, and WorkoutSequenceItem (map from Mongoose nesting)
-- [ ] Configure logging, error handling, and async patterns for FastAPI
+- [x] [TASK-001: Create FastAPI Project Structure](../tasks/completed/001-fastapi-project-structure.md)
+- [x] [TASK-002: Set Up PostgreSQL Database, Alembic Migrations, and Connection Pooling](../tasks/completed/002-postgres-alembic-setup.md)
+- [x] [TASK-003: Design Relational Schema: User, Exercise, Workout, WorkoutSequence, WorkoutSet](../tasks/completed/003-relational-schema-design.md)
+- [x] [TASK-004: Configure Logging, Error Handling, and Async Patterns for FastAPI](../tasks/completed/004-fastapi-logging-error-handling.md)
 
 ## Phase 2: Backend Port & Data Migration
 
 > Implement all API endpoints and migrate exercise data.
 
-- [ ] Import and validate exercises.json, load into PostgreSQL
-- [ ] Implement `/auth` endpoints (register, signin, signout, token validation) with JWT
-- [ ] Implement `/exercises` endpoints (list, search by name/bodyPart/equipment/target)
-- [ ] Implement `/workouts` endpoints (list, create, update, delete for authenticated users)
-- [ ] Write integration tests for all routes with real database
+- [x] [TASK-005: Import and Validate exercises.json, Load into PostgreSQL](../tasks/completed/005-exercise-seed-data.md)
+- [x] [TASK-006: Implement /auth Endpoints with fastapi-users](../tasks/completed/006-auth-endpoints.md)
+- [x] [TASK-007: Implement /exercises Endpoints](../tasks/completed/007-exercise-endpoints.md)
+- [x] [TASK-008: Implement /workouts Endpoints](../tasks/completed/008-workout-endpoints.md)
+- [x] [TASK-009: Write Integration Tests for All Routes with Real Database](../tasks/completed/009-integration-tests.md)
 
 ## Phase 3: Frontend Port
 
 > Migrate React app to Vite and update state management.
 
-- [ ] Scaffold Vite + React + TypeScript project with modern tooling (ESLint, Prettier)
-- [ ] Migrate Semantic UI components or evaluate modern UI library alternative
-- [ ] Port Redux state (auth, exercises, workouts) to modern state management (React Query, Zustand, or local state)
-- [ ] Update API client (Axios) to call FastAPI endpoints with new auth headers
-- [ ] Port all React components and test UI against new backend
+- [x] [TASK-010: Scaffold Vite + React + TypeScript Frontend Project](../tasks/completed/010-vite-react-ts-scaffold.md)
+- [x] [TASK-011: Install Tailwind CSS and shadcn/ui (Replace Semantic UI)](../tasks/completed/011-tailwind-shadcn-ui.md)
+- [x] [TASK-012: Set Up React Query (TanStack Query) State Management](../tasks/completed/012-react-query-state.md)
+- [x] [TASK-014: Port React Components and Test UI Against Backend](../tasks/completed/014-port-react-components.md)
 
 ## Phase 4: Testing & Polish
 
 > Verify resilience, edge cases, and production readiness.
 
-- [ ] End-to-end tests (user auth flow, workout creation, exercise search)
-- [ ] Edge case testing (missing data, invalid IDs, concurrent requests, auth token expiry)
-- [ ] Performance baseline (API response times, database query optimization)
-- [ ] README: Add "How I Would Evaluate This in Production" section per PRD-001 AC-3
+- [x] [TASK-015: End-to-End Tests (User Auth Flow, Workout Creation, Exercise Search)](../tasks/completed/015-e2e-tests.md)
+- [x] [TASK-016: Edge Case Testing (Missing Data, Invalid IDs, Auth Token Expiry)](../tasks/completed/016-edge-case-testing.md)
+- [x] [TASK-017: Performance Baseline (API Response Times, Query Optimization)](../tasks/completed/017-performance-baseline.md)
+- [x] [TASK-018: Add "How I Would Evaluate This in Production" README Section](../tasks/completed/018-production-readme.md)
 
 ## Notes
 
