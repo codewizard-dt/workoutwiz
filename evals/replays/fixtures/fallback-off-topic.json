@@ -1,0 +1,42 @@
+{
+  "recorded_at": "2026-06-06",
+  "query": "What is the capital of France?",
+  "ground_truth": {
+    "expected_route": "FALLBACK",
+    "must_contain": [
+      "fitness",
+      "workout"
+    ],
+    "must_not_contain": [
+      "Paris",
+      "France is"
+    ]
+  },
+  "response": {
+    "session_id": "7d4f6cf1-3852-4707-81a1-816b3fb9f0a1",
+    "reply": "I'm not sure what you're asking (reason: The user is asking about the capital of France, which is a general knowledge question unrelated to fitness, workouts, or coaching.). I can help with:\n\n• **Fitness coaching** — questions about exercises, form, programming, recovery\n• **Workout planning** — generating a workout plan tailored to your goals\n• **Workout logging** — recording a workout you just completed\n\nCould you rephrase your request?",
+    "route": "FALLBACK",
+    "confidence": 0.95,
+    "audit_log": [
+      {
+        "event": "router",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "route": "FALLBACK",
+        "confidence": 0.95,
+        "latency_ms": 834,
+        "user_id": "e2fe5599-3ad0-450d-84c2-abf41d1e71a6",
+        "tokens_in": 1094,
+        "tokens_out": 96
+      },
+      {
+        "event": "clarification",
+        "trigger": "fallback_intent",
+        "confidence": 0.95,
+        "user_id": "e2fe5599-3ad0-450d-84c2-abf41d1e71a6"
+      }
+    ],
+    "workout_draft": null,
+    "kg_result": null
+  }
+}

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from app.models.workout import WorkoutPhase, SetType
 
 
@@ -26,6 +26,15 @@ class WorkoutCreate(BaseModel):
     started_at: datetime = Field(description="ISO 8601 timestamp when the workout began", examples=["2026-06-05T09:00:00Z"])
     ended_at: datetime | None = Field(default=None, description="ISO 8601 timestamp when the workout ended (null if in progress)", examples=[None])
     sequences: list[WorkoutSequenceCreate] = Field(default=[], description="Ordered list of exercise sequences (warmup/main/cooldown)", examples=[[]])
+    enjoyment: int | None = Field(default=None, description="User enjoyment rating from 1 (low) to 5 (high)", examples=[4])
+    note: str | None = Field(default=None, description="Optional free-text note about the workout", examples=["Felt strong today"])
+
+    @field_validator("enjoyment")
+    @classmethod
+    def enjoyment_in_range(cls, v: int | None) -> int | None:
+        if v is not None and not (1 <= v <= 5):
+            raise ValueError("enjoyment must be between 1 and 5")
+        return v
 
 
 class WorkoutSetRead(WorkoutSetCreate):
@@ -49,4 +58,6 @@ class WorkoutRead(BaseModel):
     user_id: uuid.UUID = Field(description="UUID of the user who owns this workout", examples=["a7b8c9d0-e1f2-3456-0ab1-567890123456"])
     started_at: datetime = Field(description="ISO 8601 timestamp when the workout began", examples=["2026-06-05T09:00:00Z"])
     ended_at: datetime | None = Field(description="ISO 8601 timestamp when the workout ended (null if in progress)", examples=[None])
+    enjoyment: int | None = Field(description="User enjoyment rating from 1 (low) to 5 (high)", examples=[4])
+    note: str | None = Field(description="Optional free-text note about the workout", examples=["Felt strong today"])
     sequences: list[WorkoutSequenceRead] = Field(description="Ordered list of exercise sequences", examples=[[]])

@@ -1,0 +1,11 @@
+- id: "gs-010"
+  description: "KNOWLEDGE_GRAPH intent — lower back injury routes to knowledge_graph node and returns a back-aware recommendation"
+  query: "Recommend exercises for someone with a lower back injury who prefers cardio"
+  expected_tools:
+    - knowledge_graph
+  expected_sources: []
+  must_contain: []
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+    - "couldn't build a recommendation"

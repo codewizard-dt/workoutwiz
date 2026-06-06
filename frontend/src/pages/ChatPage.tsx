@@ -2,12 +2,14 @@ import { useRef, useEffect, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useChat } from '../hooks/useChat'
 import { useWorkouts } from '../hooks/useWorkouts'
+import { useMe } from '@/hooks'
 import { ChatBubble } from '@/components/ChatBubble'
 import { WorkoutCard } from '@/components/WorkoutCard'
+import { FeedbackForm } from '@/components/FeedbackForm'
 import { cn } from '@/lib/utils'
 
 const PROMPT_CHIPS = [
-  "What muscles does a deadlift work?",
+  "What exercises suit my injuries?",
   "30 min dumbbell workout",
   "Log 3x10 bench at 185",
   "Bench press form tips",
@@ -16,6 +18,7 @@ const PROMPT_CHIPS = [
 export default function ChatPage() {
   const { messages, sendMessage, isLoading, error, clearMessages, sessionId } = useChat()
   const { data: workouts, isLoading: workoutsLoading } = useWorkouts()
+  const { data: user } = useMe()
 
   const [draft, setDraft] = useState('')
   const streamRef = useRef<HTMLDivElement>(null)
@@ -75,7 +78,7 @@ export default function ChatPage() {
             color: 'var(--foreground)',
           }}
         >
-          Chat
+          AI Coach
         </h1>
         <p
           style={{
@@ -85,7 +88,7 @@ export default function ChatPage() {
             marginBottom: 0,
           }}
         >
-          Ask questions, generate workouts, or log completed activity.
+          Ask questions, generate personalized workouts, log activity, or get injury-aware exercise recommendations.
         </p>
       </div>
 
@@ -168,14 +171,141 @@ export default function ChatPage() {
             )}
 
             {messages.map((msg) => (
-              <ChatBubble
-                key={msg.id}
-                role={msg.role}
-                content={msg.content}
-                route={msg.role === 'assistant' ? msg.route : undefined}
-                confidence={msg.role === 'assistant' ? msg.confidence : undefined}
-                steps={msg.role === 'assistant' ? msg.steps : undefined}
-              />
+              <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <ChatBubble
+                  role={msg.role}
+                  content={msg.content}
+                  route={msg.role === 'assistant' ? msg.route : undefined}
+                  confidence={msg.role === 'assistant' ? msg.confidence : undefined}
+                  steps={msg.role === 'assistant' ? msg.steps : undefined}
+                />
+                {msg.role === 'assistant' && msg.route === 'KNOWLEDGE_GRAPH' && msg.kg_result != null && (
+                  <div
+                    className="ww-card"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 'var(--space-4)',
+                      padding: 'var(--space-4)',
+                    }}
+                  >
+                    {msg.kg_result.fallback_used && (
+                      <div
+                        style={{
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: 'var(--space-2) var(--space-3)',
+                          fontSize: 'var(--text-xs)',
+                          color: 'var(--muted-foreground)',
+                          background: 'var(--muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 'var(--space-2)',
+                        }}
+                      >
+                        <span>⚠️</span>
+                        <span>Limited options due to injury constraints — fallback exercises shown.</span>
+                      </div>
+                    )}
+                    {msg.kg_result.overall_reasoning && (
+                      <p
+                        style={{
+                          fontSize: 'var(--text-sm)',
+                          color: 'var(--muted-foreground)',
+                          margin: 0,
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {msg.kg_result.overall_reasoning}
+                      </p>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                      <h2
+                        style={{
+                          fontSize: 'var(--text-base)',
+                          fontWeight: 'var(--weight-semibold)',
+                          color: 'var(--foreground)',
+                          margin: 0,
+                        }}
+                      >
+                        Recommended Exercises ({msg.kg_result.exercises.length})
+                      </h2>
+                      {msg.kg_result.exercises.map((ex) => (
+                        <div
+                          key={ex.exercise_id}
+                          style={{
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: 'var(--space-4)',
+                            background: 'var(--surface-card)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 'var(--space-2)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 'var(--space-3)',
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 'var(--text-base)',
+                                fontWeight: 'var(--weight-semibold)',
+                                color: 'var(--foreground)',
+                              }}
+                            >
+                              {ex.name}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 'var(--text-sm)',
+                                color: 'var(--muted-foreground)',
+                                background: 'var(--muted)',
+                                borderRadius: 'var(--radius-sm)',
+                                padding: '2px var(--space-2)',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {ex.sets != null && ex.reps != null
+                                ? `${ex.sets} × ${ex.reps} reps`
+                                : ex.sets != null && ex.duration_seconds != null
+                                  ? `${ex.sets} × ${ex.duration_seconds}s`
+                                  : ex.sets != null
+                                    ? `${ex.sets} sets`
+                                    : ex.duration_seconds != null
+                                      ? `${ex.duration_seconds}s`
+                                      : ''}
+                            </span>
+                          </div>
+                          {ex.reasoning && (
+                            <p
+                              style={{
+                                fontSize: 'var(--text-sm)',
+                                color: 'var(--muted-foreground)',
+                                margin: 0,
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              {ex.reasoning}
+                            </p>
+                          )}
+                          {user?.id != null && (
+                            <FeedbackForm
+                              exerciseId={ex.exercise_id}
+                              memberId={user.id}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
 
             {/* API error rendered as system message in the chat list */}
@@ -213,28 +343,27 @@ export default function ChatPage() {
               background: 'var(--background)',
             }}
           >
-            {/* Prompt chips — visible only when conversation is empty */}
-            {messages.length === 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 'var(--space-2)',
-                  marginBottom: 'var(--space-3)',
-                }}
-              >
-                {PROMPT_CHIPS.map((text) => (
-                  <button
-                    key={text}
-                    type="button"
-                    className="ww-btn ww-btn--outline ww-btn--sm"
-                    onClick={() => { handleChipClick(text) }}
-                  >
-                    {text}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Prompt chips — always visible above input */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'var(--space-2)',
+                marginBottom: 'var(--space-3)',
+              }}
+            >
+              {PROMPT_CHIPS.map((text) => (
+                <button
+                  key={text}
+                  type="button"
+                  className="ww-btn ww-btn--outline ww-btn--sm"
+                  disabled={isLoading}
+                  onClick={() => { handleChipClick(text) }}
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
 
             <div
               style={{
@@ -244,10 +373,13 @@ export default function ChatPage() {
               }}
             >
               <textarea
-                rows={2}
                 placeholder="Ask a question, request a workout, or log a session…"
                 value={draft}
-                onChange={(e) => { setDraft(e.target.value) }}
+                onChange={(e) => {
+                  setDraft(e.target.value)
+                  e.target.style.height = 'auto'
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`
+                }}
                 onKeyDown={handleKeyDown}
                 style={{
                   flex: 1,
@@ -261,6 +393,9 @@ export default function ChatPage() {
                   fontFamily: 'inherit',
                   lineHeight: 1.5,
                   outline: 'none',
+                  minHeight: '2.5rem',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
                 }}
               />
               <div
@@ -335,7 +470,7 @@ export default function ChatPage() {
                 color: 'var(--foreground)',
               }}
             >
-              Previous Workouts
+              Recent Workouts
             </span>
             <Link
               to="/workouts"

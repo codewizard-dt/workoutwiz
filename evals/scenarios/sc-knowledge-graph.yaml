@@ -1,0 +1,80 @@
+- id: "sc-kg-001"
+  query: "I have a knee injury. Build me a workout that avoids leg exercises."
+  expected_tools: [knowledge_graph]
+  category: knowledge_graph
+  subcategory: injury_avoidance
+  difficulty: straightforward
+  must_contain: ["excluded due to injury constraints"]
+  must_not_contain: ["I don't know", "I cannot", "couldn't build"]
+
+- id: "sc-kg-002"
+  query: "My shoulder is hurt. Recommend exercises I can safely do."
+  expected_tools: [knowledge_graph]
+  category: knowledge_graph
+  subcategory: injury_avoidance
+  difficulty: straightforward
+  must_contain: ["excluded due to injury constraints"]
+  must_not_contain: ["I don't know", "I cannot", "couldn't build"]
+
+- id: "sc-kg-003"
+  query: "I have lower back pain. What workouts won't aggravate it?"
+  expected_tools: [knowledge_graph]
+  category: knowledge_graph
+  subcategory: injury_avoidance
+  difficulty: straightforward
+  must_contain: ["excluded due to injury constraints"]
+  must_not_contain: ["I don't know", "I cannot", "couldn't build"]
+
+- id: "sc-kg-004"
+  query: "My knee bothers me sometimes but not always. Can you recommend exercises?"
+  expected_tools: [knowledge_graph]
+  category: knowledge_graph
+  subcategory: ambiguous_injury
+  difficulty: ambiguous
+  must_contain: ["excluded due to injury constraints"]
+  must_not_contain: ["I don't know", "I cannot"]
+
+- id: "sc-kg-005"
+  query: "I want a knowledge graph based workout tailored to me"
+  expected_tools: [knowledge_graph]
+  category: knowledge_graph
+  subcategory: explicit_kg_request
+  difficulty: ambiguous
+  must_contain: ["excluded due to injury constraints"]
+  must_not_contain: ["I don't know", "I cannot"]
+
+- id: "sc-kg-006"
+  query: "Recommend exercises for someone with both a knee and shoulder injury who prefers upper body cardio"
+  expected_tools: [knowledge_graph]
+  category: knowledge_graph
+  subcategory: conflicting_constraints
+  difficulty: edge_case
+  must_contain: ["excluded due to injury constraints"]
+  must_not_contain: ["I don't know", "couldn't build", "Error"]
+
+- id: "sc-kg-007"
+  query: "I have injuries in every joint and can't do anything. What do you recommend?"
+  expected_tools: [knowledge_graph]
+  category: knowledge_graph
+  subcategory: over_constrained
+  difficulty: edge_case
+  must_contain: ["excluded due to injury constraints"]
+  must_not_contain: ["Error", "I don't know"]
+
+- id: "sc-kg-008"
+  query: "Build a workout avoiding all lower body and pushing movements due to injury"
+  expected_tools: [knowledge_graph]
+  category: knowledge_graph
+  subcategory: multi_constraint
+  difficulty: edge_case
+  must_contain: ["excluded due to injury constraints"]
+  must_not_contain: ["I don't know", "couldn't build", "Error"]
+
+- id: "sc-kg-009"
+  query: "My wrist clicks when I do push-ups. Should I still do them?"
+  expected_tools: [knowledge_graph]
+  category: knowledge_graph
+  subcategory: ambiguous_injury
+  difficulty: ambiguous
+  must_contain: ["wrist", "push"]
+  must_not_contain: ["I don't know", "Here is your personalized workout"]

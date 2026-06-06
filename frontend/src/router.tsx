@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import LandingPage from '@/pages/LandingPage'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import LoginPage from '@/pages/LoginPage'
@@ -7,7 +7,6 @@ import ExercisesPage from '@/pages/ExercisesPage'
 import WorkoutsPage from '@/pages/WorkoutsPage'
 import WorkoutNewPage from '@/pages/WorkoutNewPage'
 import ChatPage from '@/pages/ChatPage'
-import KnowledgeGraphPage from '@/pages/KnowledgeGraphPage'
 import WorkoutDetailPage from '@/pages/WorkoutDetailPage'
 import { AppShell } from '@/components/AppShell'
 
@@ -54,13 +53,6 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-  {
-    path: '/knowledge-graph',
-    element: (
-      <ProtectedRoute>
-        <AppShell><KnowledgeGraphPage /></AppShell>
-      </ProtectedRoute>
-    ),
-  },
+  { path: '/knowledge-graph', element: <Navigate to="/chat" replace /> },
   { path: '/', element: <LandingPage /> },
 ])

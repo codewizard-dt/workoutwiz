@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { useWorkout, useUpdateWorkout } from '../hooks/useWorkouts'
+import { useWorkout, useUpdateWorkout, useCreateWorkout } from '../hooks/useWorkouts'
+import { useDraftWorkout } from '@/hooks/useDraftWorkout'
 import { useExercises } from '../hooks/useExercises'
 import { EnjoymentScale } from '@/components/EnjoymentScale'
 import { PhaseTable } from '@/components/PhaseTable'
@@ -18,9 +19,19 @@ export default function WorkoutDetailPage() {
 
   const { data: exercises = [] } = useExercises()
   const updateWorkout = useUpdateWorkout()
+  const createWorkout = useCreateWorkout()
+  const { addExercise: addToDraft } = useDraftWorkout()
 
   const [enjoyment, setEnjoyment] = useState<1 | 2 | 3 | 4 | 5>(3)
   const [note, setNote] = useState('')
+
+  useEffect(() => {
+    if (workout) {
+      if (workout.enjoyment) setEnjoyment(workout.enjoyment as 1 | 2 | 3 | 4 | 5)
+      if (workout.note != null) setNote(workout.note)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workout?.id])
 
   // Debounced auto-save for enjoyment and note changes
   useEffect(() => {
@@ -31,6 +42,8 @@ export default function WorkoutDetailPage() {
         data: {
           started_at: workout.started_at,
           ended_at: workout.ended_at ?? undefined,
+          enjoyment,
+          note,
           sequences: workout.sequences.map((seq) => ({
             phase: seq.phase,
             position: seq.position,
@@ -238,9 +251,32 @@ export default function WorkoutDetailPage() {
         <button
           type="button"
           className="ww-btn ww-btn--gradient ww-btn--sm"
-          onClick={() => { navigate('/workouts/new') }}
+          disabled={createWorkout.isPending}
+          onClick={() => {
+            createWorkout.mutate(
+              {
+                started_at: new Date().toISOString(),
+                sequences: workout.sequences.map((seq) => ({
+                  phase: seq.phase,
+                  position: seq.position,
+                  sets: seq.sets.map((s) => ({
+                    exercise_id: s.exercise_id,
+                    set_type: s.set_type,
+                    position: s.position,
+                    reps: s.reps,
+                    weight_kg: s.weight_kg,
+                    duration_s: s.duration_s,
+                    speed: s.speed,
+                    distance: s.distance,
+                    calories: s.calories,
+                  })),
+                })),
+              },
+              { onSuccess: (created) => { navigate(`/workouts/${created.id}`) } },
+            )
+          }}
         >
-          Replay All
+          Start from the beginning
         </button>
       </div>
 
@@ -304,7 +340,7 @@ export default function WorkoutDetailPage() {
               color: 'var(--muted-foreground)',
             }}
           >
-            Enjoyment
+            Feels
           </label>
           <EnjoymentScale
             value={enjoyment}
@@ -355,7 +391,8 @@ export default function WorkoutDetailPage() {
         sequences={workout.sequences}
         exercises={exercises}
         onAddCurrent={(exerciseId) => {
-          console.log('add', exerciseId)
+          const ex = exercises.find((e) => e.id === exerciseId)
+          addToDraft(exerciseId, ex?.is_duration === true && ex?.is_reps === false)
         }}
       />
     </div>

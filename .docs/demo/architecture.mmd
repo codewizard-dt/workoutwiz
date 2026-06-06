@@ -1,0 +1,32 @@
+flowchart TD
+    User([User / Chat UI]) -->|natural language| HUB
+
+    subgraph HUB["Hub StateGraph"]
+        ROUTER["router node\nChatAnthropic.with_structured_output\nRouteDecision → intent + confidence"]
+        ROUTER -->|COACH| COACH["coach sub-graph\nFitness Q&A\ngrounded coaching"]
+        ROUTER -->|WORKOUT_GENERATE| GEN["workout_gen sub-graph\nsearch_exercises_tool\nbuild_workout_tool"]
+        ROUTER -->|WORKOUT_LOG| LOG["workout_log sub-graph\nfuzzy exercise matching\nstructured JSON log"]
+        ROUTER -->|KNOWLEDGE_GRAPH| KG["knowledge_graph node\nNeo4j GraphRAG\ninjury-aware recs"]
+        ROUTER -->|confidence < 0.6| CLARIFY["clarification node\nask user to rephrase"]
+        ROUTER -->|FALLBACK| FB["fallback node\nout-of-scope reply"]
+    end
+
+    COACH --> AUDIT
+    GEN --> AUDIT
+    LOG --> AUDIT
+    KG --> AUDIT
+    CLARIFY --> AUDIT
+    FB --> AUDIT
+
+    subgraph OBS["Observability"]
+        AUDIT["audit_log\nper-node: event, model, route\nlatency_ms, tokens_in, tokens_out\nGET /chat/audit/{session_id}"]
+    end
+
+    subgraph KGSTACK["Knowledge Graph Stack (Neo4j)"]
+        RETRIEVAL["retrieval sub-graph\nmember profile · injury traversal\nvector similarity · preference feedback"]
+        SAFETY["safety gate node\nhard-filter contraindicated IDs\nnever overrideable by LLM"]
+        EXPLAIN["explainability tool\ngraph-path citation\n'why was X skipped?'"]
+        RETRIEVAL --> SAFETY --> EXPLAIN
+    end
+
+    KG --> RETRIEVAL

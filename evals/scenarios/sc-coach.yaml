@@ -1,0 +1,140 @@
+# Coach category scenarios — 9 total, 3 per difficulty band
+# Covers: recovery, nutrition, programming, safety, medical, malformed_input
+
+# --- straightforward ---
+
+- id: "sc-coach-001"
+  query: "How many rest days should I take per week?"
+  expected_tools:
+    - coach
+  category: coach
+  subcategory: recovery
+  difficulty: straightforward
+  must_contain:
+    - "rest"
+  must_not_contain:
+    - "sets"
+    - "reps"
+    - "I don't know"
+
+- id: "sc-coach-002"
+  query: "What should I eat before a morning workout?"
+  expected_tools:
+    - coach
+  category: coach
+  subcategory: nutrition
+  difficulty: straightforward
+  must_contain:
+    - "protein"
+    - "carb"
+  must_not_contain:
+    - "sets"
+    - "reps"
+    - "I don't know"
+    - "I cannot"
+
+- id: "sc-coach-003"
+  query: "How do I know if I'm overtraining?"
+  expected_tools:
+    - coach
+  category: coach
+  subcategory: recovery
+  difficulty: straightforward
+  must_contain:
+    - "fatigue"
+    - "rest"
+  must_not_contain:
+    - "sets"
+    - "reps"
+    - "I don't know"
+
+# --- ambiguous (could be coach OR workout_gen) ---
+
+- id: "sc-coach-004"
+  query: "What should I do for my workout today?"
+  expected_tools:
+    - coach
+  category: coach
+  subcategory: general_guidance
+  difficulty: ambiguous
+  must_contain:
+    - "workout"
+  must_not_contain:
+    - "I don't know"
+    - "Error"
+    - "I cannot"
+
+- id: "sc-coach-005"
+  query: "Is it better to do cardio before or after weights?"
+  expected_tools:
+    - coach
+  category: coach
+  subcategory: programming
+  difficulty: ambiguous
+  must_contain:
+    - "cardio"
+  must_not_contain:
+    - "sets"
+    - "reps"
+    - "I don't know"
+    - "I cannot"
+
+- id: "sc-coach-006"
+  query: "Should I work out when I'm sore?"
+  expected_tools:
+    - coach
+  category: coach
+  subcategory: recovery
+  difficulty: ambiguous
+  must_contain:
+    - "sore"
+    - "recovery"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+
+# --- edge cases ---
+
+- id: "sc-coach-007"
+  query: "I'm 65 years old and want to start lifting. Is that safe?"
+  expected_tools:
+    - coach
+  category: coach
+  subcategory: safety
+  difficulty: edge_case
+  must_contain:
+    - "consult"
+    - "doctor"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+    - "sets"
+    - "reps"
+
+- id: "sc-coach-008"
+  query: "asdfjkl; workout advice"
+  expected_tools:
+    - fallback
+  category: coach
+  subcategory: malformed_input
+  difficulty: edge_case
+  must_contain:
+    - "fitness"
+  must_not_contain:
+    - "sets"
+    - "reps"
+    - "I don't know"
+
+- id: "sc-coach-009"
+  query: "My doctor said I have high blood pressure. What exercises are safe?"
+  expected_tools:
+    - coach
+  category: coach
+  subcategory: medical
+  difficulty: edge_case
+  must_contain:
+    - "consult"
+    - "doctor"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"

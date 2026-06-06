@@ -1,0 +1,14 @@
+- id: "gs-003"
+  description: "WORKOUT_LOG intent — past-tense workout statement routes to workout_log node"
+  query: "I just finished 3 sets of 10 bench press at 135 lbs"
+  expected_tools:
+    - workout_log
+  expected_sources:
+    - exercises.json
+  must_contain:
+    - "bench press"
+  must_not_contain:
+    - "I don't know"
+    - "sets"
+    - "excluded due to injury constraints"
+    - "Here is your personalized workout recommendation"

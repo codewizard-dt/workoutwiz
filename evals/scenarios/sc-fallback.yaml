@@ -1,0 +1,62 @@
+- id: "sc-fb-001"
+  query: "What's the capital of France?"
+  expected_tools: [fallback]
+  category: fallback
+  subcategory: off_topic
+  difficulty: straightforward
+  must_contain: ["fitness"]
+  must_not_contain: ["Paris", "France", "sets", "reps"]
+
+- id: "sc-fb-002"
+  query: "Write me a poem about dolphins"
+  expected_tools: [fallback]
+  category: fallback
+  subcategory: off_topic
+  difficulty: straightforward
+  must_contain: ["fitness"]
+  must_not_contain: ["dolphin", "poem", "sets", "reps"]
+
+- id: "sc-fb-003"
+  query: "What is 2 + 2?"
+  expected_tools: [fallback]
+  category: fallback
+  subcategory: off_topic
+  difficulty: straightforward
+  must_contain: ["fitness"]
+  must_not_contain: ["4", "four", "sets", "reps"]
+
+- id: "sc-fb-004"
+  query: "Tell me a joke"
+  expected_tools: [fallback]
+  category: fallback
+  subcategory: off_topic
+  difficulty: ambiguous
+  must_contain: ["fitness"]
+  must_not_contain: ["sets", "reps", "I don't know"]
+
+- id: "sc-fb-005"
+  query: "How do I cook pasta?"
+  expected_tools: [fallback]
+  category: fallback
+  subcategory: off_topic
+  difficulty: ambiguous
+  must_contain: ["fitness"]
+  must_not_contain: ["pasta", "boil", "sets", "reps"]
+
+- id: "sc-fb-006"
+  query: "   "
+  expected_tools: [fallback]
+  category: fallback
+  subcategory: empty_input
+  difficulty: edge_case
+  must_contain: ["fitness"]
+  must_not_contain: ["Error", "sets", "reps"]
+
+- id: "sc-fb-007"
+  query: "Can you help me plan my diet for next week?"
+  expected_tools: [fallback]
+  category: fallback
+  subcategory: diet_planning
+  difficulty: ambiguous
+  must_contain: []
+  must_not_contain: ["Here is your personalized workout", "sets", "reps", "I don't know"]

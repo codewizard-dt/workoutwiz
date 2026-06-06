@@ -1,0 +1,80 @@
+- id: "sc-wl-001"
+  query: "I just finished 3 sets of 10 bench press at 135 lbs"
+  expected_tools: [workout_log]
+  category: workout_log
+  subcategory: standard_entry
+  difficulty: straightforward
+  must_contain: ["bench press"]
+  must_not_contain: ["I don't know", "Here is your personalized workout", "excluded due to injury"]
+
+- id: "sc-wl-002"
+  query: "Logged 5 sets of 5 deadlifts at 315 pounds today"
+  expected_tools: [workout_log]
+  category: workout_log
+  subcategory: standard_entry
+  difficulty: straightforward
+  must_contain: ["deadlift"]
+  must_not_contain: ["I don't know", "Here is your personalized workout"]
+
+- id: "sc-wl-003"
+  query: "Did 30 minutes of running on the treadmill"
+  expected_tools: [workout_log]
+  category: workout_log
+  subcategory: cardio_entry
+  difficulty: straightforward
+  must_contain: ["run", "treadmill"]
+  must_not_contain: ["I don't know", "sets", "Here is your personalized workout"]
+
+- id: "sc-wl-004"
+  query: "I did some squats earlier"
+  expected_tools: [workout_log]
+  category: workout_log
+  subcategory: underspecified
+  difficulty: ambiguous
+  must_contain: ["squat"]
+  must_not_contain: ["I don't know", "Here is your personalized workout"]
+
+- id: "sc-wl-005"
+  query: "Benchpress 3x10 135"
+  expected_tools: [workout_log]
+  category: workout_log
+  subcategory: shorthand_notation
+  difficulty: ambiguous
+  must_contain: ["bench press"]
+  must_not_contain: ["I don't know", "Here is your personalized workout"]
+
+- id: "sc-wl-006"
+  query: "I worked out today"
+  expected_tools: [workout_log]
+  category: workout_log
+  subcategory: vague_log
+  difficulty: ambiguous
+  must_contain: ["workout"]
+  must_not_contain: ["I don't know", "Here is your personalized workout"]
+
+- id: "sc-wl-007"
+  query: "I did benchpress"
+  expected_tools: [workout_log]
+  category: workout_log
+  subcategory: misspelled_exercise
+  difficulty: edge_case
+  must_contain: ["bench press"]
+  must_not_contain: ["I don't know", "Here is your personalized workout"]
+
+- id: "sc-wl-008"
+  query: "I completed 0 sets of pull-ups because I couldn't do any"
+  expected_tools: [workout_log]
+  category: workout_log
+  subcategory: zero_sets
+  difficulty: edge_case
+  must_contain: ["pull"]
+  must_not_contain: ["I don't know", "Here is your personalized workout"]
+
+- id: "sc-wl-009"
+  query: "Finished left leg lunges 3 sets of 12 at 20 lbs"
+  expected_tools: [workout_log]
+  category: workout_log
+  subcategory: bilateral_exercise
+  difficulty: edge_case
+  must_contain: ["lunge"]
+  must_not_contain: ["I don't know", "Here is your personalized workout"]

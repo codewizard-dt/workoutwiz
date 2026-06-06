@@ -1,0 +1,14 @@
+- id: "gs-012"
+  description: "WORKOUT_LOG intent — cardio duration entry should acknowledge the run, not generate a strength workout"
+  query: "Just ran 5K in 28 minutes on the treadmill"
+  expected_tools:
+    - workout_log
+  expected_sources:
+    - exercises.json
+  must_contain:
+    - "treadmill"
+  must_not_contain:
+    - "sets"
+    - "reps"
+    - "Here is your personalized workout"
+    - "I don't know"

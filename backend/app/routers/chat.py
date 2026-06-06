@@ -54,13 +54,14 @@ async def chat(
         "user_id": str(user.id),
         "session_id": session_id,
         "audit_log": [],
+        "kg_result": None,
     }
 
     state["messages"] = list(state["messages"]) + [
         HumanMessage(content=request.message)
     ]
 
-    result = hub.invoke(state)
+    result = await hub.ainvoke(state)
     _sessions[session_id] = result
 
     await persist_audit_log(
@@ -100,6 +101,7 @@ async def chat(
         confidence=last_route.get("confidence"),
         audit_log=result.get("audit_log", []),
         workout_draft=workout_draft,
+        kg_result=result.get("kg_result"),
     )
 
 

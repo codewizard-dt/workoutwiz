@@ -3,9 +3,17 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useCreateWorkout } from '@/hooks/useWorkouts'
 import { useExercises } from '@/hooks/useExercises'
 import { useChat } from '@/hooks/useChat'
+import { useDraftWorkout } from '@/hooks/useDraftWorkout'
 import { ChatBubble } from '@/components/ChatBubble'
 import { PhaseTable } from '@/components/PhaseTable'
-import type { WorkoutSequence, WorkoutSequenceCreate, WorkoutSetCreate, WorkoutSet, WorkoutPhase } from '@/types'
+import type { WorkoutSequenceCreate, WorkoutSetCreate, WorkoutPhase } from '@/types'
+
+const WORKOUT_CHIPS = [
+  'Challenging workout',
+  'Easy day',
+  'Upper body',
+  'Lower body',
+] as const
 
 function workoutDraftToSequences(draft: import('@/types').WorkoutDraft): WorkoutSequence[] {
   const result: WorkoutSequence[] = []
@@ -38,42 +46,7 @@ export default function WorkoutNewPage() {
   const createWorkout = useCreateWorkout()
   const { data: exercises } = useExercises()
   const { messages, sendMessage, isLoading: chatLoading, error: chatError, clearMessages } = useChat()
-  const [draftSequences, setDraftSequences] = useState<WorkoutSequence[]>(() => {
-    try {
-      const raw = localStorage.getItem('ww_workout_draft')
-      if (!raw) return []
-      const items = JSON.parse(raw) as {
-        exercise_id: string
-        sets: number
-        reps: number | null
-        weight_kg: number | null
-        duration_s: number | null
-        weight_unit: 'kg' | 'lb'
-      }[]
-      if (!items.length) return []
-      const sets: WorkoutSet[] = items.flatMap((item, itemIdx) =>
-        Array.from({ length: item.sets }, (_, setIdx) => ({
-          id: `draft-${itemIdx}-${setIdx}`,
-          sequence_id: 'draft',
-          exercise_id: item.exercise_id,
-          set_type: item.duration_s != null ? 'CARDIO' : 'STRENGTH',
-          position: itemIdx * 100 + setIdx,
-          reps: item.reps ?? undefined,
-          weight_kg: item.weight_kg ?? undefined,
-          duration_s: item.duration_s ?? undefined,
-        }))
-      )
-      return [{
-        id: 'draft',
-        workout_id: 'draft',
-        phase: 'main',
-        position: 0,
-        sets,
-      }]
-    } catch {
-      return []
-    }
-  })
+  const { sequences: draftSequences, setSequences: setDraftSequences, clear: clearDraft } = useDraftWorkout()
   const [inputText, setInputText] = useState('')
   const streamRef = useRef<HTMLDivElement>(null)
 
@@ -120,8 +93,7 @@ export default function WorkoutNewPage() {
     createWorkout.mutate(
       { started_at: new Date().toISOString(), sequences: payload },
       { onSuccess: (result) => {
-        localStorage.removeItem('ww_workout_draft')
-        window.dispatchEvent(new CustomEvent('ww:draft-updated'))
+        clearDraft()
         navigate(`/workouts/${result.id}`)
       } }
     )
@@ -265,27 +237,56 @@ export default function WorkoutNewPage() {
               padding: 'var(--space-3)',
               borderTop: '1px solid var(--border)',
               display: 'flex',
+              flexDirection: 'column',
               gap: 'var(--space-2)',
-              alignItems: 'flex-end',
             }}
           >
-            <textarea
-              rows={2}
-              className="ww-input"
-              placeholder="Tell the coach what to build or change…"
-              value={inputText}
-              onChange={(e) => { setInputText(e.target.value) }}
-              onKeyDown={handleKeyDown}
-              style={{ flex: 1, resize: 'none', fontSize: 'var(--text-sm)' }}
-            />
-            <button
-              type="button"
-              className="ww-btn ww-btn--gradient ww-btn--sm"
-              onClick={handleSend}
-              disabled={chatLoading || !inputText.trim()}
-            >
-              Send
-            </button>
+            {/* Quick-action chips */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+              {WORKOUT_CHIPS.map((text) => (
+                <button
+                  key={text}
+                  type="button"
+                  className="ww-btn ww-btn--outline ww-btn--sm"
+                  disabled={chatLoading}
+                  onClick={() => {
+                    setInputText('')
+                    void sendMessage(text)
+                  }}
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+              <textarea
+                className="ww-input"
+                placeholder="Tell the coach what to build or change…"
+                value={inputText}
+                onChange={(e) => {
+                  setInputText(e.target.value)
+                  e.target.style.height = 'auto'
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`
+                }}
+                onKeyDown={handleKeyDown}
+                style={{
+                  flex: 1,
+                  resize: 'none',
+                  fontSize: 'var(--text-sm)',
+                  minHeight: '2.5rem',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                }}
+              />
+              <button
+                type="button"
+                className="ww-btn ww-btn--gradient ww-btn--sm"
+                onClick={handleSend}
+                disabled={chatLoading || !inputText.trim()}
+              >
+                Send
+              </button>
+            </div>
           </div>
         </div>
 
@@ -345,10 +346,8 @@ export default function WorkoutNewPage() {
                 className="ww-btn ww-btn--ghost ww-btn--sm"
                 style={{ width: '100%', justifyContent: 'center' }}
                 onClick={() => {
-                  setDraftSequences([])
+                  clearDraft()
                   clearMessages()
-                  localStorage.removeItem('ww_workout_draft')
-                  window.dispatchEvent(new CustomEvent('ww:draft-updated'))
                 }}
               >
                 Clear

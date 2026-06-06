@@ -1,0 +1,14 @@
+- id: "gs-002"
+  description: "COACH intent — fitness advice question routes to coach node and returns coaching response"
+  query: "How many rest days should I take between leg workouts?"
+  expected_tools:
+    - coach
+  expected_sources: []
+  must_contain:
+    - "rest"
+    - "recovery"
+    - "leg"
+  must_not_contain:
+    - "I don't know"
+    - "excluded due to injury constraints"
+    - "couldn't build"

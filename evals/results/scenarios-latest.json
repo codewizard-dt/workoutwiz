@@ -1,0 +1,409 @@
+{
+  "suite": "scenarios",
+  "started_at": "2026-06-06T22:57:18.624272+00:00",
+  "finished_at": "2026-06-06T23:01:15.186102+00:00",
+  "api_base": "http://localhost:8000",
+  "summary": {
+    "total": 41,
+    "passed": 27,
+    "failed": 14,
+    "pass_pct": 66,
+    "matrix": {
+      "coach": {
+        "straightforward": [
+          2,
+          3
+        ],
+        "ambiguous": [
+          3,
+          3
+        ],
+        "edge_case": [
+          1,
+          3
+        ]
+      },
+      "fallback": {
+        "straightforward": [
+          1,
+          3
+        ],
+        "ambiguous": [
+          1,
+          2
+        ],
+        "edge_case": [
+          1,
+          1
+        ]
+      },
+      "knowledge_graph": {
+        "straightforward": [
+          1,
+          3
+        ],
+        "ambiguous": [
+          1,
+          2
+        ],
+        "edge_case": [
+          1,
+          3
+        ]
+      },
+      "workout_gen": {
+        "straightforward": [
+          3,
+          3
+        ],
+        "ambiguous": [
+          1,
+          3
+        ],
+        "edge_case": [
+          3,
+          3
+        ]
+      },
+      "workout_log": {
+        "straightforward": [
+          3,
+          3
+        ],
+        "ambiguous": [
+          2,
+          3
+        ],
+        "edge_case": [
+          3,
+          3
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "sc-coach-001",
+      "category": "coach",
+      "difficulty": "straightforward",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-coach-002",
+      "category": "coach",
+      "difficulty": "straightforward",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-coach-003",
+      "category": "coach",
+      "difficulty": "straightforward",
+      "passed": false,
+      "failures": [
+        "must_not_contain 'sets' present"
+      ]
+    },
+    {
+      "id": "sc-coach-004",
+      "category": "coach",
+      "difficulty": "ambiguous",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-coach-005",
+      "category": "coach",
+      "difficulty": "ambiguous",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-coach-006",
+      "category": "coach",
+      "difficulty": "ambiguous",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-coach-007",
+      "category": "coach",
+      "difficulty": "edge_case",
+      "passed": false,
+      "failures": [
+        "must_contain 'consult' absent",
+        "must_not_contain 'sets' present",
+        "must_not_contain 'reps' present"
+      ]
+    },
+    {
+      "id": "sc-coach-008",
+      "category": "coach",
+      "difficulty": "edge_case",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-coach-009",
+      "category": "coach",
+      "difficulty": "edge_case",
+      "passed": false,
+      "failures": [
+        "must_contain 'consult' absent"
+      ]
+    },
+    {
+      "id": "sc-fb-001",
+      "category": "fallback",
+      "difficulty": "straightforward",
+      "passed": false,
+      "failures": [
+        "must_not_contain 'France' present"
+      ]
+    },
+    {
+      "id": "sc-fb-002",
+      "category": "fallback",
+      "difficulty": "straightforward",
+      "passed": false,
+      "failures": [
+        "must_not_contain 'dolphin' present",
+        "must_not_contain 'poem' present"
+      ]
+    },
+    {
+      "id": "sc-fb-003",
+      "category": "fallback",
+      "difficulty": "straightforward",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-fb-004",
+      "category": "fallback",
+      "difficulty": "ambiguous",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-fb-005",
+      "category": "fallback",
+      "difficulty": "ambiguous",
+      "passed": false,
+      "failures": [
+        "must_not_contain 'pasta' present"
+      ]
+    },
+    {
+      "id": "sc-fb-006",
+      "category": "fallback",
+      "difficulty": "edge_case",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-kg-001",
+      "category": "knowledge_graph",
+      "difficulty": "straightforward",
+      "passed": false,
+      "failures": [
+        "must_contain 'excluded due to injury constraints' absent"
+      ]
+    },
+    {
+      "id": "sc-kg-002",
+      "category": "knowledge_graph",
+      "difficulty": "straightforward",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-kg-003",
+      "category": "knowledge_graph",
+      "difficulty": "straightforward",
+      "passed": false,
+      "failures": [
+        "must_contain 'excluded due to injury constraints' absent"
+      ]
+    },
+    {
+      "id": "sc-kg-004",
+      "category": "knowledge_graph",
+      "difficulty": "ambiguous",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-kg-005",
+      "category": "knowledge_graph",
+      "difficulty": "ambiguous",
+      "passed": false,
+      "failures": [
+        "tool 'knowledge_graph' missing from audit_log",
+        "must_contain 'excluded due to injury constraints' absent"
+      ]
+    },
+    {
+      "id": "sc-kg-006",
+      "category": "knowledge_graph",
+      "difficulty": "edge_case",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-kg-007",
+      "category": "knowledge_graph",
+      "difficulty": "edge_case",
+      "passed": false,
+      "failures": [
+        "must_contain 'excluded due to injury constraints' absent",
+        "must_not_contain 'Error' present"
+      ]
+    },
+    {
+      "id": "sc-kg-008",
+      "category": "knowledge_graph",
+      "difficulty": "edge_case",
+      "passed": false,
+      "failures": [
+        "must_contain 'excluded due to injury constraints' absent",
+        "must_not_contain 'Error' present"
+      ]
+    },
+    {
+      "id": "sc-wg-001",
+      "category": "workout_gen",
+      "difficulty": "straightforward",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wg-002",
+      "category": "workout_gen",
+      "difficulty": "straightforward",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wg-003",
+      "category": "workout_gen",
+      "difficulty": "straightforward",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wg-004",
+      "category": "workout_gen",
+      "difficulty": "ambiguous",
+      "passed": false,
+      "failures": [
+        "tool 'workout_gen' missing from audit_log",
+        "must_contain 'sets' absent",
+        "must_contain 'reps' absent"
+      ]
+    },
+    {
+      "id": "sc-wg-005",
+      "category": "workout_gen",
+      "difficulty": "ambiguous",
+      "passed": false,
+      "failures": [
+        "tool 'workout_gen' missing from audit_log"
+      ]
+    },
+    {
+      "id": "sc-wg-006",
+      "category": "workout_gen",
+      "difficulty": "ambiguous",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wg-007",
+      "category": "workout_gen",
+      "difficulty": "edge_case",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wg-008",
+      "category": "workout_gen",
+      "difficulty": "edge_case",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wg-009",
+      "category": "workout_gen",
+      "difficulty": "edge_case",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wl-001",
+      "category": "workout_log",
+      "difficulty": "straightforward",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wl-002",
+      "category": "workout_log",
+      "difficulty": "straightforward",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wl-003",
+      "category": "workout_log",
+      "difficulty": "straightforward",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wl-004",
+      "category": "workout_log",
+      "difficulty": "ambiguous",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wl-005",
+      "category": "workout_log",
+      "difficulty": "ambiguous",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wl-006",
+      "category": "workout_log",
+      "difficulty": "ambiguous",
+      "passed": false,
+      "failures": [
+        "must_contain 'workout' absent"
+      ]
+    },
+    {
+      "id": "sc-wl-007",
+      "category": "workout_log",
+      "difficulty": "edge_case",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wl-008",
+      "category": "workout_log",
+      "difficulty": "edge_case",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wl-009",
+      "category": "workout_log",
+      "difficulty": "edge_case",
+      "passed": true,
+      "failures": []
+    }
+  ]
+}

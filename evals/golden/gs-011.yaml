@@ -1,0 +1,14 @@
+- id: "gs-011"
+  description: "WORKOUT_LOG intent — past tense log statement should acknowledge the log, not generate a new workout"
+  query: "I completed 5 sets of 5 squats at 225 lbs today"
+  expected_tools:
+    - workout_log
+  expected_sources:
+    - exercises.json
+  must_contain:
+    - "squat"
+  must_not_contain:
+    - "I don't know"
+    - "Here is your personalized workout"
+    - "excluded due to injury constraints"
+    - "I cannot"

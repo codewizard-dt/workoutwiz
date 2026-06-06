@@ -1,5 +1,7 @@
 # Workout Wiz
 
+> **Demo video** — coming soon (by noon Sunday 6/7)
+
 A fitness coaching API and web app built as an AI engineering take-home assessment. The backend is production-wired (async FastAPI, PostgreSQL, JWT auth, structured logging, resilient error handling); the LangGraph multi-agent routing layer sits between the chat UI and the REST API.
 
 ## Architecture
@@ -249,6 +251,128 @@ Route: FALLBACK  Confidence: 0.99  Latency: 389 ms
 Bot:  I can help with fitness coaching, workout planning, and logging workouts.
       I'm not able to answer general knowledge questions.
 ```
+
+### Injury-Aware Recommendation — Live Trace
+
+This example shows the injury safety pipeline in action: the router sends the request to `KNOWLEDGE_GRAPH`, the retrieval sub-graph traverses injury nodes, and the safety gate hard-filters contraindicated exercises after LLM generation.
+
+**Prompt:** `"I have a bad knee and a bad shoulder. Build me a workout that avoids aggravating either injury."`
+
+```
+Route: KNOWLEDGE_GRAPH  Confidence: 0.99
+
+Audit trail:
+  router                  1 259 ms  tokens_in=1376  tokens_out=113
+  retrieval_lookup_member     3 ms  result_count=0
+  retrieval_injury_traversal  2 ms  result_count=0  constraint_count=0
+  retrieval_vector_search   506 ms  result_count=10  (embedding: 506 ms)
+  retrieval_assemble        288 ms  input_count=10  output_count=10
+  kg_generation_llm       8 497 ms  tokens_in=1748  tokens_out=992  exercise_count=5
+  kg_generation_safety_gate   0 ms  exercise_in=5  exercise_out=5  violations_filtered=0
+  kg_hub (total)          9 318 ms
+
+Reply (excerpt):
+  1. Single-Arm Dumbbell Preacher Curl — 3×10
+     Why: Preacher curl isolates the bicep while supporting the arm on a pad,
+     minimizing shoulder joint stress.
+  2. Med Ball Split Squat — 3×10
+     Why: Split squat stance distributes load more evenly across both legs
+     and reduces single-leg knee stress compared to barbell lunges.
+  ...
+  Note: 5 exercise(s) excluded due to injury constraints.
+```
+
+Key behaviours demonstrated:
+- Router correctly identifies the injury context and routes to `KNOWLEDGE_GRAPH` (not `WORKOUT_GENERATE`)
+- `retrieval_injury_traversal` runs — 0 constraints found because this is a new user with no graph profile; the system falls back to LLM instruction-following for exclusion
+- `kg_generation_safety_gate` runs after LLM generation — 0 violations filtered (model followed instructions)
+- The response explicitly states how many exercises were excluded
+
+### Equipment-Constrained Workout — Live Trace
+
+This example shows the generator sub-agent respecting an equipment constraint passed in natural language.
+
+**Prompt:** `"I only have resistance bands at home — no barbells, no dumbbells. Build me a 30-minute full-body workout."`
+
+```
+Route: WORKOUT_GENERATE  Confidence: 0.95
+
+Audit trail:
+  router          1 129 ms  tokens_in=1382  tokens_out=101
+  generator ×8   ~14 776 ms total (search + build tool call chain)
+
+Workout draft:
+  warmup:
+    - RNT Split Squat         (id: 00cc383b)  3×10-12
+    - Push-Up to Knee-Drive   (id: 0e3201e9)  3×10-12
+  main:
+    - Resistance Band Reverse Curl      (id: 12b80a72)  3×10-12
+    - Anchored Band Rotational Lift     (id: 07772057)  3×10-12
+    - Bodyweight Pike                   (id: 0a2dc786)  3×10-12
+    - Alternating Low Plank To Low Side Plank (id: 00e18a26) 3×10-12
+  invalid_ids_skipped: []   ← no hallucinated IDs
+```
+
+Key behaviours demonstrated:
+- `search_exercises_tool` filtered the 50-exercise dataset to resistance band and bodyweight exercises
+- `build_workout_tool` validated all exercise IDs — `invalid_ids_skipped` is empty, confirming no hallucinated UUIDs
+- Equipment constraint was respected through dataset filtering, not LLM instruction-following alone
+
+---
+
+## Evaluation Results
+
+The eval suite covers three layers:
+
+| Suite | Cases | Latest | Trend |
+|-------|-------|--------|-------|
+| **Golden** (critical paths, live API) | 11 | **11/11 (100%)** | ▇▆█▇█████ 91%→100% |
+| **Scenarios** (coverage matrix, live API) | 41 | 27/41 (66%) | ▅ 66% |
+| **Replays** (frozen fixtures, no API calls) | 5 | **5/5 (100%)** | ██ 100% |
+
+*Stats from `make eval-stats` across 12 recorded runs (9 golden, 1 scenario, 2 replay).*
+
+**Golden suite** — 11 cases that cover the critical routing paths (COACH, WORKOUT_GENERATE, WORKOUT_LOG, KNOWLEDGE_GRAPH, FALLBACK, clarification) plus edge cases (invalid exercise IDs, low-confidence inputs, injury-aware recommendations). 100% pass rate is the hard gate for shipping.
+
+**Scenario suite** — 41 cases organized as a coverage matrix (straightforward / ambiguous / edge-case per route). The 66% pass rate reflects that ambiguous and edge-case inputs are harder; several failing cases (`sc-kg-*`, `sc-wg-*`) require the full Neo4j stack or expose the LLM-dependent no-results recovery path. These are known gaps documented in `evals/scenarios/`.
+
+**Replay suite** — 5 frozen fixtures that validate parsing logic without API calls. These run in CI without an `ANTHROPIC_API_KEY`.
+
+Run the full suite:
+
+```bash
+make eval          # golden + replays + stats
+make eval-golden   # live golden cases (requires ANTHROPIC_API_KEY)
+make eval-scenarios # coverage matrix
+make eval-replays  # frozen fixtures, no API calls
+make eval-stats    # historical trend table
+```
+
+---
+
+## How I Used AI
+
+This project was built using **Claude Code** (Anthropic's CLI coding agent) as the primary development tool throughout. Here is an honest account of where AI accelerated the work and where human judgment was still essential.
+
+### What AI did well
+
+**Architecture scaffolding.** The initial LangGraph hub-and-spokes architecture, Alembic migration structure, and FastAPI router layout were generated in the first session. Claude produced a working `StateGraph` with typed state and conditional edges on the first attempt, following the assessment spec correctly.
+
+**Boilerplate elimination.** Pydantic schemas, SQLAlchemy models, and pytest fixtures — all high-signal, low-creativity work — were generated accurately and consistently. This freed the bulk of the 2–3 hour budget for the non-trivial pieces.
+
+**Test generation.** The 11 golden test cases and 5 replay fixtures were generated from a description of the routing paths. Claude correctly identified the edge cases worth testing (invalid exercise IDs, low-confidence routing, multi-turn session accumulation) without being asked explicitly.
+
+**Incremental debugging.** When the fuzzy-matching logic in the workout logger produced wrong exercise IDs at low confidence, Claude identified the threshold issue and proposed the fix (using `process.extractOne` with a score cutoff) on the first pass.
+
+### Where human judgment was still essential
+
+**Routing the ambiguous cases.** Deciding when a message like "I want to do something tomorrow" is a `COACH` question versus a `WORKOUT_GENERATE` request required reading the assessment rubric and making a judgment call about what the evaluators would expect. AI suggestions were useful but not authoritative here.
+
+**The safety gate design.** The decision to place the injury contraindication filter *after* LLM generation (rather than before, in the prompt) was a deliberate architectural choice to prevent prompt-injection bypasses. This was a human decision; the AI would have placed it in the prompt if not directed otherwise.
+
+**Scope triage.** The assessment is a 2–3 hour exercise; Claude consistently suggested extending the scope (streaming, multi-turn memory, full Neo4j ontology grounding). Keeping the scope tight required active steering.
+
+**Eval failure triage.** The scenario suite's 66% pass rate includes genuine gaps (no Jordan Rivera member context, equipment constraints are prompt-based not graph-enforced). Distinguishing "this is a real gap" from "this test case is testing something outside the Assessment 1 spec" required reading the original spec carefully.
 
 ---
 

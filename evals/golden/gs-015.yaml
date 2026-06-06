@@ -1,0 +1,12 @@
+- id: "gs-015"
+  description: "FALLBACK intent — product recommendation question is out of scope for a fitness coaching agent"
+  query: "What are the best running shoes for a marathon?"
+  expected_tools:
+    - fallback
+  expected_sources: []
+  must_contain: []
+  must_not_contain:
+    - "sets"
+    - "reps"
+    - "Here is your personalized workout"
+    - "excluded due to injury constraints"

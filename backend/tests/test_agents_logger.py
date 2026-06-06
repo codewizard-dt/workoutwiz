@@ -39,15 +39,16 @@ def test_fuzzy_match_exact():
     exercises = get_all_exercises()
     # Pick a real exercise name and match it exactly
     first = exercises[0]
-    exercise_id, confidence = _fuzzy_match_exercise(first.name, exercises)
+    exercise_id, canonical_name, confidence = _fuzzy_match_exercise(first.name, exercises)
     assert exercise_id == first.id
+    assert canonical_name == first.name
     assert confidence >= 0.99
 
 
 def test_fuzzy_match_partial():
     exercises = get_all_exercises()
     # "bench press" should match "Bench Press" or similar
-    exercise_id, confidence = _fuzzy_match_exercise("bench press", exercises)
+    exercise_id, canonical_name, confidence = _fuzzy_match_exercise("bench press", exercises)
     # May or may not match depending on dataset; at minimum should not crash
     assert isinstance(confidence, float)
     assert 0.0 <= confidence <= 1.0
@@ -55,8 +56,9 @@ def test_fuzzy_match_partial():
 
 def test_fuzzy_match_below_threshold():
     exercises = get_all_exercises()
-    exercise_id, confidence = _fuzzy_match_exercise("xyzzy nonexistent", exercises)
+    exercise_id, canonical_name, confidence = _fuzzy_match_exercise("xyzzy nonexistent", exercises)
     assert exercise_id is None
+    assert canonical_name is None
     assert confidence < 0.75
 
 

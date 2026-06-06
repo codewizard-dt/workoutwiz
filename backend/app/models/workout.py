@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from sqlalchemy import ForeignKey, Integer, DateTime, Enum
+from sqlalchemy import ForeignKey, Integer, Text, DateTime, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
@@ -25,6 +25,8 @@ class Workout(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    enjoyment: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
     sequences: Mapped[list["WorkoutSequence"]] = relationship(back_populates="workout", cascade="all, delete-orphan")
 
 

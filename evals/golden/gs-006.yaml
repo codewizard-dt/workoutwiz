@@ -1,0 +1,13 @@
+- id: "gs-006"
+  description: "FALLBACK intent — off-topic non-fitness question routes to fallback and redirects to fitness topics"
+  query: "What's the capital of France?"
+  expected_tools:
+    - clarification
+  expected_sources: []
+  must_contain:
+    - "fitness"
+  must_not_contain:
+    - "Paris"
+    - "sets"
+    - "reps"
+    - "I don't know"

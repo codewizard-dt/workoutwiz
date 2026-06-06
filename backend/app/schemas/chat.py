@@ -45,3 +45,7 @@ class ChatResponse(BaseModel):
         default=None,
         description="Structured workout plan returned by the workout generator (WORKOUT_GENERATE route only)",
     )
+    kg_result: dict[str, Any] | None = Field(
+        default=None,
+        description="Raw knowledge graph recommendation returned by the KG pipeline (KNOWLEDGE_GRAPH route only)",
+    )

@@ -1,0 +1,38 @@
+{
+  "recorded_at": "2026-06-06",
+  "query": "I just finished 3 sets of 10 bench press at 135 lbs",
+  "ground_truth": {
+    "expected_route": "WORKOUT_LOG",
+    "must_contain": ["bench press"],
+    "must_not_contain": ["Here is your personalized workout", "I don't know"]
+  },
+  "response": {
+    "session_id": "3bdd8c66-3f51-43a0-b16e-89ce01c02296",
+    "reply": "Logged 1 exercise(s).\n• bench press: 3×10 @ 61.22kg [unrecognized]\nUnrecognized: bench press",
+    "route": "WORKOUT_LOG",
+    "confidence": 0.95,
+    "audit_log": [
+      {
+        "event": "router",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "route": "WORKOUT_LOG",
+        "confidence": 0.95,
+        "latency_ms": 1231,
+        "user_id": "e2fe5599-3ad0-450d-84c2-abf41d1e71a6",
+        "tokens_in": 1106,
+        "tokens_out": 106
+      },
+      {
+        "event": "logger",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "latency_ms": 930,
+        "tokens_in": 1349,
+        "tokens_out": 105
+      }
+    ],
+    "workout_draft": null,
+    "kg_result": null
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "recorded_at": "2026-06-06",
+  "query": "I have a bad knee. Can you build me a workout that avoids aggravating it?",
+  "ground_truth": {
+    "expected_route": "KNOWLEDGE_GRAPH",
+    "must_contain": ["excluded due to injury constraints", "minimize direct knee stress"],
+    "must_not_contain": ["I don't know", "I cannot"]
+  },
+  "response": {
+    "session_id": "464b5ec4-5203-4fcb-b7b8-f0950823a785",
+    "reply": "Here is your personalized workout recommendation:\n\n1. Push-Up to Knee-Drive — 3 sets × 8 reps\n   Why: Upper body pressing movement that engages core and chest without loading the knee. The knee-drive component is minimal and can be scaled by reducing the height of knee lift. Builds functional pushing strength safely.\n2. Alternating Dumbbell Decline Bench Press — 3 sets × 10 reps\n   Why: Isolated chest and shoulder pressing with one arm at a time improves stability and unilateral strength. Performed on a decline bench reduces lower body involvement and eliminates knee stress. Start with moderate weight.\n3. Med Ball Hamstring Walkout — 3 sets × 8 reps\n   Why: Excellent posterior chain activation with minimal knee flexion. The hamstring walkout strengthens the back of the leg and core without forcing the knee into vulnerable positions. This supports knee stability indirectly.\n4. One-Kettlebell Hamstring Walkout — 3 sets × 8 reps\n   Why: Similar to med ball variant, this unilateral movement activates the hamstring and core with a single-sided load. The walkout pattern avoids deep knee flexion while building posterior chain strength and stability.\n5. Kneeling Stability Ball Lat Stretch — 2 sets × 45s\n   Why: Performed from a kneeling position, this eliminates lower body loading while improving shoulder and lat mobility. Critical for recovery and preventing compensatory movement patterns that could stress the knee.\n\nBased on your request to avoid aggravating a bad knee, I've selected exercises that minimize direct knee stress while still providing effective training. The workout focuses on upper body pressing and pulling movements, core stability, and controlled hamstring/posterior chain work that doesn't overload the knee joint. I've excluded exercises like lunges, step-ups, and leg presses which place significant load through the knee. The selected exercises use modified ranges of motion, stability-based movements, and posterior chain activation to build strength without compromising knee health.\n\nNote: 5 exercise(s) excluded due to injury constraints.",
+    "route": "KNOWLEDGE_GRAPH",
+    "confidence": 0.98,
+    "audit_log": [
+      {
+        "event": "router",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "route": "KNOWLEDGE_GRAPH",
+        "confidence": 0.98,
+        "latency_ms": 1218,
+        "user_id": "e2fe5599-3ad0-450d-84c2-abf41d1e71a6",
+        "tokens_in": 1373,
+        "tokens_out": 108
+      },
+      {
+        "event": "retrieval_lookup_member",
+        "latency_ms": 16,
+        "user_id": null,
+        "result_count": 0
+      },
+      {
+        "event": "retrieval_injury_traversal",
+        "latency_ms": 3,
+        "user_id": null,
+        "result_count": 0,
+        "constraint_count": 0
+      },
+      {
+        "event": "retrieval_preference_traversal",
+        "latency_ms": 1,
+        "user_id": null,
+        "result_count": 0
+      },
+      {
+        "event": "retrieval_vector_search",
+        "latency_ms": 263,
+        "user_id": null,
+        "result_count": 10,
+        "embedding_latency_ms": 263
+      },
+      {
+        "event": "retrieval_assemble",
+        "latency_ms": 189,
+        "user_id": null,
+        "input_count": 10,
+        "output_count": 10
+      },
+      {
+        "event": "kg_generation_llm",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "latency_ms": 6956,
+        "user_id": "e2fe5599-3ad0-450d-84c2-abf41d1e71a6",
+        "tokens_in": 1740,
+        "tokens_out": 862,
+        "exercise_count": 5
+      },
+      {
+        "event": "kg_generation_safety_gate",
+        "latency_ms": 0,
+        "user_id": "e2fe5599-3ad0-450d-84c2-abf41d1e71a6",
+        "exercise_in": 5,
+        "exercise_out": 5,
+        "violations_filtered": 0
+      },
+      {
+        "event": "kg_hub",
+        "model": "n/a",
+        "provider": "neo4j",
+        "intent": "KNOWLEDGE_GRAPH",
+        "latency_ms": 7454,
+        "user_id": "e2fe5599-3ad0-450d-84c2-abf41d1e71a6",
+        "tokens_in": 0,
+        "tokens_out": 0
+      }
+    ],
+    "workout_draft": null,
+    "kg_result": {
+      "overall_reasoning": "Based on your request to avoid aggravating a bad knee, I've selected exercises that minimize direct knee stress while still providing effective training. The workout focuses on upper body pressing and pulling movements, core stability, and controlled hamstring/posterior chain work that doesn't overload the knee joint. I've excluded exercises like lunges, step-ups, and leg presses which place significant load through the knee. The selected exercises use modified ranges of motion, stability-based movements, and posterior chain activation to build strength without compromising knee health.",
+      "fallback_used": false,
+      "exercises": [
+        {
+          "id": null,
+          "name": "Push-Up to Knee-Drive",
+          "sets": 3,
+          "reps": 8,
+          "duration_seconds": null,
+          "reasoning": "Upper body pressing movement that engages core and chest without loading the knee. The knee-drive component is minimal and can be scaled by reducing the height of knee lift. Builds functional pushing strength safely."
+        },
+        {
+          "id": null,
+          "name": "Alternating Dumbbell Decline Bench Press",
+          "sets": 3,
+          "reps": 10,
+          "duration_seconds": null,
+          "reasoning": "Isolated chest and shoulder pressing with one arm at a time improves stability and unilateral strength. Performed on a decline bench reduces lower body involvement and eliminates knee stress. Start with moderate weight."
+        },
+        {
+          "id": null,
+          "name": "Med Ball Hamstring Walkout",
+          "sets": 3,
+          "reps": 8,
+          "duration_seconds": null,
+          "reasoning": "Excellent posterior chain activation with minimal knee flexion. The hamstring walkout strengthens the back of the leg and core without forcing the knee into vulnerable positions. This supports knee stability indirectly."
+        },
+        {
+          "id": null,
+          "name": "One-Kettlebell Hamstring Walkout",
+          "sets": 3,
+          "reps": 8,
+          "duration_seconds": null,
+          "reasoning": "Similar to med ball variant, this unilateral movement activates the hamstring and core with a single-sided load. The walkout pattern avoids deep knee flexion while building posterior chain strength and stability."
+        },
+        {
+          "id": null,
+          "name": "Kneeling Stability Ball Lat Stretch",
+          "sets": 2,
+          "reps": null,
+          "duration_seconds": 45,
+          "reasoning": "Performed from a kneeling position, this eliminates lower body loading while improving shoulder and lat mobility. Critical for recovery and preventing compensatory movement patterns that could stress the knee."
+        }
+      ]
+    }
+  }
+}

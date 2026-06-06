@@ -20,15 +20,18 @@ _ROUTER_SYSTEM_PROMPT = """You are a routing agent for a fitness coaching system
 Classify the user's message into exactly one of these intents:
 
 - COACH: General fitness question, advice, explanation, or motivation (e.g. "What muscles does a deadlift work?", "How many rest days do I need?")
-- WORKOUT_GENERATE: The user wants you to create, plan, or suggest a workout (e.g. "Give me a leg day workout", "Plan a 3-day split for me")
+- WORKOUT_GENERATE: The user wants you to create, plan, or suggest a workout with NO injury or medical constraints mentioned (e.g. "Give me a leg day workout", "Plan a 3-day split for me")
 - WORKOUT_LOG: The user is recording a workout they already completed (e.g. "I just did 3x10 squats at 100kg", "Log my run: 5km in 25 minutes")
+- KNOWLEDGE_GRAPH: The user mentions an injury, pain, medical condition, physical limitation, or asks to avoid exercises that could aggravate a specific body part. This intent uses a knowledge graph to filter out contraindicated exercises and build a safe, personalised plan. Use this intent whenever ANY of the following appear: injury (knee, back, shoulder, wrist, hip, ankle, etc.), pain, soreness, surgery, rehabilitation, "avoid", "bad X" (bad knee, bad back), "hurt", "strain", "sprain", "torn", "post-op", "recovering from". Examples: "I have a bad knee, can you build me a workout?", "My lower back is injured — what can I do?", "Suggest exercises that won't aggravate my shoulder impingement", "I had knee surgery, avoid high-impact moves", "Build me a workout but skip anything that stresses my wrist".
 - FALLBACK: The message is unclear, off-topic, or cannot be mapped to the above intents
+
+IMPORTANT: If a workout request mentions an injury, pain, avoidance of certain body-part stress, or any physical limitation, ALWAYS choose KNOWLEDGE_GRAPH — never WORKOUT_GENERATE. WORKOUT_GENERATE has no injury awareness.
 
 Return a confidence score (0.0–1.0). Use < 0.6 only when genuinely ambiguous.
 """
 
 
-def _router_node(state: AgentState) -> dict[str, Any]:
+async def _router_node(state: AgentState) -> dict[str, Any]:
     """LLM-based routing node using ChatAnthropic with_structured_output(RouteDecision)."""
     model_name = settings.router_model
     llm = ChatAnthropic(model=model_name, api_key=settings.anthropic_api_key).with_structured_output(RouteDecision, include_raw=True)
@@ -83,7 +86,7 @@ def _router_node(state: AgentState) -> dict[str, Any]:
     }
 
 
-def _clarification_node(state: AgentState) -> dict[str, Any]:
+async def _clarification_node(state: AgentState) -> dict[str, Any]:
     """Returns a clarification prompt when routing confidence is below threshold or intent is FALLBACK."""
     rd = state.get("route_decision")
     reason_hint = ""
@@ -122,6 +125,8 @@ async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
 
     t0 = time.monotonic()
     nested_audit_log: list[dict[str, Any]] = []
+    rec = None
+    kg_result: dict[str, Any] | None = None
     try:
         async with neo4j.AsyncGraphDatabase.driver(
             settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password)
@@ -157,6 +162,23 @@ async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
 
         tokens_in = gen_result.get("tokens_in", 0)
         tokens_out = gen_result.get("tokens_out", 0)
+
+        if rec is not None:
+            kg_result = {
+                "overall_reasoning": getattr(rec, "overall_reasoning", None),
+                "fallback_used": getattr(rec, "fallback_used", False),
+                "exercises": [
+                    {
+                        "id": getattr(ex, "id", None),
+                        "name": getattr(ex, "name", None),
+                        "sets": getattr(ex, "sets", None),
+                        "reps": getattr(ex, "reps", None),
+                        "duration_seconds": getattr(ex, "duration_seconds", None),
+                        "reasoning": getattr(ex, "reasoning", None),
+                    }
+                    for ex in (rec.exercises or [])
+                ],
+            }
     except Exception as exc:
         latency_ms = int((time.monotonic() - t0) * 1000)
         content = f"Knowledge graph recommendation failed: {exc}"
@@ -177,6 +199,7 @@ async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
     return {
         "messages": [AIMessage(content=content)],
         "audit_log": state.get("audit_log", []) + nested_audit_log + [audit_entry],
+        "kg_result": kg_result,
     }
 
 

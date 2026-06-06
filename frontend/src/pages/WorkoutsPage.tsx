@@ -1,7 +1,22 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useWorkouts, useDeleteWorkout } from '@/hooks/useWorkouts'
+import type { Workout } from '@/types'
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal'
+
+const EMOJI: Record<number, string> = { 1: '😞', 2: '😟', 3: '😐', 4: '🙂', 5: '😄' }
+
+function dominantType(workout: Workout): 'STRENGTH' | 'CARDIO' | '—' {
+  let strength = 0, cardio = 0
+  for (const seq of workout.sequences) {
+    for (const set of seq.sets) {
+      if (set.set_type === 'STRENGTH') strength++
+      else if (set.set_type === 'CARDIO') cardio++
+    }
+  }
+  if (strength === 0 && cardio === 0) return '—'
+  return strength >= cardio ? 'STRENGTH' : 'CARDIO'
+}
 
 export default function WorkoutsPage() {
   const { data: workouts, isLoading, isError } = useWorkouts()
@@ -85,10 +100,13 @@ export default function WorkoutsPage() {
                   Date
                 </th>
                 <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', color: 'var(--muted-foreground)' }}>
-                  Phases
+                  Sets
                 </th>
                 <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', color: 'var(--muted-foreground)' }}>
-                  Sets
+                  Type
+                </th>
+                <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', color: 'var(--muted-foreground)' }}>
+                  Feels
                 </th>
                 <th style={{ textAlign: 'right', padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', color: 'var(--muted-foreground)' }}>
                   Actions
@@ -110,10 +128,21 @@ export default function WorkoutsPage() {
                       {new Date(w.started_at).toLocaleString()}
                     </td>
                     <td style={{ padding: 'var(--space-3)' }}>
-                      <span className="ww-num">{w.sequences.length}</span>
+                      <span className="ww-num">{totalSets}</span>
                     </td>
                     <td style={{ padding: 'var(--space-3)' }}>
-                      <span className="ww-num">{totalSets}</span>
+                      {(() => {
+                        const dt = dominantType(w)
+                        if (dt === '—') return <span>—</span>
+                        return (
+                          <span className={dt === 'STRENGTH' ? 'ww-badge ww-badge--secondary' : 'ww-badge ww-badge--amber'}>
+                            {dt}
+                          </span>
+                        )
+                      })()}
+                    </td>
+                    <td style={{ padding: 'var(--space-3)' }}>
+                      {w.enjoyment != null ? EMOJI[w.enjoyment] ?? '—' : '—'}
                     </td>
                     <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', alignItems: 'center' }}>

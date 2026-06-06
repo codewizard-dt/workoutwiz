@@ -1,6 +1,22 @@
 import { useState, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 
+export interface RecommendedExercise {
+  exercise_id: string
+  name: string
+  sets?: number
+  reps?: number
+  duration_seconds?: number
+  weight_kg?: number
+  reasoning: string
+}
+
+export interface KGResult {
+  exercises: RecommendedExercise[]
+  overall_reasoning: string
+  fallback_used: boolean
+}
+
 export interface AgentStep {
   agent: string
   confidence?: number
@@ -16,6 +32,7 @@ export interface ChatMessage {
   confidence?: number
   steps?: AgentStep[]
   workout_draft?: import('@/types').WorkoutDraft
+  kg_result?: KGResult | null
 }
 
 function getOrCreateSessionId(): string {
@@ -72,6 +89,7 @@ export function useChat() {
           session_id: string
           audit_steps?: AgentStep[]
           workout_draft?: import('@/types').WorkoutDraft
+          kg_result?: KGResult | null
         }
 
         const assistantMsg: ChatMessage = {
@@ -82,6 +100,7 @@ export function useChat() {
           confidence: data.confidence,
           steps: data.audit_steps,
           workout_draft: data.workout_draft,
+          kg_result: data.kg_result,
         }
 
         setMessages((prev) => [...prev, assistantMsg])

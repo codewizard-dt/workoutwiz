@@ -1,0 +1,91 @@
+{
+  "recorded_at": "2026-06-06",
+  "query": "Build me a lower body workout focused on glutes and hamstrings using barbells",
+  "ground_truth": {
+    "expected_route": "WORKOUT_GENERATE",
+    "must_contain": ["sets", "reps", "deadlift"],
+    "must_not_contain": ["I don't know", "excluded due to injury constraints"]
+  },
+  "response": {
+    "_note": "stub — re-record against live API",
+    "session_id": "00000000-0000-0000-0000-000000000002",
+    "reply": "Here is your **Barbell Lower Body — Glutes & Hamstrings** workout:\n\n## Warm-Up\n1. **Romanian Deadlift** — 3 sets × 10 reps (light warm-up weight)\n\n## Main Phase\n2. **Barbell Hip Thrust** — 4 sets × 8–10 reps\n3. **Romanian Deadlift** — 4 sets × 8 reps\n4. **Barbell Good Morning** — 3 sets × 10 reps\n\n## Cooldown\n5. **Lying Hamstring Stretch** — 2 sets × 45 seconds per leg\n\nFocus on hip hinge mechanics and full hip extension at the top of each rep to maximise glute recruitment.",
+    "route": "WORKOUT_GENERATE",
+    "confidence": 0.98,
+    "audit_log": [
+      {
+        "event": "router",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "route": "WORKOUT_GENERATE",
+        "confidence": 0.98,
+        "latency_ms": 0,
+        "user_id": "00000000-0000-0000-0000-000000000000",
+        "tokens_in": 0,
+        "tokens_out": 0
+      },
+      {
+        "event": "generator",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "latency_ms": 0,
+        "tokens_in": 0,
+        "tokens_out": 0
+      }
+    ],
+    "workout_draft": {
+      "goal": "lower body strength — glutes and hamstrings",
+      "phases": {
+        "warmup": [
+          {
+            "id": null,
+            "name": "Romanian Deadlift",
+            "sets": 3,
+            "reps": "10",
+            "duration_s": null,
+            "rest_s": 60
+          }
+        ],
+        "main": [
+          {
+            "id": null,
+            "name": "Barbell Hip Thrust",
+            "sets": 4,
+            "reps": "8-10",
+            "duration_s": null,
+            "rest_s": 90
+          },
+          {
+            "id": null,
+            "name": "Romanian Deadlift",
+            "sets": 4,
+            "reps": "8",
+            "duration_s": null,
+            "rest_s": 90
+          },
+          {
+            "id": null,
+            "name": "Barbell Good Morning",
+            "sets": 3,
+            "reps": "10",
+            "duration_s": null,
+            "rest_s": 60
+          }
+        ],
+        "cooldown": [
+          {
+            "id": null,
+            "name": "Lying Hamstring Stretch",
+            "sets": 2,
+            "reps": null,
+            "duration_s": 45,
+            "rest_s": 30
+          }
+        ]
+      },
+      "total_exercises": 5,
+      "invalid_ids_skipped": []
+    },
+    "kg_result": null
+  }
+}

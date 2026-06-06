@@ -8,8 +8,7 @@ interface AppShellProps {
 }
 
 const NAV_LINKS = [
-  { to: '/chat', label: 'Chat' },
-  { to: '/knowledge-graph', label: 'AI Coach' },
+  { to: '/chat', label: 'AI Coach' },
   { to: '/workouts', label: 'Workouts' },
   { to: '/exercises', label: 'Exercises' },
 ] as const
@@ -63,7 +62,8 @@ export function AppShell({ children }: AppShellProps) {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '100dvh',
+        height: '100dvh',
+        minHeight: 0,
         background: 'var(--background)',
       }}
     >

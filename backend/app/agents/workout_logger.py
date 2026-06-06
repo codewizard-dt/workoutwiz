@@ -15,6 +15,10 @@ from app.config import settings
 
 class LoggedSet(BaseModel):
     exercise_name: str = Field(description="The name of the exercise as stated by the user")
+    canonical_name: str | None = Field(
+        default=None,
+        description="Canonical exercise name from the database after fuzzy matching",
+    )
     exercise_id: str | None = Field(
         default=None,
         description="UUID of the matched exercise from the database (null if no match found)",
@@ -61,19 +65,19 @@ If you're making assumptions, note them in parse_notes.
 """
 
 
-def _fuzzy_match_exercise(name: str, exercises: list[Any]) -> tuple[str | None, float]:
-    """Fuzzy-match exercise name against the dataset. Returns (exercise_id, confidence 0-1)."""
+def _fuzzy_match_exercise(name: str, exercises: list[Any]) -> tuple[str | None, str | None, float]:
+    """Fuzzy-match exercise name against the dataset. Returns (exercise_id, canonical_name, confidence 0-1)."""
     if not exercises:
-        return None, 0.0
+        return None, None, 0.0
     exercise_names = [e.name for e in exercises]
     result = fuzz_process.extractOne(name, exercise_names, scorer=fuzz.token_sort_ratio)
     if result is None:
-        return None, 0.0
+        return None, None, 0.0
     matched_name, score, idx = result
     confidence = score / 100.0
-    if confidence < 0.75:
-        return None, confidence
-    return str(exercises[idx].id), confidence
+    if confidence < 0.45:
+        return None, None, confidence
+    return str(exercises[idx].id), matched_name, confidence
 
 
 def _log_node(state: AgentState) -> dict[str, Any]:
@@ -110,8 +114,9 @@ def _log_node(state: AgentState) -> dict[str, Any]:
     unrecognized = []
     for logged_set in workout_log.logged_sets:
         if logged_set.exercise_id is None:
-            exercise_id, confidence = _fuzzy_match_exercise(logged_set.exercise_name, exercises)
+            exercise_id, canonical_name, confidence = _fuzzy_match_exercise(logged_set.exercise_name, exercises)
             logged_set.exercise_id = exercise_id
+            logged_set.canonical_name = canonical_name
             logged_set.match_confidence = confidence
             if exercise_id is None:
                 unrecognized.append(logged_set.exercise_name)
@@ -121,7 +126,7 @@ def _log_node(state: AgentState) -> dict[str, Any]:
     response_text = (
         f"Logged {len(workout_log.logged_sets)} exercise(s).\n"
         + "\n".join(
-            f"• {s.exercise_name}: "
+            f"• {s.canonical_name or s.exercise_name}: "
             + (f"{s.sets}×{s.reps}" if s.sets and s.reps else "")
             + (f" @ {s.weight_kg}kg" if s.weight_kg else "")
             + (f" ({int(s.match_confidence * 100)}% match)" if s.exercise_id else " [unrecognized]")

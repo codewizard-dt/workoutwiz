@@ -1,0 +1,89 @@
+# Rubric: workout-wiz quality dimensions
+# Used for Stage 4 LLM-as-judge evaluation
+# Calibrate against human scores before running at scale (target correlation >= 0.8)
+
+name: workout-wiz-v1
+version: "1.0"
+description: >
+  Multi-dimensional quality rubric for the workout-wiz fitness coaching multi-agent system.
+  Covers routing accuracy, exercise relevance, injury safety, response clarity, and source faithfulness.
+
+dimensions:
+  routing_accuracy:
+    weight: 0.30
+    description: "Did the hub route to the correct sub-agent for this query?"
+    scores:
+      5: "Routed to the exact correct agent with high confidence (>= 0.9). No ambiguity."
+      4: "Routed to the correct agent with moderate confidence (0.7–0.9). Intent was clear."
+      3: "Routed to a reasonable agent but a different agent could have been more appropriate."
+      2: "Routed to the wrong agent but the response was partially relevant."
+      1: "Routed to entirely the wrong agent (e.g., COACH for a log request). Response unhelpful."
+      0: "No routing occurred or the system returned an error/exception."
+
+  exercise_relevance:
+    weight: 0.25
+    description: "Are the recommended exercises appropriate for the user's stated goal, fitness level, and equipment?"
+    scores:
+      5: "All recommended exercises directly target the stated muscle group(s), match equipment constraints, and are appropriate for the stated fitness level."
+      4: "Most exercises are appropriate; one exercise is marginally off-target or ignores a minor constraint."
+      3: "Exercises are broadly relevant but miss a key constraint (e.g., includes barbell work when user said 'no equipment')."
+      2: "Fewer than half the exercises are relevant to the user's stated goal or constraints."
+      1: "Recommended exercises are largely irrelevant to the stated goal or violate multiple stated constraints."
+      0: "No exercises recommended, or all recommendations are entirely inappropriate."
+    not_applicable_when:
+      - "route == COACH"
+      - "route == WORKOUT_LOG"
+      - "route == FALLBACK"
+
+  injury_safety:
+    weight: 0.25
+    description: "For KG-routed responses: are contraindicated exercises excluded? Does the system flag injury-relevant constraints?"
+    scores:
+      5: "All contraindicated exercises excluded. Response explicitly notes which exercises were excluded and why. Safe alternatives provided."
+      4: "All contraindicated exercises excluded. Response notes exclusions but without full detail."
+      3: "Most contraindicated exercises excluded; one contraindicated exercise slipped through."
+      2: "Some exclusions applied but multiple contraindicated exercises are present in the recommendation."
+      1: "Injury constraints were acknowledged but no actual exclusions were applied."
+      0: "Injury constraints were ignored entirely. Contraindicated exercises recommended without any warning."
+    not_applicable_when:
+      - "route != KNOWLEDGE_GRAPH"
+
+  response_clarity:
+    weight: 0.10
+    description: "Is the response clear, actionable, and free of confusing or contradictory information?"
+    scores:
+      5: "Response is concise, directly answers the question, uses plain language, and provides specific actionable guidance (e.g., concrete rest day counts, specific exercise names, specific set/rep schemes)."
+      4: "Response is clear and mostly actionable. Minor verbosity or one vague phrase present."
+      3: "Response answers the question but uses vague language (e.g., 'it depends', 'consult a professional' without specifics) or is excessively long."
+      2: "Response partially addresses the question but omits key actionable details or is confusingly structured."
+      1: "Response is hard to follow, contradicts itself, or provides no actionable guidance."
+      0: "Response does not address the question at all, or is a raw error message."
+
+  source_faithfulness:
+    weight: 0.10
+    description: "For KG responses: does the response accurately reflect what the knowledge graph returned? No hallucinated exercises or fabricated injury constraints."
+    scores:
+      5: "Every exercise in the response is traceable to the KG retrieval result. No exercise names or injury exclusions are fabricated. source_type is set on all exercises."
+      4: "All exercises are real and traceable; source_type is present on most but not all exercises."
+      3: "Exercises are real but one has a fabricated or incorrect source_type attribution."
+      2: "One exercise name is not from the exercises.json dataset (hallucinated), but injury constraints are faithfully applied."
+      1: "Multiple hallucinated exercise names or fabricated injury constraint exclusions."
+      0: "Response is entirely disconnected from KG retrieval output."
+    not_applicable_when:
+      - "route != KNOWLEDGE_GRAPH"
+
+thresholds:
+  excellent:   { min: 4.5, max: 5.0, action: "Ship it" }
+  good:        { min: 3.5, max: 4.4, action: "Minor tweaks" }
+  acceptable:  { min: 2.5, max: 3.4, action: "Review and improve" }
+  poor:        { min: 1.5, max: 2.4, action: "Significant work needed" }
+  critical:    { min: 0.0, max: 1.4, action: "Stop. Fix now." }
+
+calibration:
+  target_correlation: 0.8
+  minimum_human_scored_examples: 20
+  status: not_started
+  notes: >
+    Before running LLM-as-judge at scale, score 20 examples by hand, run the judge on
+    the same set, and verify Pearson correlation >= 0.8. If < 0.8, refine score anchors
+    (typically the 3-point descriptions are the problem — they're too ambiguous).

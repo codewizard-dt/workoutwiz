@@ -153,20 +153,35 @@ async def assemble_context(
 
     if member_profile is None:
         logger.warning(
-            "assemble_context: member '%s' not found in Neo4j — returning empty ContextSlice.",
+            "assemble_context: member '%s' not found in Neo4j — falling back to vector-only context.",
             member_id,
         )
+        # No graph profile: still run vector search so the generation agent has
+        # exercise candidates. safe_exercises stays empty (no injury constraints
+        # available), but vector_hits are returned unconditionally so the
+        # generation graph can build a reasonable recommendation.
+        vector_docs = await _safe_vector_search(query, k=vector_k)
+        vector_hits_raw: list[dict[str, Any]] = []
+        for doc in vector_docs:
+            if hasattr(doc, "page_content") and hasattr(doc, "metadata"):
+                ex_id = doc.metadata.get("id")
+                vector_hits_raw.append(
+                    {"id": ex_id, "name": doc.page_content, "score": doc.metadata.get("score")}
+                )
+            elif isinstance(doc, dict):
+                vector_hits_raw.append(doc)
+        vector_truncated, vector_tokens = _truncate_to_budget(vector_hits_raw, VECTOR_HITS_BUDGET)
         return ContextSlice(
             member_profile={},
-            safe_exercises=[],
+            safe_exercises=vector_truncated,  # treated as safe for generation purposes
             preferred_exercises=[],
-            vector_hits=[],
+            vector_hits=vector_truncated,
             token_counts=SectionTokenCounts(
                 member_profile=0,
-                safe_exercises=0,
+                safe_exercises=vector_tokens,
                 preferred_exercises=0,
-                vector_hits=0,
-                total=0,
+                vector_hits=vector_tokens,
+                total=vector_tokens,
             ),
         )
 

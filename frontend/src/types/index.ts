@@ -86,6 +86,8 @@ export interface WorkoutCreate {
   started_at: string
   ended_at?: string | null
   sequences?: WorkoutSequenceCreate[]
+  enjoyment?: number | null
+  note?: string | null
 }
 
 export interface WorkoutSet extends WorkoutSetCreate {
@@ -105,4 +107,6 @@ export interface Workout {
   started_at: string
   ended_at: string | null
   sequences: WorkoutSequence[]
+  enjoyment?: number | null
+  note?: string | null
 }

@@ -1,0 +1,50 @@
+# Example experiment spec for run_experiment.py
+#
+# Run with:
+#   backend/.venv/bin/python evals/run_experiment.py evals/experiments/example-experiment.yaml
+#
+# This file is documentation only — the example env var ROUTER_PROMPT_OVERRIDE
+# is not wired in the backend by default. Copy this file, rename it, and fill in
+# real env vars to run an actual experiment.
+
+# Unique slug for this experiment — used in the output filename.
+name: "example-router-prompt-v2"
+
+# Human-readable summary of what is being tested and why.
+description: >
+  Sanity-check experiment: baseline vs. identical variant (no env overrides).
+  Pass-rate delta should be 0. Use this to verify the harness is wired correctly
+  before changing any real config.
+
+# ── Baseline arm ────────────────────────────────────────────────────────────
+baseline:
+  label: "baseline"
+  # No env overrides — calls the live endpoint with its current configuration.
+  env: {}
+
+# ── Variant arm ─────────────────────────────────────────────────────────────
+variant:
+  label: "router-prompt-v2"
+  # Env vars injected into os.environ for the duration of the variant run.
+  # The backend must read these at request time (not at startup) for them to
+  # take effect without a server restart.
+  #
+  # Examples:
+  #   ROUTER_PROMPT_OVERRIDE: "prompts/router-v2.txt"
+  #   COACH_MODEL: "claude-3-5-haiku-20241022"
+  #   ROUTER_TEMPERATURE: "0.0"
+  env: {}
+  # Empty env = identical to baseline. Replace with real overrides.
+
+# ── Test selection ───────────────────────────────────────────────────────────
+# "golden"    → evals/golden/*.yaml  (15 cases, hard gate — use for CI)
+# "scenarios" → evals/scenarios/*.yaml  (41 cases, coverage matrix)
+# glob string → any glob, e.g. "evals/golden/gs-00[1-5].yaml" for a subset
+test_set: "golden"
+
+# ── Statistical stability ────────────────────────────────────────────────────
+# How many times to call /chat/ per case per arm.
+# 1 = fast, good for deterministic routing checks.
+# 3+ = majority-vote pass/fail; use when LLM outputs are stochastic and you
+#      need stability (e.g. testing temperature or sampling changes).
+runs_per_case: 1

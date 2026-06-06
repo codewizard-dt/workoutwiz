@@ -1,0 +1,15 @@
+- id: "gs-001"
+  description: "WORKOUT_GENERATE intent — workout request with no injury context routes to workout_gen node and returns structured workout"
+  query: "Create a 30-minute upper body workout for me"
+  expected_tools:
+    - workout_gen
+  expected_sources:
+    - exercises.json
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+    - "excluded due to injury constraints"
+    - "couldn't build"

@@ -1,0 +1,17 @@
+- id: "gs-007"
+  description: "WORKOUT_GENERATE intent — equipment-constrained request routes to workout_gen and returns only dumbbell exercises"
+  query: "I only have dumbbells at home. Give me a 20-minute full body workout."
+  expected_tools:
+    - workout_gen
+  expected_sources:
+    - exercises.json
+  must_contain:
+    - "dumbbell"
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+    - "barbell"
+    - "machine"
+    - "excluded due to injury constraints"

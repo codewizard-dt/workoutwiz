@@ -1,4 +1,4 @@
-.PHONY: install run test clean migrate migrate-auto migrate-down migrate-history migrate-current typecheck typecheck-py typecheck-ts
+.PHONY: install run test clean migrate migrate-auto migrate-down migrate-history migrate-current typecheck typecheck-py typecheck-ts eval eval-golden eval-scenarios eval-replays eval-stats
 
 VENV := backend/.venv
 PYTHON := $(VENV)/bin/python
@@ -31,6 +31,25 @@ typecheck-ts:
 
 ## typecheck — run both language checks
 typecheck: typecheck-py typecheck-ts
+
+## eval-golden — run the golden eval set against the live backend
+eval-golden:
+	$(PYTHON) evals/run_golden.py
+
+## eval-scenarios — run labeled scenarios and print coverage matrix
+eval-scenarios:
+	$(PYTHON) evals/run_scenarios.py
+
+## eval-replays — validate frozen replay fixtures (no API calls)
+eval-replays:
+	$(PYTHON) evals/run_replays.py
+
+## eval-stats — show historical eval pass rates and trends
+eval-stats:
+	$(PYTHON) evals/stats.py
+
+## eval — run golden + replays, then show stats
+eval: eval-golden eval-replays eval-stats
 
 ALEMBIC := $(VENV)/bin/alembic
 ALEMBIC_DIR := backend

@@ -1,0 +1,38 @@
+{
+  "suite": "replays",
+  "started_at": "2026-06-06T23:19:32.518233+00:00",
+  "finished_at": "2026-06-06T23:19:32.518806+00:00",
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "pass_pct": 100
+  },
+  "cases": [
+    {
+      "id": "coach-rest-days",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "fallback-off-topic",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "kg-knee-injury",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "workout-gen-upper-body",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "workout-log-bench-press",
+      "passed": true,
+      "failures": []
+    }
+  ]
+}

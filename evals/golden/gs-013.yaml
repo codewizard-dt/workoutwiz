@@ -1,0 +1,13 @@
+- id: "gs-013"
+  description: "COACH intent — nutrition question routes to coach, not workout generator"
+  query: "How much protein should I eat to build muscle?"
+  expected_tools:
+    - coach
+  expected_sources: []
+  must_contain:
+    - "protein"
+  must_not_contain:
+    - "I don't know"
+    - "excluded due to injury constraints"
+    - "Here is your personalized workout"
+    - "I cannot"

@@ -1,0 +1,15 @@
+- id: "gs-008"
+  description: "WORKOUT_LOG intent — misspelled exercise name is fuzzy-matched and logged correctly"
+  query: "I just did 4 sets of 8 benchpress at 185 pounds"
+  expected_tools:
+    - workout_log
+  expected_sources:
+    - exercises.json
+  must_contain:
+    - "bench press"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+    - "sets"
+    - "Here is your personalized workout"
+    - "excluded due to injury constraints"

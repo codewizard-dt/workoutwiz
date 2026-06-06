@@ -1,0 +1,104 @@
+{
+  "recorded_at": "2026-06-06",
+  "query": "Create a 30-minute upper body workout for me",
+  "ground_truth": {
+    "expected_route": "WORKOUT_GENERATE",
+    "must_contain": [
+      "sets",
+      "reps",
+      "upper body"
+    ],
+    "must_not_contain": [
+      "capital",
+      "France"
+    ]
+  },
+  "response": {
+    "session_id": "78bd1b5e-d3e5-4a7b-a4e6-3bd23ab2dd81",
+    "reply": "Perfect! Here's your **30-Minute Upper Body Workout**:\n\n---\n\n## **Warm-Up Phase**\n1. **Dumbbell Neutral-Grip Bench Press**\n   - 3 sets × 10-12 reps\n   - Rest: 60 seconds between sets\n   - *Targets: Chest, triceps*\n\n2. **Band-Assisted Chin-Up (From Foot)**\n   - 3 sets × 10-12 reps\n   - Rest: 60 seconds between sets\n   - *Targets: Lats, middle back, biceps, upper back*\n\n---\n\n## **Main Phase**\n3. **Alternating Dumbbell Overhead Press**\n   - 3 sets × 10-12 reps\n   - Rest: 60 seconds between sets\n   - *Targets: Deltoids (shoulders), triceps*\n\n4. **Dumbbell Incline Chest Fly**\n   - 3 sets × 10-12 reps\n   - Rest: 60 seconds between sets\n   - *Targets: Chest*\n\n---\n\n## **Workout Summary**\n- **Total Exercises:** 4\n- **Total Sets:** 12\n- **Total Rest Time:** ~12 minutes\n- **Estimated Duration:** 28-30 minutes\n- **Focus:** Upper body strength with balanced push/pull movements\n\nThis workout provides excellent coverage of your chest, back, shoulders, and arms with a mix of pressing and pulling movements to build strength and muscle development!",
+    "route": "WORKOUT_GENERATE",
+    "confidence": 0.98,
+    "audit_log": [
+      {
+        "event": "router",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "route": "WORKOUT_GENERATE",
+        "confidence": 0.98,
+        "latency_ms": 4756,
+        "user_id": "e2fe5599-3ad0-450d-84c2-abf41d1e71a6",
+        "tokens_in": 1098,
+        "tokens_out": 95
+      },
+      {
+        "event": "generator",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "latency_ms": 1074,
+        "tokens_in": 1230,
+        "tokens_out": 115
+      },
+      {
+        "event": "generator",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "latency_ms": 2442,
+        "tokens_in": 2509,
+        "tokens_out": 254
+      },
+      {
+        "event": "generator",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "latency_ms": 2689,
+        "tokens_in": 3123,
+        "tokens_out": 361
+      }
+    ],
+    "workout_draft": {
+      "goal": "upper body strength and muscle development",
+      "phases": {
+        "warmup": [
+          {
+            "id": "1465f189-eb62-410d-a73e-590a84693dd0",
+            "name": "Dumbbell Neutral-Grip Bench Press",
+            "sets": 3,
+            "reps": "10-12",
+            "duration_s": 30,
+            "rest_s": 60
+          },
+          {
+            "id": "0b6fcb1c-aa47-455b-8a9f-f9d1582745df",
+            "name": "Band-Assisted Chin-Up (From Foot)",
+            "sets": 3,
+            "reps": "10-12",
+            "duration_s": 30,
+            "rest_s": 60
+          }
+        ],
+        "main": [
+          {
+            "id": "03258dbf-bc21-4495-bcae-ca627b3a0f20",
+            "name": "Alternating Dumbbell Overhead Press",
+            "sets": 3,
+            "reps": "10-12",
+            "duration_s": 30,
+            "rest_s": 60
+          },
+          {
+            "id": "13261989-7436-44d0-8daf-754b259e5af8",
+            "name": "Dumbbell Incline Chest Fly",
+            "sets": 3,
+            "reps": "10-12",
+            "duration_s": 30,
+            "rest_s": 60
+          }
+        ],
+        "cooldown": []
+      },
+      "total_exercises": 4,
+      "invalid_ids_skipped": []
+    },
+    "kg_result": null
+  }
+}

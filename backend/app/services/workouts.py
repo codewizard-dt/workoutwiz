@@ -50,6 +50,10 @@ async def create_workout(session: AsyncSession, user_id: uuid.UUID, data: Workou
 async def update_workout(session: AsyncSession, workout: Workout, data: WorkoutCreate) -> Workout:
     workout.started_at = data.started_at
     workout.ended_at = data.ended_at
+    if data.enjoyment is not None:
+        workout.enjoyment = data.enjoyment
+    if data.note is not None:
+        workout.note = data.note
     # Replace sequences (cascade delete handles sets)
     await session.execute(delete(WorkoutSequence).where(WorkoutSequence.workout_id == workout.id))
     await session.flush()

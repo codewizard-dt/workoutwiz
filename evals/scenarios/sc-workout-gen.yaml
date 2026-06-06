@@ -1,0 +1,137 @@
+# Workout generation category scenarios — 9 total, 3 per difficulty band
+# Covers: muscle_group, program_design, underspecified, goal_based,
+#         equipment_constraint, special_population, advanced
+
+# --- straightforward ---
+
+- id: "sc-wg-001"
+  query: "Give me a 45-minute leg workout"
+  expected_tools:
+    - workout_gen
+  category: workout_gen
+  subcategory: muscle_group
+  difficulty: straightforward
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+
+- id: "sc-wg-002"
+  query: "Build me a chest and triceps workout for the gym"
+  expected_tools:
+    - workout_gen
+  category: workout_gen
+  subcategory: muscle_group
+  difficulty: straightforward
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+
+- id: "sc-wg-003"
+  query: "I need a beginner full body routine, 3 days a week"
+  expected_tools:
+    - workout_gen
+  category: workout_gen
+  subcategory: program_design
+  difficulty: straightforward
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+
+# --- ambiguous ---
+
+- id: "sc-wg-004"
+  query: "Give me something for tomorrow"
+  expected_tools:
+    - workout_gen
+  category: workout_gen
+  subcategory: underspecified
+  difficulty: ambiguous
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+
+- id: "sc-wg-005"
+  query: "I want to get bigger. What should I do?"
+  expected_tools:
+    - workout_gen
+  category: workout_gen
+  subcategory: goal_based
+  difficulty: ambiguous
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+
+- id: "sc-wg-006"
+  query: "Make me a quick workout"
+  expected_tools:
+    - workout_gen
+  category: workout_gen
+  subcategory: underspecified
+  difficulty: ambiguous
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+
+# --- edge cases ---
+
+- id: "sc-wg-007"
+  query: "I only have 10 minutes and no equipment"
+  expected_tools:
+    - workout_gen
+  category: workout_gen
+  subcategory: equipment_constraint
+  difficulty: edge_case
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+    - "barbell"
+    - "dumbbell"
+
+- id: "sc-wg-008"
+  query: "Create a workout for someone who is 300 lbs and just starting out"
+  expected_tools:
+    - workout_gen
+  category: workout_gen
+  subcategory: special_population
+  difficulty: edge_case
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+
+- id: "sc-wg-009"
+  query: "Build me a 2-hour advanced powerlifting session"
+  expected_tools:
+    - workout_gen
+  category: workout_gen
+  subcategory: advanced
+  difficulty: edge_case
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"

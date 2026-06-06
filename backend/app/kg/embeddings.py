@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_vector_store_singleton: "Neo4jVector | None" = None
+
 INDEX_NAME = "exercise_embeddings"
 NODE_LABEL = "Exercise"
 # Properties to embed: combined as "name. description" text
@@ -86,22 +88,29 @@ def get_exercise_vector_store() -> Neo4jVector:
     """
     Return a Neo4jVector connected to the existing exercise_embeddings index.
 
-    Use this in the retrieval sub-graph (TASK-059) for similarity search.
+    Cached as a module-level singleton so the internal Neo4j driver is reused
+    across requests (avoids "client has been closed" errors from GC-ing the
+    short-lived driver created by each from_existing_index call).
+
+    Use this in the retrieval sub-graph for similarity search.
     Assumes embed_exercises() has already been run at least once.
 
     Raises:
         RuntimeError: if the vector index does not exist yet.
     """
-    embeddings = _get_embeddings()
-
-    return Neo4jVector.from_existing_index(
-        embedding=embeddings,
-        url=settings.neo4j_uri,
-        username=settings.neo4j_user,
-        password=settings.neo4j_password,
-        index_name=INDEX_NAME,
-        text_node_property=TEXT_NODE_PROPERTIES[0],  # primary display property
-    )
+    global _vector_store_singleton
+    if _vector_store_singleton is None:
+        embeddings = _get_embeddings()
+        _vector_store_singleton = Neo4jVector.from_existing_index(
+            embedding=embeddings,
+            url=settings.neo4j_uri,
+            username=settings.neo4j_user,
+            password=settings.neo4j_password,
+            index_name=INDEX_NAME,
+            text_node_property=TEXT_NODE_PROPERTIES[0],  # primary display property
+        )
+        logger.info("Neo4jVector singleton created for index '%s'.", INDEX_NAME)
+    return _vector_store_singleton
 
 
 if __name__ == "__main__":

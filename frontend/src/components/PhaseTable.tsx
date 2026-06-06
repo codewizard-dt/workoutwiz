@@ -61,7 +61,7 @@ export function PhaseTable({ sequences, exercises = [], onAddCurrent }: PhaseTab
                     <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Type</th>
                     <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Prescription</th>
                     {onAddCurrent && (
-                      <th style={{ textAlign: 'right', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Actions</th>
+                      <th style={{ textAlign: 'right', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Add to current workout</th>
                     )}
                   </tr>
                 </thead>
@@ -76,8 +76,18 @@ export function PhaseTable({ sequences, exercises = [], onAddCurrent }: PhaseTab
                         className="ww-set-row"
                         style={{ borderBottom: '1px solid var(--border)' }}
                       >
-                        <td style={{ padding: 'var(--space-2-5) var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>
-                          {name}
+                        <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
+                          <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>{name}</div>
+                          {ex && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)', marginTop: 'var(--space-1)' }}>
+                              {ex.category && (
+                                <span className="ww-badge ww-badge--outline" style={{ fontSize: '10px' }}>{ex.category}</span>
+                              )}
+                              {ex.muscle_groups.slice(0, 3).map((mg) => (
+                                <span key={mg} className="ww-badge ww-badge--secondary" style={{ fontSize: '10px' }}>{mg}</span>
+                              ))}
+                            </div>
+                          )}
                         </td>
                         <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
                           <span
@@ -96,10 +106,11 @@ export function PhaseTable({ sequences, exercises = [], onAddCurrent }: PhaseTab
                           <td style={{ padding: 'var(--space-2-5) var(--space-3)', textAlign: 'right' }}>
                             <button
                               type="button"
-                              className="ww-btn ww-btn--outline ww-btn--sm"
+                              className="ww-btn ww-btn--outline ww-btn--sm ww-iconbtn"
+                              title="Add to current workout"
                               onClick={() => { onAddCurrent(set.exercise_id) }}
                             >
-                              Add Current
+                              +
                             </button>
                           </td>
                         )}

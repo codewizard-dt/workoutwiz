@@ -22,7 +22,9 @@ class RouteDecision(BaseModel):
             "COACH for general fitness questions, "
             "WORKOUT_GENERATE to create a new workout plan, "
             "WORKOUT_LOG to record a completed workout, "
-            "FALLBACK when the message is unclear or off-topic."
+            "FALLBACK when the message is unclear or off-topic. "
+            "KNOWLEDGE_GRAPH for questions about the member's injury history, "
+            "training preferences, or personalised exercise recommendations based on their profile."
         )
     )
     confidence: float = Field(
@@ -53,3 +55,6 @@ class AgentState(TypedDict):
     # Audit fields — populated as the graph executes
     session_id: str | None
     audit_log: list[dict[str, Any]]
+
+    # Knowledge graph result — populated by knowledge_graph_node (KNOWLEDGE_GRAPH route only)
+    kg_result: dict[str, Any] | None

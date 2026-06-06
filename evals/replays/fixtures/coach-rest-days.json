@@ -1,0 +1,45 @@
+{
+  "recorded_at": "2026-06-06",
+  "query": "How many rest days should I take between leg workouts?",
+  "ground_truth": {
+    "expected_route": "COACH",
+    "must_contain": [
+      "rest",
+      "48",
+      "72"
+    ],
+    "must_not_contain": [
+      "sets",
+      "workout plan"
+    ]
+  },
+  "response": {
+    "session_id": "98e3659d-fee5-42c5-9522-a1bec63383c4",
+    "reply": "# Rest Days Between Leg Workouts\n\n**The short answer: 48-72 hours (2-3 days)** is typical for most people doing moderate-to-heavy leg training.\n\n## Key Factors:\n\n**Training intensity matters most:**\n- **Heavy strength work** (low reps, high load): 72 hours minimum\n- **Moderate hypertrophy work**: 48-72 hours\n- **Light accessory work**: 24-48 hours may suffice\n\n**Why the gap?**\n- Legs contain large muscle groups that accumulate significant fatigue and muscle damage\n- Full nervous system recovery takes longer for compound lower-body lifts\n- Glycogen depletion is substantial\n\n## Practical Guidelines:\n\n- **2 leg sessions/week**: Space them 3-4 days apart (e.g., Monday & Thursday)\n- **3 leg sessions/week**: Mix intensities—heavy day, then 72 hours rest, then moderate/light work sooner\n- **Back-to-back leg days**: Only works if they target different qualities (e.g., power one day, hypertrophy the next) with reduced volume on day 2\n\n## Signs You Need More Rest:\n- Persistent soreness (DOMS) affecting performance\n- Declining strength/power in subsequent workouts\n- Elevated resting heart rate or poor sleep\n\n**Individual recovery varies**—age, nutrition, sleep, and training experience all affect how quickly you can return to hard leg work. Start with 72 hours and adjust based on performance and how you feel.",
+    "route": "COACH",
+    "confidence": 0.95,
+    "audit_log": [
+      {
+        "event": "router",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "route": "COACH",
+        "confidence": 0.95,
+        "latency_ms": 1164,
+        "user_id": "e2fe5599-3ad0-450d-84c2-abf41d1e71a6",
+        "tokens_in": 1099,
+        "tokens_out": 91
+      },
+      {
+        "event": "coach",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "latency_ms": 6133,
+        "tokens_in": 161,
+        "tokens_out": 355
+      }
+    ],
+    "workout_draft": null,
+    "kg_result": null
+  }
+}
