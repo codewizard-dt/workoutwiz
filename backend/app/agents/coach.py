@@ -22,7 +22,7 @@ If asked to log a workout, explain that's handled separately.
 
 def _chat_node(state: AgentState) -> dict[str, Any]:
     model_name = settings.coach_model
-    llm = ChatAnthropic(model=model_name)
+    llm = ChatAnthropic(model=model_name, api_key=settings.anthropic_api_key)
 
     messages = [SystemMessage(content=_COACH_SYSTEM_PROMPT)] + list(state["messages"])
     t0 = time.monotonic()

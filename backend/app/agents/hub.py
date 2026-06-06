@@ -27,7 +27,7 @@ Return a confidence score (0.0–1.0). Use < 0.6 only when genuinely ambiguous.
 def _router_node(state: AgentState) -> dict[str, Any]:
     """LLM-based routing node using ChatAnthropic with_structured_output(RouteDecision)."""
     model_name = settings.router_model
-    llm = ChatAnthropic(model=model_name).with_structured_output(RouteDecision, include_raw=True)
+    llm = ChatAnthropic(model=model_name, api_key=settings.anthropic_api_key).with_structured_output(RouteDecision, include_raw=True)
 
     # Extract last human message for classification
     last_human = next(
@@ -107,6 +107,53 @@ def _clarification_node(state: AgentState) -> dict[str, Any]:
     }
 
 
+async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
+    """Invoke the GraphRAG retrieval sub-graph for KNOWLEDGE_GRAPH intent."""
+    import neo4j
+    from app.kg.retrieval_graph import build_retrieval_graph
+
+    # Extract the last human message as the query
+    last_human = next(
+        (m for m in reversed(state["messages"]) if hasattr(m, "type") and m.type == "human"),
+        None,
+    )
+    query = last_human.content if last_human else ""
+
+    # Use user_id as member_id — the caller should pass a Neo4j member UUID
+    member_id = state.get("user_id") or "unknown-member"
+
+    try:
+        async with neo4j.AsyncGraphDatabase.driver(
+            settings.neo4j_uri,
+            auth=(settings.neo4j_user, settings.neo4j_password),
+        ) as driver:
+            retrieval_graph = build_retrieval_graph(driver)
+            result = await retrieval_graph.ainvoke(
+                {"member_id": member_id, "query": query}
+            )
+
+        context = result.get("context")
+        content = (
+            f"Knowledge graph context assembled for member '{member_id}'."
+            if context
+            else "No knowledge graph context could be assembled."
+        )
+    except Exception as exc:
+        content = f"Knowledge graph retrieval failed: {exc}"
+        context = None
+
+    audit_entry = {
+        "event": "knowledge_graph",
+        "member_id": member_id,
+        "user_id": state.get("user_id"),
+    }
+
+    return {
+        "messages": [AIMessage(content=content)],
+        "audit_log": state.get("audit_log", []) + [audit_entry],
+    }
+
+
 def _route_selector(state: AgentState) -> str:
     """Conditional edge: dispatch to sub-agent or clarification based on route_decision."""
     rd = state.get("route_decision")
@@ -117,6 +164,7 @@ def _route_selector(state: AgentState) -> str:
         Intent.WORKOUT_GENERATE: "workout_gen",
         Intent.WORKOUT_LOG: "workout_log",
         Intent.FALLBACK: "clarification",
+        Intent.KNOWLEDGE_GRAPH: "knowledge_graph",
     }
     return intent_to_node.get(rd.intent, "clarification")
 
@@ -129,6 +177,7 @@ def build_hub_graph() -> StateGraph:
     graph.add_node("coach", coach_graph)
     graph.add_node("workout_gen", workout_generator_graph)
     graph.add_node("workout_log", workout_logger_graph)
+    graph.add_node("knowledge_graph", _knowledge_graph_node)
 
     graph.add_edge(START, "router")
     graph.add_conditional_edges(
@@ -139,12 +188,14 @@ def build_hub_graph() -> StateGraph:
             "workout_gen": "workout_gen",
             "workout_log": "workout_log",
             "clarification": "clarification",
+            "knowledge_graph": "knowledge_graph",
         },
     )
     graph.add_edge("coach", END)
     graph.add_edge("workout_gen", END)
     graph.add_edge("workout_log", END)
     graph.add_edge("clarification", END)
+    graph.add_edge("knowledge_graph", END)
 
     return graph
 

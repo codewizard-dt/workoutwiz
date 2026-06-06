@@ -78,7 +78,7 @@ def _fuzzy_match_exercise(name: str, exercises: list[Any]) -> tuple[str | None, 
 
 def _log_node(state: AgentState) -> dict[str, Any]:
     model_name = settings.logger_model
-    llm = ChatAnthropic(model=model_name).with_structured_output(WorkoutLog, include_raw=True)
+    llm = ChatAnthropic(model=model_name, api_key=settings.anthropic_api_key).with_structured_output(WorkoutLog, include_raw=True)
     exercises = get_all_exercises()
 
     next(

@@ -10,6 +10,7 @@ class Intent(StrEnum):
     WORKOUT_GENERATE = "WORKOUT_GENERATE"
     WORKOUT_LOG = "WORKOUT_LOG"
     FALLBACK = "FALLBACK"
+    KNOWLEDGE_GRAPH = "KNOWLEDGE_GRAPH"
 
 
 class RouteDecision(BaseModel):

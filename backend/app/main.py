@@ -95,7 +95,13 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 app.exception_handlers.pop(WebSocketRequestValidationError, None)
 
 
-@app.get("/healthz")
+@app.get(
+    "/healthz",
+    tags=["health"],
+    response_model=dict,
+    summary="Health check",
+    description='Returns {"status": "ok"} when the service is running. No authentication required.',
+)
 async def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
@@ -112,6 +118,7 @@ async def demo_ui() -> HTMLResponse:
 from fastapi import Depends
 from app.auth import auth_backend, fastapi_users, current_active_user
 from app.models.user import User
+from app.schemas.errors import ErrorResponse
 from app.schemas.user import UserCreate, UserRead
 
 app.include_router(
@@ -126,7 +133,16 @@ app.include_router(
 )
 
 
-@app.get("/auth/me", tags=["auth"])
+@app.get(
+    "/auth/me",
+    tags=["auth"],
+    response_model=dict,
+    summary="Get current user",
+    description="Return the authenticated user's ID and email address. Requires a valid JWT Bearer token.",
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated — valid JWT Bearer token required"},
+    },
+)
 async def get_me(user: User = Depends(current_active_user)) -> dict[str, str]:
     return {"id": str(user.id), "email": user.email}
 

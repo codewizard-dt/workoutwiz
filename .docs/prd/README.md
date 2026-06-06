@@ -228,7 +228,8 @@ One row per PRD. Sort by file number ascending.
 
 | File | Title | Status | Created | Owner | Linked ADRs | Linked Tasks |
 |------|-------|--------|---------|-------|-------------|--------------|
-| _No PRDs yet — use `/prd-create <idea>` to draft the first one._ | | | | | | |
+| [PRD-001](001-fitness-coaching-multi-agent.md) | Fitness Coaching Multi-Agent System | draft | 2026-06-03 | David Taylor | — | — |
+| [PRD-002](002-knowledge-graph-coaching-system.md) | Knowledge Graph Coaching System | draft | 2026-06-06 | David Taylor | — | — |
 
 When adding a row:
 

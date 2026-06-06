@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/apiFetch'
 import { useAuth } from '@/context/AuthContext'
 import type { Workout, WorkoutCreate } from '@/types'
 
@@ -11,7 +12,7 @@ export function useWorkouts() {
   return useQuery({
     queryKey: ['workouts'],
     queryFn: async () => {
-      const res = await fetch('/api/workouts/', { headers: authHeaders(token ?? '') })
+      const res = await apiFetch('/api/workouts/', { headers: authHeaders(token ?? '') })
       if (!res.ok) throw new Error('Failed to fetch workouts')
       return res.json() as Promise<Workout[]>
     },

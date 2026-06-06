@@ -2,7 +2,8 @@ import uuid
 from collections.abc import AsyncGenerator
 
 from fastapi import Depends
-from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
+from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, schemas
+from fastapi_users import InvalidPasswordException
 from fastapi_users.authentication import AuthenticationBackend, BearerTransport, JWTStrategy
 from fastapi_users.db import SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +21,10 @@ async def get_user_db(
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = settings.secret_key
     verification_token_secret = settings.secret_key
+
+    async def validate_password(self, password: str, user: User | schemas.UC) -> None:
+        if len(password) < 8:
+            raise InvalidPasswordException(reason="Password must be at least 8 characters")
 
 
 async def get_user_manager(

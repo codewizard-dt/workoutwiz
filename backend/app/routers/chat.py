@@ -4,12 +4,13 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, ToolMessage
 
 from app.agents.hub import hub
 from app.auth import current_active_user
 from app.models.user import User
 from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.errors import ErrorResponse
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -17,7 +18,21 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 _sessions: dict[str, dict[str, Any]] = {}
 
 
-@router.post("/", response_model=ChatResponse)
+@router.post(
+    "/",
+    response_model=ChatResponse,
+    summary="Send a chat message",
+    description=(
+        "Send a natural-language message to the fitness coaching multi-agent system. "
+        "The hub router classifies intent (COACH, WORKOUT_GENERATE, WORKOUT_LOG, FALLBACK) "
+        "using structured LLM output and delegates to the appropriate sub-agent. "
+        "Session history is preserved across calls via the returned session_id."
+    ),
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated — valid JWT Bearer token required"},
+        422: {"description": "Validation error — request body failed schema validation"},
+    },
+)
 async def chat(
     request: ChatRequest,
     user: User = Depends(current_active_user),
@@ -56,16 +71,42 @@ async def chat(
     ]
     last_route = router_entries[-1] if router_entries else {}
 
+    workout_draft = None
+    if last_route.get("route") == "WORKOUT_GENERATE":
+        import json as _json
+        for msg in reversed(result["messages"]):
+            if isinstance(msg, ToolMessage) and getattr(msg, "name", "") == "build_workout_tool":
+                try:
+                    content = msg.content
+                    workout_draft = _json.loads(content) if isinstance(content, str) else content
+                except Exception:
+                    pass
+                break
+
     return ChatResponse(
         session_id=session_id,
         reply=reply,
         route=last_route.get("route"),
         confidence=last_route.get("confidence"),
         audit_log=result.get("audit_log", []),
+        workout_draft=workout_draft,
     )
 
 
-@router.get("/audit/{session_id}")
+@router.get(
+    "/audit/{session_id}",
+    response_model=dict,
+    summary="Get session audit log",
+    description=(
+        "Retrieve the full LLM reasoning audit log for a chat session. "
+        "Returns ordered agent events including route decisions, sub-agent calls, and tool invocations."
+    ),
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        404: {"model": ErrorResponse, "description": "Session not found — no conversation with this session_id exists in memory"},
+        422: {"description": "Validation error"},
+    },
+)
 async def get_audit(
     session_id: str,
     user: User = Depends(current_active_user),
@@ -81,7 +122,16 @@ async def get_audit(
     }
 
 
-@router.delete("/session/{session_id}", status_code=204)
+@router.delete(
+    "/session/{session_id}",
+    status_code=204,
+    summary="Clear a session",
+    description="Delete all in-memory conversation history for a chat session. Returns 204 with no body.",
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        422: {"description": "Validation error"},
+    },
+)
 async def clear_session(
     session_id: str,
     user: User = Depends(current_active_user),

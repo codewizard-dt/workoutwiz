@@ -1,313 +1,364 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useCreateWorkout } from '@/hooks/useWorkouts'
 import { useExercises } from '@/hooks/useExercises'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import type { WorkoutPhase, SetType, WorkoutSequenceCreate, WorkoutSetCreate } from '@/types'
+import { useChat } from '@/hooks/useChat'
+import { ChatBubble } from '@/components/ChatBubble'
+import { PhaseTable } from '@/components/PhaseTable'
+import type { WorkoutSequence, WorkoutSequenceCreate, WorkoutSetCreate, WorkoutSet, SetType, WorkoutPhase } from '@/types'
 
-const PHASES: WorkoutPhase[] = ['warmup', 'main', 'cooldown']
-const SET_TYPES: SetType[] = ['STRENGTH', 'CARDIO']
-
-function toLocalDatetimeString(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-interface DraftSet {
-  exercise_id: string
-  set_type: SetType
-  reps: string
-  weight_kg: string
-  duration_s: string
-}
-
-interface DraftSequence {
-  phase: WorkoutPhase
-  sets: DraftSet[]
-}
-
-function emptySet(): DraftSet {
-  return { exercise_id: '', set_type: 'STRENGTH', reps: '', weight_kg: '', duration_s: '' }
+function workoutDraftToSequences(draft: import('@/types').WorkoutDraft): WorkoutSequence[] {
+  const result: WorkoutSequence[] = []
+  const phaseEntries: Array<[WorkoutPhase, import('@/types').WorkoutDraftExercise[]]> = [
+    ['warmup', draft.phases.warmup],
+    ['main', draft.phases.main],
+    ['cooldown', draft.phases.cooldown],
+  ]
+  phaseEntries.forEach(([phase, exercises], phaseIdx) => {
+    if (!exercises.length) return
+    const sets = exercises.flatMap((ex, exIdx) =>
+      Array.from({ length: ex.sets }, (_, setIdx) => ({
+        id: `gen-${phase}-${exIdx}-${setIdx}`,
+        sequence_id: `gen-${phase}`,
+        exercise_id: ex.id,
+        set_type: (ex.duration_s != null ? 'CARDIO' : 'STRENGTH') as SetType,
+        position: exIdx * 100 + setIdx,
+        reps: ex.reps ? parseInt(ex.reps.split('-')[0]) : undefined,
+        weight_kg: undefined as number | undefined,
+        duration_s: ex.duration_s ?? undefined,
+      }))
+    )
+    result.push({ id: `gen-${phase}`, workout_id: 'generated', phase, position: phaseIdx, sets })
+  })
+  return result
 }
 
 export default function WorkoutNewPage() {
   const navigate = useNavigate()
   const createWorkout = useCreateWorkout()
   const { data: exercises } = useExercises()
+  const { messages, sendMessage, isLoading: chatLoading, error: chatError, clearMessages } = useChat()
+  const [draftSequences, setDraftSequences] = useState<WorkoutSequence[]>([])
+  const [inputText, setInputText] = useState('')
+  const streamRef = useRef<HTMLDivElement>(null)
 
-  const [startedAt, setStartedAt] = useState(() => toLocalDatetimeString(new Date()))
-  const [sequences, setSequences] = useState<DraftSequence[]>([])
-
-  const addSequence = () => {
-    setSequences((prev) => [...prev, { phase: 'main', sets: [] }])
-  }
-
-  const updateSequencePhase = (idx: number, phase: WorkoutPhase) => {
-    setSequences((prev) =>
-      prev.map((seq, i) => (i === idx ? { ...seq, phase } : seq))
-    )
-  }
-
-  const removeSequence = (idx: number) => {
-    setSequences((prev) => prev.filter((_, i) => i !== idx))
-  }
-
-  const addSet = (seqIdx: number) => {
-    setSequences((prev) =>
-      prev.map((seq, i) =>
-        i === seqIdx ? { ...seq, sets: [...seq.sets, emptySet()] } : seq
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('ww_workout_draft')
+      if (!raw) return
+      const items = JSON.parse(raw) as Array<{
+        exercise_id: string
+        sets: number
+        reps: number | null
+        weight_kg: number | null
+        duration_s: number | null
+        weight_unit: 'kg' | 'lb'
+      }>
+      if (!items.length) return
+      const sets: WorkoutSet[] = items.flatMap((item, itemIdx) =>
+        Array.from({ length: item.sets }, (_, setIdx) => ({
+          id: `draft-${itemIdx}-${setIdx}`,
+          sequence_id: 'draft',
+          exercise_id: item.exercise_id,
+          set_type: (item.duration_s != null ? 'CARDIO' : 'STRENGTH') as SetType,
+          position: itemIdx * 100 + setIdx,
+          reps: item.reps ?? undefined,
+          weight_kg: item.weight_kg ?? undefined,
+          duration_s: item.duration_s ?? undefined,
+        }))
       )
-    )
-  }
-
-  const updateSet = (seqIdx: number, setIdx: number, patch: Partial<DraftSet>) => {
-    setSequences((prev) =>
-      prev.map((seq, i) =>
-        i === seqIdx
-          ? {
-              ...seq,
-              sets: seq.sets.map((s, j) => (j === setIdx ? { ...s, ...patch } : s)),
-            }
-          : seq
-      )
-    )
-  }
-
-  const removeSet = (seqIdx: number, setIdx: number) => {
-    setSequences((prev) =>
-      prev.map((seq, i) =>
-        i === seqIdx
-          ? { ...seq, sets: seq.sets.filter((_, j) => j !== setIdx) }
-          : seq
-      )
-    )
-  }
-
-  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault()
-
-    const payload = {
-      started_at: new Date(startedAt).toISOString(),
-      sequences: sequences.map((seq, seqPos): WorkoutSequenceCreate => ({
-        phase: seq.phase,
-        position: seqPos,
-        sets: seq.sets.map((s, setPos): WorkoutSetCreate => {
-          const base: WorkoutSetCreate = {
-            exercise_id: s.exercise_id,
-            set_type: s.set_type,
-            position: setPos,
-          }
-          if (s.set_type === 'STRENGTH') {
-            if (s.reps) base.reps = parseInt(s.reps)
-            if (s.weight_kg) base.weight_kg = parseFloat(s.weight_kg)
-          } else {
-            if (s.duration_s) base.duration_s = parseInt(s.duration_s)
-          }
-          return base
-        }),
-      })),
+      setDraftSequences([{
+        id: 'draft',
+        workout_id: 'draft',
+        phase: 'main',
+        position: 0,
+        sets,
+      }])
+    } catch {
+      // ignore malformed draft
     }
+  }, [])
 
-    createWorkout.mutate(payload, {
-      onSuccess: () => { navigate('/workouts'); },
-    })
+  useEffect(() => {
+    if (streamRef.current) {
+      streamRef.current.scrollTop = streamRef.current.scrollHeight
+    }
+  }, [messages, chatLoading])
+
+  const handleSend = () => {
+    const text = inputText.trim()
+    if (!text) return
+    setInputText('')
+    void sendMessage(text)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  const handleSaveWorkout = () => {
+    const payload: WorkoutSequenceCreate[] = draftSequences.map((seq, seqPos) => ({
+      phase: seq.phase,
+      position: seqPos,
+      sets: (seq.sets ?? []).map((s, setPos) => {
+        const base: WorkoutSetCreate = {
+          exercise_id: s.exercise_id,
+          set_type: s.set_type,
+          position: setPos,
+        }
+        if (s.set_type === 'STRENGTH') {
+          if (s.reps) base.reps = s.reps
+          if (s.weight_kg != null) base.weight_kg = s.weight_kg
+        } else {
+          if (s.duration_s != null) base.duration_s = s.duration_s
+        }
+        return base
+      }),
+    }))
+
+    createWorkout.mutate(
+      { started_at: new Date().toISOString(), sequences: payload },
+      { onSuccess: (result) => {
+        localStorage.removeItem('ww_workout_draft')
+        window.dispatchEvent(new CustomEvent('ww:draft-updated'))
+        navigate(`/workouts/${result.id}`)
+      } }
+    )
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6 max-w-2xl">
-      <div className="flex items-center gap-4">
+    <div
+      style={{
+        padding: 'var(--space-5) var(--space-4)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-4)',
+        minHeight: 0,
+        flex: 1,
+      }}
+    >
+      {/* Page header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
         <Link
           to="/workouts"
-          className="inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-1)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--muted-foreground)',
+            textDecoration: 'none',
+          }}
         >
-          ← Back
+          ← Workouts
         </Link>
-        <h1 className="text-3xl font-bold">New Workout</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-semibold)' }}>
+          New Workout
+        </h1>
       </div>
 
       {createWorkout.isError && (
-        <p className="text-sm text-destructive">
+        <div
+          style={{
+            padding: 'var(--space-3)',
+            borderRadius: 'var(--radius-md)',
+            background: 'oklch(0.97 0.02 25)',
+            color: 'var(--destructive)',
+            fontSize: 'var(--text-sm)',
+          }}
+        >
           {createWorkout.error instanceof Error
             ? createWorkout.error.message
             : 'Failed to create workout'}
-        </p>
+        </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-1">
-          <Label htmlFor="started-at">Start time</Label>
-          <Input
-            id="started-at"
-            type="datetime-local"
-            value={startedAt}
-            onChange={(e) => { setStartedAt(e.target.value); }}
-            required
-          />
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Sequences</h2>
-            <Button type="button" variant="outline" onClick={addSequence}>
-              + Add Sequence
-            </Button>
+      {/* Builder: chat left, sequence right */}
+      <div
+        className="builder"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 'var(--space-4)',
+          flex: 1,
+          minHeight: 0,
+          alignItems: 'start',
+        }}
+      >
+        {/* Chat panel */}
+        <div className="ww-card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div
+            style={{
+              padding: 'var(--space-3) var(--space-4)',
+              borderBottom: '1px solid var(--border)',
+              fontWeight: 'var(--weight-semibold)',
+              fontSize: 'var(--text-sm)',
+            }}
+          >
+            Coach
           </div>
 
-          {sequences.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Add at least one sequence to record your workout.
-            </p>
+          {/* Messages stream */}
+          <div
+            ref={streamRef}
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: 'var(--space-3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-2)',
+              minHeight: 320,
+              maxHeight: 480,
+            }}
+          >
+            {/* Opening prompt if no messages yet */}
+            {messages.length === 0 && (
+              <ChatBubble
+                role="assistant"
+                content="What are we training today? Tell me the focus, duration, and available equipment."
+              />
+            )}
+            {messages.map((msg) => (
+              <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                <ChatBubble
+                  role={msg.role}
+                  content={msg.content}
+                  route={msg.route}
+                  confidence={msg.confidence}
+                  steps={msg.steps}
+                />
+                {msg.role === 'assistant' && msg.workout_draft && (
+                  <button
+                    type="button"
+                    className="ww-btn ww-btn--gradient ww-btn--sm"
+                    style={{ alignSelf: 'flex-start' }}
+                    onClick={() => { setDraftSequences(workoutDraftToSequences(msg.workout_draft!)) }}
+                  >
+                    ✓ Use This Workout
+                  </button>
+                )}
+              </div>
+            ))}
+            {chatLoading && (
+              <ChatBubble role="assistant" content="Working…" />
+            )}
+          </div>
+
+          {chatError && (
+            <div
+              style={{
+                padding: 'var(--space-2) var(--space-4)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--destructive)',
+                borderTop: '1px solid var(--border)',
+              }}
+            >
+              {chatError}
+            </div>
           )}
 
-          {sequences.map((seq, seqIdx) => (
-            <div key={seqIdx} className="border rounded-lg p-4 space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <Label>Phase</Label>
-                  <select
-                    className="border rounded px-2 py-1 text-sm bg-background"
-                    value={seq.phase}
-                    onChange={(e) =>
-                      { updateSequencePhase(seqIdx, e.target.value as WorkoutPhase); }
-                    }
-                  >
-                    {PHASES.map((p) => (
-                      <option key={p} value={p}>
-                        {p.charAt(0).toUpperCase() + p.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { addSet(seqIdx); }}
-                  >
-                    + Add Set
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => { removeSequence(seqIdx); }}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </div>
-
-              {seq.sets.map((s, setIdx) => (
-                <div
-                  key={setIdx}
-                  className="grid grid-cols-2 gap-3 border-t pt-3"
-                >
-                  <div className="space-y-1 col-span-2">
-                    <Label>Exercise</Label>
-                    <select
-                      className="w-full border rounded px-2 py-1 text-sm bg-background"
-                      value={s.exercise_id}
-                      required
-                      onChange={(e) =>
-                        { updateSet(seqIdx, setIdx, { exercise_id: e.target.value }); }
-                      }
-                    >
-                      <option value="">Select exercise…</option>
-                      {exercises?.map((ex) => (
-                        <option key={ex.id} value={ex.id}>
-                          {ex.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label>Type</Label>
-                    <select
-                      className="w-full border rounded px-2 py-1 text-sm bg-background"
-                      value={s.set_type}
-                      onChange={(e) =>
-                        { updateSet(seqIdx, setIdx, { set_type: e.target.value as SetType }); }
-                      }
-                    >
-                      {SET_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {s.set_type === 'STRENGTH' ? (
-                    <>
-                      <div className="space-y-1">
-                        <Label>Reps</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          placeholder="e.g. 8"
-                          value={s.reps}
-                          onChange={(e) =>
-                            { updateSet(seqIdx, setIdx, { reps: e.target.value }); }
-                          }
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label>Weight (kg)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          placeholder="e.g. 60"
-                          value={s.weight_kg}
-                          onChange={(e) =>
-                            { updateSet(seqIdx, setIdx, { weight_kg: e.target.value }); }
-                          }
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="space-y-1">
-                      <Label>Duration (seconds)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="e.g. 1800"
-                        value={s.duration_s}
-                        onChange={(e) =>
-                          { updateSet(seqIdx, setIdx, { duration_s: e.target.value }); }
-                        }
-                      />
-                    </div>
-                  )}
-
-                  <div className="col-span-2 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => { removeSet(seqIdx, setIdx); }}
-                    >
-                      Remove Set
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
+          {/* Composer */}
+          <div
+            style={{
+              padding: 'var(--space-3)',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              gap: 'var(--space-2)',
+              alignItems: 'flex-end',
+            }}
+          >
+            <textarea
+              rows={2}
+              className="ww-input"
+              placeholder="Tell the coach what to build or change…"
+              value={inputText}
+              onChange={(e) => { setInputText(e.target.value) }}
+              onKeyDown={handleKeyDown}
+              style={{ flex: 1, resize: 'none', fontSize: 'var(--text-sm)' }}
+            />
+            <button
+              type="button"
+              className="ww-btn ww-btn--gradient ww-btn--sm"
+              onClick={handleSend}
+              disabled={chatLoading || !inputText.trim()}
+            >
+              Send
+            </button>
+          </div>
         </div>
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={createWorkout.isPending || sequences.length === 0}
-        >
-          {createWorkout.isPending ? 'Saving…' : 'Save Workout'}
-        </Button>
-      </form>
+        {/* Sequence panel */}
+        <div className="ww-card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div
+            style={{
+              padding: 'var(--space-3) var(--space-4)',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span style={{ fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)' }}>
+              Current Sequence
+            </span>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)' }}>
+              {draftSequences.reduce((acc, s) => acc + (s.sets?.length ?? 0), 0)} sets
+            </span>
+          </div>
+
+          <div style={{ padding: 'var(--space-4)', flex: 1 }}>
+            {draftSequences.length === 0 ? (
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)', textAlign: 'center', padding: 'var(--space-8) 0' }}>
+                Nothing yet — ask the coach to build a session.
+              </p>
+            ) : (
+              <PhaseTable
+                sequences={draftSequences}
+                exercises={exercises ?? []}
+              />
+            )}
+          </div>
+
+          <div
+            style={{
+              padding: 'var(--space-3) var(--space-4)',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-2)',
+            }}
+          >
+            <button
+              type="button"
+              className="ww-btn ww-btn--gradient"
+              style={{ width: '100%', justifyContent: 'center' }}
+              disabled={createWorkout.isPending || draftSequences.length === 0}
+              onClick={handleSaveWorkout}
+            >
+              {createWorkout.isPending ? 'Saving…' : 'Save Workout'}
+            </button>
+            {draftSequences.length > 0 && (
+              <button
+                type="button"
+                className="ww-btn ww-btn--ghost ww-btn--sm"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => {
+                  setDraftSequences([])
+                  clearMessages()
+                  localStorage.removeItem('ww_workout_draft')
+                  window.dispatchEvent(new CustomEvent('ww:draft-updated'))
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

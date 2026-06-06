@@ -90,19 +90,22 @@ print('PASS')
   1. Run the command below.
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/python -c "
-from langchain_core.messages import HumanMessage
-from workout_wiz.hub import hub
-from workout_wiz.state import RouteDecision, Intent
+  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && set -a && source ../.env && set +a && .venv/bin/python -c "
+from langchain_core.messages import AIMessage, HumanMessage
+from app.agents.hub import hub
+from app.agents.state import RouteDecision, Intent
 result = hub.invoke({'messages': [HumanMessage(content='how do I improve my squat form?')], 'route_decision': RouteDecision(intent=Intent.COACH, confidence=0.9, reasoning='fitness coaching question'), 'user_id': None, 'session_id': None, 'audit_log': []})
-last = result['messages'][-1].content
-print('LAST:', last)
-assert '[coach stub]' in last, f'Expected coach stub message, got: {last}'
+last = result['messages'][-1]
+print('LAST TYPE:', type(last).__name__)
+print('LAST (truncated):', last.content[:200])
+assert isinstance(last, AIMessage), f'Expected AIMessage, got: {type(last).__name__}'
+assert len(last.content) > 50, f'Expected a real coaching response, got short content: {last.content}'
+assert 'stub' not in last.content.lower(), f'Stub placeholder still present: {last.content}'
 print('PASS')
 "
   ```
-- **Expected Result**: Exits 0 and prints `PASS`. Last message contains `[coach stub] Not yet implemented.`
-- [x] Pass <!-- 2026-06-05 -->
+- **Expected Result**: Exits 0 and prints `PASS`. The last message is an `AIMessage` with substantive coaching content (>50 chars). No stub placeholder text.
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-INT-006: WORKOUT_GENERATE intent routes to workout_gen stub
 - **Components**: `hub.invoke`, `_route_selector`, `_workout_gen_stub`
@@ -111,19 +114,22 @@ print('PASS')
   1. Run the command below.
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/python -c "
-from langchain_core.messages import HumanMessage
-from workout_wiz.hub import hub
-from workout_wiz.state import RouteDecision, Intent
+  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && set -a && source ../.env && set +a && .venv/bin/python -c "
+from langchain_core.messages import AIMessage, HumanMessage
+from app.agents.hub import hub
+from app.agents.state import RouteDecision, Intent
 result = hub.invoke({'messages': [HumanMessage(content='create me a leg day workout')], 'route_decision': RouteDecision(intent=Intent.WORKOUT_GENERATE, confidence=0.95, reasoning='workout generation'), 'user_id': None, 'session_id': None, 'audit_log': []})
-last = result['messages'][-1].content
-print('LAST:', last)
-assert '[workout_gen stub]' in last, f'Expected workout_gen stub message, got: {last}'
+last = result['messages'][-1]
+print('LAST TYPE:', type(last).__name__)
+print('LAST (truncated):', last.content[:200])
+assert isinstance(last, AIMessage), f'Expected AIMessage, got: {type(last).__name__}'
+assert len(last.content) > 50, f'Expected a real workout plan response, got short content: {last.content}'
+assert 'stub' not in last.content.lower(), f'Stub placeholder still present: {last.content}'
 print('PASS')
 "
   ```
-- **Expected Result**: Exits 0 and prints `PASS`. Last message contains `[workout_gen stub] Not yet implemented.`
-- [x] Pass <!-- 2026-06-05 -->
+- **Expected Result**: Exits 0 and prints `PASS`. The last message is an `AIMessage` with substantive workout plan content (>50 chars). No stub placeholder text.
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-INT-007: WORKOUT_LOG intent routes to workout_log stub
 - **Components**: `hub.invoke`, `_route_selector`, `_workout_log_stub`
@@ -132,19 +138,22 @@ print('PASS')
   1. Run the command below.
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/python -c "
-from langchain_core.messages import HumanMessage
-from workout_wiz.hub import hub
-from workout_wiz.state import RouteDecision, Intent
+  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && set -a && source ../.env && set +a && .venv/bin/python -c "
+from langchain_core.messages import AIMessage, HumanMessage
+from app.agents.hub import hub
+from app.agents.state import RouteDecision, Intent
 result = hub.invoke({'messages': [HumanMessage(content='I just did 3 sets of squats')], 'route_decision': RouteDecision(intent=Intent.WORKOUT_LOG, confidence=0.88, reasoning='logging a completed workout'), 'user_id': None, 'session_id': None, 'audit_log': []})
-last = result['messages'][-1].content
-print('LAST:', last)
-assert '[workout_log stub]' in last, f'Expected workout_log stub message, got: {last}'
+last = result['messages'][-1]
+print('LAST TYPE:', type(last).__name__)
+print('LAST (truncated):', last.content[:200])
+assert isinstance(last, AIMessage), f'Expected AIMessage, got: {type(last).__name__}'
+assert len(last.content) > 20, f'Expected a real workout log response, got short content: {last.content}'
+assert 'stub' not in last.content.lower(), f'Stub placeholder still present: {last.content}'
 print('PASS')
 "
   ```
-- **Expected Result**: Exits 0 and prints `PASS`. Last message contains `[workout_log stub] Not yet implemented.`
-- [x] Pass <!-- 2026-06-05 -->
+- **Expected Result**: Exits 0 and prints `PASS`. The last message is an `AIMessage` acknowledging the logged workout (>20 chars). No stub placeholder text.
+- [x] Pass <!-- 2026-06-06 -->
 
 ---
 
@@ -156,19 +165,18 @@ print('PASS')
   1. Run the command below.
 - **Command**:
   ```bash
-  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/1-multi-agent && .venv/bin/python -c "
-from langchain_core.messages import HumanMessage
-from workout_wiz.hub import hub
-from workout_wiz.state import RouteDecision, Intent
-result = hub.invoke({'messages': [HumanMessage(content='maybe coach me?')], 'route_decision': RouteDecision(intent=Intent.COACH, confidence=0.6, reasoning='borderline'), 'user_id': None, 'session_id': None, 'audit_log': []})
-last = result['messages'][-1].content
-print('LAST:', last)
-assert '[coach stub]' in last, f'Confidence=0.6 should route to coach, got: {last}'
+  cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/python -c "
+from app.agents.hub import _route_selector
+from app.agents.state import RouteDecision, Intent
+state = {'messages': [], 'route_decision': RouteDecision(intent=Intent.COACH, confidence=0.6, reasoning='borderline'), 'user_id': None, 'session_id': None, 'audit_log': []}
+result = _route_selector(state)
+print('Route:', result)
+assert result == 'coach', f'Confidence=0.6 should route to coach (not clarification), got: {result}'
 print('PASS')
 "
   ```
-- **Expected Result**: Exits 0 and prints `PASS`. Confidence of 0.6 (not strictly less than 0.6) routes to `coach`, not `clarification`.
-- [x] Pass <!-- 2026-06-05 -->
+- **Expected Result**: Exits 0, prints `Route: coach` and `PASS`. Confidence of exactly 0.6 is not strictly less than 0.6, so `_route_selector` returns `"coach"` not `"clarification"`.
+- [x] Pass <!-- 2026-06-06 -->
 
 ### UAT-EDGE-002: Confidence just below 0.6 (0.599) routes to clarification
 - **Scenario**: Any confidence strictly below 0.6 must always resolve to clarification, regardless of intent.

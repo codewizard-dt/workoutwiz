@@ -145,7 +145,7 @@ def _should_continue(state: AgentState) -> Any:
 
 def _generate_node(state: AgentState) -> dict[str, Any]:
     model_name = settings.generator_model
-    llm = ChatAnthropic(model=model_name).bind_tools(_TOOLS)
+    llm = ChatAnthropic(model=model_name, api_key=settings.anthropic_api_key).bind_tools(_TOOLS)
     messages = [SystemMessage(content=_GENERATOR_SYSTEM_PROMPT)] + list(state["messages"])
     t0 = time.monotonic()
     response = llm.invoke(messages)

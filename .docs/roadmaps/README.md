@@ -199,7 +199,8 @@ One row per roadmap. Sort by file number ascending.
 
 | File | Title | Status | Progress | Owner | Linked PRD |
 |------|-------|--------|----------|-------|------------|
-| [ROADMAP-003](003-openapi-swagger-annotations.md) | OpenAPI/Swagger Annotations | active | 0/8 | David Taylor | — |
+| [ROADMAP-003](completed/003-openapi-swagger-annotations.md) | OpenAPI/Swagger Annotations | done | 8/8 | David Taylor | — |
+| [ROADMAP-004](004-knowledge-graph-coaching-system.md) | Knowledge Graph Coaching System | active | 19/34 | David Taylor | — |
 
 When adding a row:
 

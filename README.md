@@ -129,17 +129,36 @@ The dev server runs at `http://localhost:5173` and proxies API requests to `loca
 
 ## Running Tests
 
-```bash
-# Backend integration tests (requires a running PostgreSQL instance)
-# Tests run against a separate 'workoutwiz_test' database; Alembic migrations
-# and exercise seeding happen automatically via pytest session fixtures.
-cd backend && pytest tests/ -v
+### Backend (mocked — fast, no API key needed)
 
-# Frontend E2E tests (requires both backend and frontend dev servers running)
-cd frontend && npx playwright test
+```bash
+# Requires a running PostgreSQL instance.
+# Tests run against 'workoutwiz_test'; Alembic migrations and exercise seeding
+# happen automatically via pytest session fixtures.
+cd backend && pytest tests/ -m "not live" -v
 ```
 
-19 backend integration tests cover auth (register, login, protected routes), exercise listing and filtering, workout CRUD, ownership isolation, and the `/healthz` endpoint.
+Covers auth, exercise filtering, workout CRUD, ownership isolation, hub compilation, all four routing paths, audit log endpoints, and agent sub-unit tests — using mocked LLM responses.
+
+### Backend (live — hits real Anthropic API)
+
+```bash
+# Requires ANTHROPIC_API_KEY set in the root .env file.
+cd backend && pytest -m live -v
+```
+
+Six end-to-end tests invoke the real hub via the `/chat/` endpoint and assert that:
+- Each message routes to the correct sub-agent (`COACH`, `WORKOUT_GENERATE`, `WORKOUT_LOG`, clarification)
+- The audit log for every call contains real telemetry (`latency_ms > 0`, `tokens_in > 0`, `tokens_out > 0`)
+- The `GET /chat/audit/{session_id}` endpoint returns populated entries
+- Audit entries accumulate correctly across a multi-turn session
+
+### Frontend E2E
+
+```bash
+# Requires both backend and frontend dev servers running.
+cd frontend && npx playwright test
+```
 
 ## API Endpoints
 

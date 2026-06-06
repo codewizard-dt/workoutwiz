@@ -87,9 +87,9 @@ ps:
 down:
 	docker compose down
 
-## dev — build from source with hot-reload bind mounts
+## dev — build from source with hot-reload bind mounts (detached)
 dev:
-	docker compose -f docker-compose.yml -f docker-compose.build.yml up --wait
+	docker compose -f docker-compose.yml -f docker-compose.build.yml up --build -d --wait
 	@echo "Services are running at the following URLs:"
 	@echo "Backend: http://localhost:$(BACKEND_PORT)"
 	@echo "Frontend: http://localhost:$(FRONTEND_PORT)"

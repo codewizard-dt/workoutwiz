@@ -76,7 +76,7 @@ async def seed_exercises(apply_migrations):
                         "priority_tier, description) "
                         "VALUES "
                         "(:id, :name, :category, :muscle_groups, :equipment_required, "
-                        "CAST(:movement_patterns AS jsonb), "
+                        ":movement_patterns, "
                         ":is_reps, :is_duration, :supports_weight, :is_bilateral, :bilateral_pair_id, "
                         ":priority_tier, :description)"
                     ),
@@ -86,7 +86,7 @@ async def seed_exercises(apply_migrations):
                         "category": r.category or "",
                         "muscle_groups": r.muscle_groups,
                         "equipment_required": r.equipment_required,
-                        "movement_patterns": json.dumps(r.movement_patterns),
+                        "movement_patterns": r.movement_patterns,
                         "is_reps": r.is_reps,
                         "is_duration": r.is_duration,
                         "supports_weight": r.supports_weight,

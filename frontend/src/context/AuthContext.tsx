@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useState, useEffect } from "react"
 import type { ReactNode } from "react"
 
 interface AuthContextValue {
@@ -21,6 +21,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => { setToken(null); }
+
+  useEffect(() => {
+    const handleUnauthorized = () => setToken(null)
+    window.addEventListener('ww:unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('ww:unauthorized', handleUnauthorized)
+  }, [])
 
   return <AuthContext.Provider value={{ token, setToken, logout }}>{children}</AuthContext.Provider>
 }

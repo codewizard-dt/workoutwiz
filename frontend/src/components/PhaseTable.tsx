@@ -1,0 +1,117 @@
+import { cn } from '@/lib/utils'
+import type { WorkoutSequence, Exercise, WorkoutPhase } from '@/types'
+
+interface PhaseTableProps {
+  sequences: WorkoutSequence[]
+  exercises?: Exercise[]
+  onAddCurrent?: (exerciseId: string) => void
+}
+
+const PHASE_ORDER: WorkoutPhase[] = ['warmup', 'main', 'cooldown']
+
+const PHASE_LABEL: Record<WorkoutPhase, string> = {
+  warmup: 'Warm-up',
+  main: 'Main',
+  cooldown: 'Cool-down',
+}
+
+function formatPrescription(set: WorkoutSequence['sets'][number]): string {
+  if (set.set_type === 'STRENGTH') {
+    const parts: string[] = []
+    if (set.reps != null) parts.push(`${set.reps} reps`)
+    if (set.weight_kg != null) parts.push(`${set.weight_kg} kg`)
+    return parts.join(' × ') || '—'
+  }
+  if (set.duration_s != null) {
+    const mins = Math.floor(set.duration_s / 60)
+    const secs = set.duration_s % 60
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
+  }
+  return '—'
+}
+
+export function PhaseTable({ sequences, exercises = [], onAddCurrent }: PhaseTableProps) {
+  const exerciseById = new Map(exercises.map((ex) => [ex.id, ex]))
+
+  const ordered = PHASE_ORDER.flatMap((phase) => {
+    const seq = sequences.find((s) => s.phase === phase)
+    return seq ? [seq] : []
+  })
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {ordered.map((seq) => {
+        const sortedSets = [...(seq.sets ?? [])].sort(
+          (a, b) => (a.position ?? 0) - (b.position ?? 0),
+        )
+
+        return (
+          <div key={seq.phase}>
+            <div
+              className="ww-eyebrow"
+              style={{ marginBottom: 'var(--space-2)', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-caps)', color: 'var(--muted-foreground)' }}
+            >
+              {PHASE_LABEL[seq.phase]}
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)', width: '42%' }}>Exercise</th>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Type</th>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Prescription</th>
+                    {onAddCurrent && (
+                      <th style={{ textAlign: 'right', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Actions</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedSets.map((set) => {
+                    const ex = exerciseById.get(set.exercise_id)
+                    const name = ex?.name ?? set.exercise_id
+
+                    return (
+                      <tr
+                        key={set.id}
+                        className="ww-set-row"
+                        style={{ borderBottom: '1px solid var(--border)' }}
+                      >
+                        <td style={{ padding: 'var(--space-2-5) var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>
+                          {name}
+                        </td>
+                        <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
+                          <span
+                            className={cn(
+                              'ww-badge',
+                              set.set_type === 'CARDIO' ? 'ww-badge--amber' : 'ww-badge--soft',
+                            )}
+                          >
+                            {set.set_type}
+                          </span>
+                        </td>
+                        <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
+                          <span className="ww-num">{formatPrescription(set)}</span>
+                        </td>
+                        {onAddCurrent && (
+                          <td style={{ padding: 'var(--space-2-5) var(--space-3)', textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              className="ww-btn ww-btn--outline ww-btn--sm"
+                              onClick={() => onAddCurrent(set.exercise_id)}
+                            >
+                              Add Current
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}

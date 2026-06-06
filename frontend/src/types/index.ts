@@ -37,6 +37,45 @@ export interface WorkoutSetCreate {
   calories?: number | null
 }
 
+export interface AgentStep {
+  agent: string
+  confidence?: number
+  latency_ms?: number
+  timestamp?: string
+}
+
+export interface WorkoutDraftExercise {
+  id: string
+  name: string
+  sets: number
+  reps: string | null
+  duration_s: number | null
+  rest_s: number
+}
+
+export interface WorkoutDraftPhases {
+  warmup: WorkoutDraftExercise[]
+  main: WorkoutDraftExercise[]
+  cooldown: WorkoutDraftExercise[]
+}
+
+export interface WorkoutDraft {
+  goal: string
+  phases: WorkoutDraftPhases
+  total_exercises: number
+  invalid_ids_skipped: string[]
+}
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  route?: string
+  confidence?: number
+  steps?: AgentStep[]
+  workout_draft?: WorkoutDraft
+}
+
 export interface WorkoutSequenceCreate {
   phase: WorkoutPhase
   position?: number

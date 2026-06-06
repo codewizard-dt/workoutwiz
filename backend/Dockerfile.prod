@@ -1,0 +1,42 @@
+# Stage 1: builder
+FROM python:3.11-slim AS builder
+
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN python -m venv /opt/venv
+
+WORKDIR /build
+
+# Copy only what's needed to install dependencies
+COPY pyproject.toml .
+COPY app/ app/
+
+# Install heavy ML deps first as a separate layer for cache optimization
+RUN pip install --no-cache-dir \
+    torch \
+    sentence-transformers \
+    langchain-huggingface
+
+# Install all remaining runtime deps (no dev extras)
+RUN pip install --no-cache-dir .
+
+
+# Stage 2: runtime
+FROM python:3.11-slim AS runtime
+
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy the venv from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy application source
+WORKDIR /app
+COPY app/ app/
+
+# Create a non-root system user and switch to it
+RUN useradd --system --no-create-home --shell /usr/sbin/nologin appuser
+USER appuser
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

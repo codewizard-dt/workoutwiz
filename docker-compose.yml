@@ -15,6 +15,26 @@ services:
       timeout: 5s
       retries: 5
 
+  neo4j:
+    image: neo4j:5
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-password}
+      NEO4J_PLUGINS: '["apoc", "graph-data-science"]'
+      NEO4J_dbms_memory_pagecache_size: 512M
+      NEO4J_dbms_memory_heap_max__size: 512M
+      NEO4J_server_jvm_additional: "--add-modules jdk.incubator.vector"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD:-password}", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     image: ghcr.io/codewizard-dt/workoutwiz-backend:latest
     ports:
@@ -30,12 +50,13 @@ services:
   frontend:
     image: ghcr.io/codewizard-dt/workoutwiz-frontend:latest
     ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      - "${FRONTEND_PORT:-80}:80"
     environment:
-      PROXY_TARGET: http://backend:8000
-    command: npx vite --host
+      BACKEND_URL: http://backend:8000
     depends_on:
       - backend
 
 volumes:
   postgres_data:
+  neo4j_data:
+  neo4j_logs:

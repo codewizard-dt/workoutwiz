@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     coach_model: str = "claude-haiku-4-5-20251001"
     generator_model: str = "claude-haiku-4-5-20251001"
     logger_model: str = "claude-haiku-4-5-20251001"
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "password"
+    EMBEDDING_PROVIDER: str = "sentence_transformers"  # "sentence_transformers" | "openai"
+    EMBEDDING_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"  # overridable for OpenAI: "text-embedding-3-small"
 
 
 settings = Settings()

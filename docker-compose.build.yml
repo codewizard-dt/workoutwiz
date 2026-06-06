@@ -1,6 +1,9 @@
 # Local dev overlay: builds images from source instead of pulling from GHCR.
-# Usage: docker compose -f docker-compose.yml -f docker-compose.build.yml up --build --wait
+# Usage: docker compose -f docker-compose.yml -f docker-compose.build.yml up --build -d --wait
 #        (or simply: make dev)
+#
+# Dependency changes (package.json / pyproject.toml) are handled inside each
+# container by docker-entrypoint.sh — no Compose Watch required.
 services:
   backend:
     build:
@@ -8,12 +11,13 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./backend:/app
-      - /app/.venv        # shields the container's venv from the host mount
+      - /app/.venv # shields the container's venv from the host mount
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
+    command: ["/bin/sh", "./docker-entrypoint.sh"]
     volumes:
       - ./frontend:/app
-      - /app/node_modules  # shields the container's node_modules from the host mount
+      - /app/node_modules # shields the container's node_modules from the host mount
