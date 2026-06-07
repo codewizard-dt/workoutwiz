@@ -1,5 +1,8 @@
 # Workout Wiz
 
+> [**Demo Video**](https://www.loom.com/share/979fb64f6145463ab2b2ece2df093302)
+ - no audio though 😱
+
 > **Demo slides**: [HTML](.docs/demo/runbook.slides.html) / [MD](.docs/demo/runbook.md) / [MD Slides (Marp)](.docs/demo/runbook.slides.md)
 
 A fitness coaching API and web app built as an AI engineering take-home assessment. The backend is production-wired (async FastAPI, PostgreSQL, JWT auth, structured logging, resilient error handling); the LangGraph multi-agent routing layer sits between the chat UI and the REST API.
