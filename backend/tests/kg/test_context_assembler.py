@@ -72,8 +72,12 @@ async def test_assemble_context_returns_context_slice() -> None:
 
 
 @pytest.mark.asyncio
-async def test_assemble_context_raises_when_member_not_found() -> None:
-    """assemble_context() raises ValueError when member_profile is None."""
+async def test_assemble_context_returns_vector_only_when_member_not_found() -> None:
+    """assemble_context() falls back to vector-only ContextSlice when member is not found.
+
+    The original docstring said "raises ValueError" but the implementation has always
+    returned a vector-only ContextSlice — this test corrects the assertion.
+    """
     mock_driver = MagicMock()
 
     with (
@@ -84,8 +88,13 @@ async def test_assemble_context_raises_when_member_not_found() -> None:
     ):
         from app.kg.context_assembler import assemble_context
 
-        with pytest.raises(ValueError, match="not found in Neo4j"):
-            await assemble_context("bad-member", "any query", mock_driver)
+        result = await assemble_context("bad-member", "any query", mock_driver)
+
+    # Vector-only fallback: empty member_profile, zero token counts for profile/preferred
+    assert result["member_profile"] == {}
+    assert result["preferred_exercises"] == []
+    assert result["token_counts"]["member_profile"] == 0
+    assert result["token_counts"]["preferred_exercises"] == 0
 
 
 @pytest.mark.asyncio
@@ -202,3 +211,51 @@ def test_truncate_to_budget_respects_budget() -> None:
     # Verify each item in selected would fit
     for item in selected:
         assert _estimate_tokens(item) > 0
+
+
+@pytest.mark.asyncio
+async def test_assemble_context_from_parts_does_not_touch_driver() -> None:
+    """assemble_context_from_parts must NOT call any traversal or vector-search function.
+
+    This is the core guarantee of the refactor: the helper operates purely on
+    the values passed in as arguments — it never re-queries Neo4j or the vector
+    store.
+    """
+    from unittest.mock import AsyncMock, patch
+
+    profile = _make_member_profile()
+    safe = [_make_exercise("ex-1"), _make_exercise("ex-2")]
+
+    with (
+        patch("app.kg.context_assembler.get_member_profile", new=AsyncMock()) as mock_profile,
+        patch("app.kg.context_assembler.get_safe_exercises", new=AsyncMock()) as mock_safe,
+        patch("app.kg.context_assembler._safe_call", new=AsyncMock()) as mock_safe_call,
+        patch("app.kg.context_assembler._safe_vector_search", new=AsyncMock()) as mock_vector,
+    ):
+        from app.kg.context_assembler import assemble_context_from_parts
+
+        result = await assemble_context_from_parts(
+            query="leg workout",
+            member_profile=profile,
+            safe_exercises=safe,
+            preferred_exercises=[],
+            performed_exercises=[],
+            avoided_exercises=[],
+            vector_docs=[],
+            recent_workout_feedback=[],
+            member_id="member-1",
+        )
+
+    # None of the traversal / fetch helpers should have been called
+    mock_profile.assert_not_called()
+    mock_safe.assert_not_called()
+    mock_safe_call.assert_not_called()
+    mock_vector.assert_not_called()
+
+    # Result is a valid ContextSlice
+    assert "member_profile" in result
+    assert "safe_exercises" in result
+    assert "preferred_exercises" in result
+    assert "vector_hits" in result
+    assert "token_counts" in result
+    assert result["token_counts"]["total"] > 0

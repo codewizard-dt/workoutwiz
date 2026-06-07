@@ -27,5 +27,5 @@ class ExerciseFeedback(Base):
     workout_set_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("workout_sets.id", ondelete="SET NULL"), nullable=True)
     rating: Mapped[int] = mapped_column(Integer, nullable=False)
     feedback_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    context_type: Mapped[FeedbackContextType] = mapped_column(SAEnum(FeedbackContextType, name="feedbackcontexttype"), nullable=False)
+    context_type: Mapped[FeedbackContextType] = mapped_column(SAEnum(FeedbackContextType, name="feedbackcontexttype", values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())

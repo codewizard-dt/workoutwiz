@@ -32,7 +32,7 @@
   curl -sS -X POST 'http://localhost:8000/kg/feedback' -H 'Content-Type: application/json' -H "Authorization: Bearer $UAT_AUTH_TOKEN" -d '{"member_id":"<member-uuid>","exercise_id":"<exercise-uuid>","rating":4,"text":"Great exercise, felt the burn"}' | jq '.'
   ```
 - **Expected Result**: `200 OK` with `{"feedback_id": "<non-empty-string>", "message": "Feedback recorded successfully"}`
-- [FAIL: auto-judge: prerequisite not satisfied — backend server not running at localhost:8000] <!-- 2026-06-06 -->
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-API-002: Submit feedback with rating only (no text)
 - Auth-Required: true
@@ -46,7 +46,7 @@
   curl -sS -X POST 'http://localhost:8000/kg/feedback' -H 'Content-Type: application/json' -H "Authorization: Bearer $UAT_AUTH_TOKEN" -d '{"member_id":"<member-uuid>","exercise_id":"<exercise-uuid>","rating":5}' | jq '.'
   ```
 - **Expected Result**: `200 OK` with `{"feedback_id": "<non-empty-string>", "message": "Feedback recorded successfully"}`
-- [FAIL: auto-judge: prerequisite not satisfied — backend server not running at localhost:8000] <!-- 2026-06-06 -->
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-API-003: Submit feedback with rating below minimum (validation)
 - Auth-Required: true
@@ -60,7 +60,7 @@
   curl -sS -X POST 'http://localhost:8000/kg/feedback' -H 'Content-Type: application/json' -H "Authorization: Bearer $UAT_AUTH_TOKEN" -d '{"member_id":"<member-uuid>","exercise_id":"<exercise-uuid>","rating":0}' | jq '.'
   ```
 - **Expected Result**: `422 Unprocessable Entity` with a validation error body indicating `rating` must be `>= 1`.
-- [FAIL: auto-judge: prerequisite not satisfied — backend server not running at localhost:8000] <!-- 2026-06-06 -->
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-API-004: Submit feedback with rating above maximum (validation)
 - Auth-Required: true
@@ -74,7 +74,7 @@
   curl -sS -X POST 'http://localhost:8000/kg/feedback' -H 'Content-Type: application/json' -H "Authorization: Bearer $UAT_AUTH_TOKEN" -d '{"member_id":"<member-uuid>","exercise_id":"<exercise-uuid>","rating":6}' | jq '.'
   ```
 - **Expected Result**: `422 Unprocessable Entity` with a validation error body indicating `rating` must be `<= 5`.
-- [FAIL: auto-judge: prerequisite not satisfied — backend server not running at localhost:8000] <!-- 2026-06-06 -->
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-API-005: Submit feedback without authentication
 - Auth-Required: false
@@ -87,7 +87,7 @@
   curl -sS -X POST 'http://localhost:8000/kg/feedback' -H 'Content-Type: application/json' -d '{"member_id":"<member-uuid>","exercise_id":"<exercise-uuid>","rating":3}' | jq '.'
   ```
 - **Expected Result**: `401 Unauthorized`
-- [FAIL: auto-judge: prerequisite not satisfied — backend server not running at localhost:8000] <!-- 2026-06-06 -->
+- [x] Pass <!-- 2026-06-07 -->
 
 ---
 

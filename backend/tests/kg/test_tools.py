@@ -43,11 +43,10 @@ async def test_kg_recommend_tool_returns_recommendation_dict() -> None:
         return_value={"recommendation": recommendation, "fallback_triggered": False}
     )
 
-    mock_driver = AsyncMock()
-    mock_driver.close = AsyncMock()
+    mock_driver = MagicMock()
 
     with (
-        patch("app.kg.tools.neo4j.AsyncGraphDatabase.driver", return_value=mock_driver),
+        patch("app.kg.tools.create_neo4j_driver", return_value=mock_driver),
         patch("app.kg.tools.build_retrieval_graph", return_value=mock_retrieval_graph),
         patch("app.kg.tools.build_generation_graph", return_value=mock_generation_graph),
     ):
@@ -58,7 +57,8 @@ async def test_kg_recommend_tool_returns_recommendation_dict() -> None:
     assert "overall_reasoning" in result, "Result should contain 'overall_reasoning' key"
     assert "skipped_exercise_ids" in result, "Result should contain 'skipped_exercise_ids' key"
     assert result["exercises"] == recommendation.exercises
-    mock_driver.close.assert_awaited_once()
+    # Shared driver — no per-call close
+    mock_driver.close.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -66,11 +66,10 @@ async def test_kg_explain_tool_returns_explanation_string() -> None:
     """kg_explain_tool should return a dict with an 'explanation' key containing a string."""
     from app.kg.tools import kg_explain_tool
 
-    mock_driver = AsyncMock()
-    mock_driver.close = AsyncMock()
+    mock_driver = MagicMock()
 
     with (
-        patch("app.kg.tools.neo4j.AsyncGraphDatabase.driver", return_value=mock_driver),
+        patch("app.kg.tools.create_neo4j_driver", return_value=mock_driver),
         patch(
             "app.kg.tools.explain_skipped_exercise",
             new=AsyncMock(return_value=("'Deadlift' was skipped because it is contraindicated for: lower back strain.", {"event": "kg_explainability", "latency_ms": 5, "query_count": 1, "result_count": 1, "path_depth": 2, "reason_type": "contraindication", "user_id": "member-1", "confidence": 0.625}, 0.625)),
@@ -82,7 +81,8 @@ async def test_kg_explain_tool_returns_explanation_string() -> None:
     assert "explanation" in result, "Result should contain 'explanation' key"
     assert isinstance(result["explanation"], str), "'explanation' value should be a string"
     assert len(result["explanation"]) > 0, "'explanation' should be non-empty"
-    mock_driver.close.assert_awaited_once()
+    # Shared driver — no per-call close
+    mock_driver.close.assert_not_called()
 
 
 def test_kg_tools_have_correct_descriptions() -> None:

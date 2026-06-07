@@ -100,4 +100,4 @@ If `test_boundary_confidence_0_6_routes_to_intent` fails, check `_route_selector
 - [x] `pytest tests/test_routing_integration.py -v` exits 0
 
 ---
-**UAT**: [`.docs/uat/025-conditional-edge-routing.uat.md`](../uat/025-conditional-edge-routing.uat.md)
+**UAT**: [`.docs/uat/completed/025-conditional-edge-routing.uat.md`](../uat/completed/025-conditional-edge-routing.uat.md)

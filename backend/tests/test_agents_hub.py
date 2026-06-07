@@ -106,9 +106,7 @@ async def test_kg_hub_node_audit_entry():
     mock_gen_graph = MagicMock()
     mock_gen_graph.ainvoke = AsyncMock(return_value=mock_gen_result)
 
-    mock_driver = AsyncMock()
-    mock_driver.__aenter__ = AsyncMock(return_value=mock_driver)
-    mock_driver.__aexit__ = AsyncMock(return_value=None)
+    mock_driver = MagicMock()
 
     state = {
         "messages": [HumanMessage(content="recommend me a workout")],
@@ -118,10 +116,9 @@ async def test_kg_hub_node_audit_entry():
         "audit_log": [{"event": "router", "route": "KNOWLEDGE_GRAPH"}],
     }
 
-    with patch("app.agents.hub.neo4j") as mock_neo4j, \
+    with patch("app.agents.hub.create_neo4j_driver", return_value=mock_driver), \
          patch("app.agents.hub.build_retrieval_graph", return_value=mock_retrieval_graph), \
          patch("app.agents.hub.build_generation_graph", return_value=mock_gen_graph):
-        mock_neo4j.AsyncGraphDatabase.driver.return_value = mock_driver
         result = await _knowledge_graph_node(state)
 
     audit_log = result["audit_log"]
@@ -262,9 +259,7 @@ async def test_audit_trace_coverage():
     mock_gen_graph = MagicMock()
     mock_gen_graph.ainvoke = mock_generation_invoke
 
-    mock_driver = AsyncMock()
-    mock_driver.__aenter__ = AsyncMock(return_value=mock_driver)
-    mock_driver.__aexit__ = AsyncMock(return_value=None)
+    mock_driver = MagicMock()
 
     # Initial router entry (pre-populated from an earlier router node execution)
     router_entry = {
@@ -285,10 +280,9 @@ async def test_audit_trace_coverage():
         "audit_log": [router_entry],
     }
 
-    with patch("app.agents.hub.neo4j") as mock_neo4j, \
+    with patch("app.agents.hub.create_neo4j_driver", return_value=mock_driver), \
          patch("app.agents.hub.build_retrieval_graph", return_value=mock_retrieval_graph), \
          patch("app.agents.hub.build_generation_graph", return_value=mock_gen_graph):
-        mock_neo4j.AsyncGraphDatabase.driver.return_value = mock_driver
         result = await _knowledge_graph_node(state)
 
     audit_log = result["audit_log"]

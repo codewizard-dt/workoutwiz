@@ -11,8 +11,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import current_active_user
-from app.config import settings
 from app.database import get_async_session
+from app.kg.driver import get_neo4j_driver
 from app.kg.explainability import explain_skipped_exercise
 from app.kg.feedback_service import write_feedback
 from app.kg.generation_graph import RecommendedExercise, build_generation_graph
@@ -79,14 +79,11 @@ class KgAuditResponse(BaseModel):
 async def kg_recommend(
     request: KGRecommendRequest,
     user: User = Depends(current_active_user),
+    driver: neo4j.AsyncDriver = Depends(get_neo4j_driver),
 ) -> KGRecommendResponse:
     """Run retrieval + generation graphs and return workout recommendations."""
     member_id = request.member_id or str(user.id)
 
-    driver = neo4j.AsyncGraphDatabase.driver(
-        settings.neo4j_uri,
-        auth=(settings.neo4j_user, settings.neo4j_password),
-    )
     try:
         # Step 1: retrieval graph → ContextSlice
         retrieval_graph = build_retrieval_graph(driver)
@@ -119,8 +116,6 @@ async def kg_recommend(
     except Exception as exc:
         logger.exception("Error in /kg/recommend for member %s", member_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        await driver.close()
 
 
 @router.post(
@@ -139,14 +134,11 @@ async def kg_recommend(
 async def kg_explain(
     request: KGExplainRequest,
     user: User = Depends(current_active_user),
+    driver: neo4j.AsyncDriver = Depends(get_neo4j_driver),
 ) -> KGExplainResponse:
     """Explain why an exercise was skipped for a given member."""
     member_id = request.member_id or str(user.id)
 
-    driver = neo4j.AsyncGraphDatabase.driver(
-        settings.neo4j_uri,
-        auth=(settings.neo4j_user, settings.neo4j_password),
-    )
     try:
         explanation, audit_entry, confidence = await explain_skipped_exercise(
             member_id=member_id,
@@ -166,8 +158,6 @@ async def kg_explain(
             request.exercise_id,
         )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        await driver.close()
 
 
 @router.post(
@@ -184,12 +174,9 @@ async def kg_feedback(
     payload: FeedbackPayload,
     user: User = Depends(current_active_user),
     pg_session: AsyncSession = Depends(get_async_session),
+    driver: neo4j.AsyncDriver = Depends(get_neo4j_driver),
 ) -> KGFeedbackResponse:
     """Persist feedback event to Neo4j + PostgreSQL and return the created feedback_id."""
-    driver = neo4j.AsyncGraphDatabase.driver(
-        settings.neo4j_uri,
-        auth=(settings.neo4j_user, settings.neo4j_password),
-    )
     try:
         feedback_id = await write_feedback(
             payload=payload,
@@ -207,8 +194,6 @@ async def kg_feedback(
             payload.exercise_id,
         )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        await driver.close()
 
 
 @router.get(

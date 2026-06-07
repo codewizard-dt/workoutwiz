@@ -24,13 +24,17 @@ from app.logging_config import configure_logging
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging(settings.log_level)
+    # Shared Neo4j driver (connection pool for all request handlers)
+    from app.kg.driver import close_neo4j_driver, create_neo4j_driver
+    create_neo4j_driver()
     # Load exercise cache for the agent subsystem
     from app.database import AsyncSessionLocal
     from app.agents.exercises import load_exercises
     async with AsyncSessionLocal() as session:
         await load_exercises(session)
     yield
-    # Shutdown: dispose engine
+    # Shutdown: close Neo4j driver, then dispose SQLAlchemy engine
+    await close_neo4j_driver()
     from app.database import engine
     await engine.dispose()
 

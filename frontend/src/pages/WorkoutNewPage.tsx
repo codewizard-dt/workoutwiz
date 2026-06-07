@@ -6,7 +6,7 @@ import { useChat } from '@/hooks/useChat'
 import { useDraftWorkout } from '@/hooks/useDraftWorkout'
 import { ChatBubble } from '@/components/ChatBubble'
 import { PhaseTable } from '@/components/PhaseTable'
-import type { WorkoutSequenceCreate, WorkoutSetCreate, WorkoutPhase } from '@/types'
+import type { WorkoutSequenceCreate, WorkoutSetCreate, WorkoutPhase, WorkoutSequence } from '@/types'
 
 const WORKOUT_CHIPS = [
   'Challenging workout',
@@ -29,7 +29,7 @@ function workoutDraftToSequences(draft: import('@/types').WorkoutDraft): Workout
         id: `gen-${phase}-${exIdx}-${setIdx}`,
         sequence_id: `gen-${phase}`,
         exercise_id: ex.id,
-        set_type: ex.duration_s != null ? 'CARDIO' : 'STRENGTH',
+        set_type: (ex.duration_s != null ? 'CARDIO' : 'STRENGTH') as import('@/types').SetType,
         position: exIdx * 100 + setIdx,
         reps: ex.reps ? parseInt(ex.reps.split('-')[0]) : undefined,
         weight_kg: undefined as number | undefined,

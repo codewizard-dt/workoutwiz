@@ -27,7 +27,7 @@
   set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py -v
   ```
 - **Expected Result**: All 6 tests collected and pass (`6 passed` in the summary line). Exit code 0. No errors, no warnings about missing mocks or import failures.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ---
 
@@ -43,7 +43,7 @@
   set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py::test_coach_intent_dispatches_to_coach -v
   ```
 - **Expected Result**: `PASSED`. Last message in state contains `"coach"` or `"stub"` (case-insensitive).
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-EDGE-002: WORKOUT_GENERATE intent dispatches to workout_gen branch
 
@@ -55,7 +55,7 @@
   set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py::test_workout_generate_dispatches_correctly -v
   ```
 - **Expected Result**: `PASSED`. Last message contains `"workout_gen"` or `"stub"` (case-insensitive).
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-EDGE-003: WORKOUT_LOG intent dispatches to workout_log branch
 
@@ -67,7 +67,7 @@
   set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py::test_workout_log_dispatches_correctly -v
   ```
 - **Expected Result**: `PASSED`. Last message contains `"workout_log"` or `"stub"` (case-insensitive).
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-EDGE-004: FALLBACK intent routes to clarification node
 
@@ -103,7 +103,7 @@
   set -a && source /Users/davidtaylor/Repositories/gauntlet/workout-wiz/.env && set +a && cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz/backend && .venv/bin/pytest tests/test_routing_integration.py::test_boundary_confidence_0_6_routes_to_intent -v
   ```
 - **Expected Result**: `PASSED`. Last message contains `"coach"` or `"stub"` (case-insensitive) — confirms `0.6` is NOT treated as low-confidence.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-EDGE-007: _route_selector uses strict less-than operator
 

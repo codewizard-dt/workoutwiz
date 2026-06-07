@@ -27,9 +27,13 @@ _MOCK_USER.id = uuid.UUID("00000000-0000-0000-0000-000000000001")
 @pytest.fixture(autouse=True)
 def override_auth():
     from app.auth import current_active_user
+    from app.kg.driver import get_neo4j_driver
+
+    mock_driver = AsyncMock()
 
     app.dependency_overrides[current_active_user] = lambda: _MOCK_USER
-    yield
+    app.dependency_overrides[get_neo4j_driver] = lambda: mock_driver
+    yield mock_driver
     app.dependency_overrides.clear()
 
 
@@ -40,7 +44,7 @@ client = TestClient(app)
 # ---------------------------------------------------------------------------
 
 
-def test_kg_recommend_returns_200():
+def test_kg_recommend_returns_200(override_auth):
     """Mock retrieval + generation graphs; assert 200 and response shape."""
     mock_context = {
         "safe_exercises": [],
@@ -66,10 +70,7 @@ def test_kg_recommend_returns_200():
         }
     )
 
-    mock_driver = AsyncMock()
-
     with (
-        patch("app.routers.kg.neo4j.AsyncGraphDatabase.driver", return_value=mock_driver),
         patch("app.routers.kg.build_retrieval_graph", return_value=mock_retrieval_graph),
         patch("app.routers.kg.build_generation_graph", return_value=mock_generation_graph),
     ):
@@ -86,7 +87,8 @@ def test_kg_recommend_returns_200():
     assert "skipped_exercise_ids" in data
     assert "fallback_used" in data
     assert data["member_id"] == "member-123"
-    mock_driver.close.assert_awaited_once()
+    # Driver is shared — must NOT be closed per-request
+    override_auth.close.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
@@ -94,16 +96,26 @@ def test_kg_recommend_returns_200():
 # ---------------------------------------------------------------------------
 
 
-def test_kg_explain_returns_explanation():
+def test_kg_explain_returns_explanation(override_auth):
     """Mock explain_skipped_exercise; assert 200 and explanation string."""
-    mock_driver = AsyncMock()
-
     with (
-        patch("app.routers.kg.neo4j.AsyncGraphDatabase.driver", return_value=mock_driver),
         patch(
             "app.routers.kg.explain_skipped_exercise",
             new_callable=AsyncMock,
-            return_value=("'Barbell Squat' was skipped because it is contraindicated for: knee injury.", {"event": "kg_explainability", "latency_ms": 3, "query_count": 1, "result_count": 1, "path_depth": 2, "reason_type": "contraindication", "user_id": "member-123", "confidence": 0.625}, 0.625),
+            return_value=(
+                "'Barbell Squat' was skipped because it is contraindicated for: knee injury.",
+                {
+                    "event": "kg_explainability",
+                    "latency_ms": 3,
+                    "query_count": 1,
+                    "result_count": 1,
+                    "path_depth": 2,
+                    "reason_type": "contraindication",
+                    "user_id": "member-123",
+                    "confidence": 0.625,
+                },
+                0.625,
+            ),
         ),
     ):
         resp = client.post(
@@ -117,7 +129,8 @@ def test_kg_explain_returns_explanation():
     assert "Barbell Squat" in data["explanation"]
     assert "confidence" in data
     assert isinstance(data["confidence"], float)
-    mock_driver.close.assert_awaited_once()
+    # Driver is shared — must NOT be closed per-request
+    override_auth.close.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
@@ -125,13 +138,11 @@ def test_kg_explain_returns_explanation():
 # ---------------------------------------------------------------------------
 
 
-def test_kg_feedback_writes_and_returns_id():
+def test_kg_feedback_writes_and_returns_id(override_auth):
     """Mock write_feedback; assert 200 and feedback_id in response."""
-    mock_driver = AsyncMock()
     expected_feedback_id = str(uuid.uuid4())
 
     with (
-        patch("app.routers.kg.neo4j.AsyncGraphDatabase.driver", return_value=mock_driver),
         patch(
             "app.routers.kg.write_feedback",
             new_callable=AsyncMock,
@@ -152,7 +163,8 @@ def test_kg_feedback_writes_and_returns_id():
     data = resp.json()
     assert data["feedback_id"] == expected_feedback_id
     assert "message" in data
-    mock_driver.close.assert_awaited_once()
+    # Driver is shared — must NOT be closed per-request
+    override_auth.close.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
@@ -160,14 +172,12 @@ def test_kg_feedback_writes_and_returns_id():
 # ---------------------------------------------------------------------------
 
 
-def test_kg_recommend_returns_500_on_error():
+def test_kg_recommend_returns_500_on_error(override_auth):
     """If the pipeline raises, expect a 500 response."""
-    mock_driver = AsyncMock()
     mock_retrieval_graph = AsyncMock()
     mock_retrieval_graph.ainvoke = AsyncMock(side_effect=RuntimeError("neo4j down"))
 
     with (
-        patch("app.routers.kg.neo4j.AsyncGraphDatabase.driver", return_value=mock_driver),
         patch("app.routers.kg.build_retrieval_graph", return_value=mock_retrieval_graph),
     ):
         resp = client.post(
@@ -176,7 +186,8 @@ def test_kg_recommend_returns_500_on_error():
         )
 
     assert resp.status_code == 500
-    mock_driver.close.assert_awaited_once()
+    # Driver is shared — must NOT be closed per-request
+    override_auth.close.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
@@ -203,6 +214,34 @@ def test_kg_audit_requires_auth():
 
     # Restore auth override
     app.dependency_overrides[current_active_user] = lambda: _MOCK_USER
+
+
+# ---------------------------------------------------------------------------
+# Singleton behaviour
+# ---------------------------------------------------------------------------
+
+
+def test_create_neo4j_driver_returns_singleton():
+    """Repeated create_neo4j_driver() calls must return the same driver instance."""
+    import app.kg.driver as drv_module
+
+    # Reset singleton so we get a fresh instance in this test
+    original = drv_module._driver
+    drv_module._driver = None
+
+    try:
+        with patch("app.kg.driver.neo4j.AsyncGraphDatabase.driver") as mock_factory:
+            mock_instance = MagicMock()
+            mock_factory.return_value = mock_instance
+
+            first = drv_module.create_neo4j_driver()
+            second = drv_module.create_neo4j_driver()
+
+        assert first is second, "create_neo4j_driver() must return the same instance on repeated calls"
+        mock_factory.assert_called_once()  # constructor called exactly once
+    finally:
+        # Restore whatever was there before (may be None in CI)
+        drv_module._driver = original
 
 
 

@@ -1,7 +1,7 @@
 import time
 from typing import Any, cast
 
-import neo4j
+from app.kg.driver import create_neo4j_driver
 from app.kg.retrieval_graph import build_retrieval_graph
 from app.kg.generation_graph import build_generation_graph
 
@@ -86,7 +86,7 @@ async def _router_node(state: AgentState) -> dict[str, Any]:
     }
 
 
-async def _clarification_node(state: AgentState) -> dict[str, Any]:
+def _clarification_node(state: AgentState) -> dict[str, Any]:
     """Returns a clarification prompt when routing confidence is below threshold or intent is FALLBACK."""
     rd = state.get("route_decision")
     reason_hint = ""
@@ -128,21 +128,19 @@ async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
     rec = None
     kg_result: dict[str, Any] | None = None
     try:
-        async with neo4j.AsyncGraphDatabase.driver(
-            settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password)
-        ) as driver:
-            retrieval_result = await build_retrieval_graph(driver).ainvoke(
-                {"member_id": member_id, "query": query}
-            )
-            context = retrieval_result.get("context")
-            # Collect audit entries from retrieval subgraph
-            nested_audit_log.extend(retrieval_result.get("audit_log", []))
+        driver = create_neo4j_driver()
+        retrieval_result = await build_retrieval_graph(driver).ainvoke(
+            {"member_id": member_id, "query": query}
+        )
+        context = retrieval_result.get("context")
+        # Collect audit entries from retrieval subgraph
+        nested_audit_log.extend(retrieval_result.get("audit_log", []))
 
-            gen_result = await build_generation_graph().ainvoke(
-                {"member_id": member_id, "query": query, "context": context}
-            )
-            # Collect audit entries from generation subgraph
-            nested_audit_log.extend(gen_result.get("audit_log", []))
+        gen_result = await build_generation_graph().ainvoke(
+            {"member_id": member_id, "query": query, "context": context}
+        )
+        # Collect audit entries from generation subgraph
+        nested_audit_log.extend(gen_result.get("audit_log", []))
 
         latency_ms = int((time.monotonic() - t0) * 1000)
 

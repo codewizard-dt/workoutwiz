@@ -116,6 +116,138 @@ async def _safe_vector_search(query: str, k: int) -> list[Any]:
         return []
 
 
+
+async def assemble_context_from_parts(
+    *,
+    query: str,
+    member_profile: dict[str, Any] | None,
+    safe_exercises: list[dict[str, Any]],
+    preferred_exercises: list[dict[str, Any]],
+    performed_exercises: list[dict[str, Any]],
+    avoided_exercises: list[dict[str, Any]],
+    vector_docs: list[Any],
+    recent_workout_feedback: list[dict[str, Any]],
+    member_id: str = "",
+    vector_k: int = 10,
+) -> ContextSlice:
+    """
+    Assemble a token-budgeted context slice from already-fetched parts.
+
+    This is the core dedup/budget logic extracted from assemble_context().
+    It operates entirely on the passed-in parts — it does NOT run any
+    Neo4j traversals or vector searches.
+
+    Args:
+        query: The user's workout query (unused here; kept for API symmetry).
+        member_profile: Pre-fetched member profile dict, or None/empty if not found.
+        safe_exercises: Pre-fetched list of safe exercise dicts.
+        preferred_exercises: Pre-fetched preferred exercise dicts.
+        performed_exercises: Pre-fetched performed exercise dicts.
+        avoided_exercises: Pre-fetched avoided exercise dicts.
+        vector_docs: Pre-fetched vector similarity docs (LangChain Document or dict).
+        recent_workout_feedback: Pre-fetched workout feedback dicts.
+        member_id: Optional member identifier (used only for logging).
+        vector_k: Unused here (kept for signature parity).
+
+    Returns:
+        A ContextSlice TypedDict with all sections and token_counts.
+        Returns a vector-only ContextSlice when member_profile is falsy.
+    """
+    if not member_profile:
+        # No graph profile: still surface vector hits so the generation agent has
+        # exercise candidates. Treat vector hits as safe_exercises.
+        vector_hits_raw: list[dict[str, Any]] = []
+        for doc in vector_docs:
+            if hasattr(doc, "page_content") and hasattr(doc, "metadata"):
+                ex_id = doc.metadata.get("id")
+                vector_hits_raw.append(
+                    {"id": ex_id, "name": doc.page_content, "score": doc.metadata.get("score")}
+                )
+            elif isinstance(doc, dict):
+                vector_hits_raw.append(doc)
+        vector_truncated, vector_tokens = _truncate_to_budget(vector_hits_raw, VECTOR_HITS_BUDGET)
+        return ContextSlice(
+            member_profile={},
+            safe_exercises=vector_truncated,  # treated as safe for generation purposes
+            preferred_exercises=[],
+            avoided_exercises=[],
+            recent_workout_feedback=[],
+            vector_hits=vector_truncated,
+            contraindicated_provenance=[],
+            token_counts=SectionTokenCounts(
+                member_profile=0,
+                safe_exercises=vector_tokens,
+                preferred_exercises=0,
+                vector_hits=vector_tokens,
+                total=vector_tokens,
+            ),
+        )
+
+    # Build the safe exercise ID set for deduplication
+    safe_ids: set[str] = {e["id"] for e in safe_exercises}
+
+    # Combine preferred + performed, deduplicated by id, filtered to safe set
+    seen_preferred: set[str] = set()
+    preferred_deduped: list[dict[str, Any]] = []
+    for ex in preferred_exercises + performed_exercises:
+        ex_id = ex.get("id")
+        if ex_id and ex_id in safe_ids and ex_id not in seen_preferred:
+            preferred_deduped.append(ex)
+            seen_preferred.add(ex_id)
+
+    # Filter vector hits to safe set and deduplicate against preferred
+    vector_hits_filtered: list[dict[str, Any]] = []
+    for doc in vector_docs:
+        if hasattr(doc, "page_content") and hasattr(doc, "metadata"):
+            ex_id = doc.metadata.get("id")
+        else:
+            ex_id = doc.get("id") if isinstance(doc, dict) else None
+        if ex_id and ex_id in safe_ids and ex_id not in seen_preferred:
+            vector_hits_filtered.append(
+                {"id": ex_id, "name": doc.page_content, "score": doc.metadata.get("score")}
+                if hasattr(doc, "page_content")
+                else doc
+            )
+
+    # Apply per-section token budgets
+    profile_tokens = _estimate_tokens(member_profile)
+    if profile_tokens > MEMBER_PROFILE_BUDGET:
+        # Trim to essential fields only
+        member_profile = {
+            k: member_profile[k]
+            for k in ("id", "name", "goals", "equipment", "fitness_level", "injury_names")
+            if k in member_profile
+        }
+        profile_tokens = _estimate_tokens(member_profile)
+
+    safe_truncated, safe_tokens = _truncate_to_budget(safe_exercises, SAFE_EXERCISES_BUDGET)
+    preferred_truncated, preferred_tokens = _truncate_to_budget(preferred_deduped, PREFERRED_EXERCISES_BUDGET)
+    vector_truncated, vector_tokens = _truncate_to_budget(vector_hits_filtered, VECTOR_HITS_BUDGET)
+
+    total_tokens = profile_tokens + safe_tokens + preferred_tokens + vector_tokens
+    logger.info(
+        "Context assembled for member %s: profile=%d, safe=%d, preferred=%d, vector=%d, total=%d tokens",
+        member_id, profile_tokens, safe_tokens, preferred_tokens, vector_tokens, total_tokens,
+    )
+
+    return ContextSlice(
+        member_profile=member_profile,
+        safe_exercises=safe_truncated,
+        preferred_exercises=preferred_truncated,
+        avoided_exercises=avoided_exercises,
+        recent_workout_feedback=recent_workout_feedback,
+        vector_hits=vector_truncated,
+        contraindicated_provenance=[],  # populated by retrieval_graph from RetrievalState
+        token_counts=SectionTokenCounts(
+            member_profile=profile_tokens,
+            safe_exercises=safe_tokens,
+            preferred_exercises=preferred_tokens,
+            vector_hits=vector_tokens,
+            total=total_tokens,
+        ),
+    )
+
+
 async def assemble_context(
     member_id: str,
     query: str,
@@ -126,11 +258,9 @@ async def assemble_context(
     """
     Assemble a token-budgeted context slice for the generation agent.
 
-    Orchestrates:
-    1. Graph traversal (member profile, safe exercises, preferred, performed)
-    2. Vector similarity search
-    3. Deduplication (preferred + vector_hits filtered against safe set)
-    4. Token budget enforcement per section (ADR-001 D3)
+    Thin wrapper: runs the same parallel fetches as before, then delegates
+    dedup/budget logic to assemble_context_from_parts(). Preserves the original
+    public signature and behavior (including member-not-found vector-only fallback).
 
     Args:
         member_id: The Member node's `id` property (UUID string).
@@ -141,9 +271,9 @@ async def assemble_context(
 
     Returns:
         A ContextSlice TypedDict with all sections and token_counts.
-        Returns an empty ContextSlice (with zero counts) when the member is not found.
+        Returns a vector-only ContextSlice when the member is not found.
     """
-    # Step 1: Run all traversals in parallel
+    # Step 1: Run traversals in parallel (same as original)
     (
         member_profile,
         safe_exercises_raw,
@@ -161,98 +291,19 @@ async def assemble_context(
             "assemble_context: member '%s' not found in Neo4j — falling back to vector-only context.",
             member_id,
         )
-        # No graph profile: still run vector search so the generation agent has
-        # exercise candidates. safe_exercises stays empty (no injury constraints
-        # available), but vector_hits are returned unconditionally so the
-        # generation graph can build a reasonable recommendation.
-        vector_docs = await _safe_vector_search(query, k=vector_k)
-        vector_hits_raw: list[dict[str, Any]] = []
-        for doc in vector_docs:
-            if hasattr(doc, "page_content") and hasattr(doc, "metadata"):
-                ex_id = doc.metadata.get("id")
-                vector_hits_raw.append(
-                    {"id": ex_id, "name": doc.page_content, "score": doc.metadata.get("score")}
-                )
-            elif isinstance(doc, dict):
-                vector_hits_raw.append(doc)
-        vector_truncated, vector_tokens = _truncate_to_budget(vector_hits_raw, VECTOR_HITS_BUDGET)
-        return ContextSlice(
-            member_profile={},
-            safe_exercises=vector_truncated,  # treated as safe for generation purposes
-            preferred_exercises=[],
-            vector_hits=vector_truncated,
-            contraindicated_provenance=[],
-            token_counts=SectionTokenCounts(
-                member_profile=0,
-                safe_exercises=vector_tokens,
-                preferred_exercises=0,
-                vector_hits=vector_tokens,
-                total=vector_tokens,
-            ),
-        )
 
     # Step 2: Vector similarity search
     vector_docs = await _safe_vector_search(query, k=vector_k)
 
-    # Step 3: Build the safe exercise ID set for deduplication
-    safe_ids: set[str] = {e["id"] for e in safe_exercises_raw}
-
-    # Combine preferred + performed, deduplicated by id, filtered to safe set
-    seen_preferred: set[str] = set()
-    preferred_deduped: list[dict[str, Any]] = []
-    for ex in preferred_raw + performed_raw:
-        ex_id = ex.get("id")
-        if ex_id and ex_id in safe_ids and ex_id not in seen_preferred:
-            preferred_deduped.append(ex)
-            seen_preferred.add(ex_id)
-
-    # Filter vector hits to safe set and deduplicate against preferred
-    vector_hits_filtered: list[dict[str, Any]] = []
-    for doc in vector_docs:
-        # LangChain Document objects have .page_content and .metadata; plain dicts have .get()
-        if hasattr(doc, "page_content") and hasattr(doc, "metadata"):
-            ex_id = doc.metadata.get("id")
-        else:
-            ex_id = doc.get("id") if isinstance(doc, dict) else None
-        if ex_id and ex_id in safe_ids and ex_id not in seen_preferred:
-            vector_hits_filtered.append(
-                {"id": ex_id, "name": doc.page_content, "score": doc.metadata.get("score")}
-                if hasattr(doc, "page_content")
-                else doc
-            )
-
-    # Step 4: Apply per-section token budgets
-    profile_tokens = _estimate_tokens(member_profile)
-    if profile_tokens > MEMBER_PROFILE_BUDGET:
-        # Trim to essential fields only
-        member_profile = {
-            k: member_profile[k]
-            for k in ("id", "name", "goals", "equipment", "fitness_level", "injury_names")
-            if k in member_profile
-        }
-        profile_tokens = _estimate_tokens(member_profile)
-
-    safe_truncated, safe_tokens = _truncate_to_budget(safe_exercises_raw, SAFE_EXERCISES_BUDGET)
-    preferred_truncated, preferred_tokens = _truncate_to_budget(preferred_deduped, PREFERRED_EXERCISES_BUDGET)
-    vector_truncated, vector_tokens = _truncate_to_budget(vector_hits_filtered, VECTOR_HITS_BUDGET)
-
-    total_tokens = profile_tokens + safe_tokens + preferred_tokens + vector_tokens
-    logger.info(
-        "Context assembled for member %s: profile=%d, safe=%d, preferred=%d, vector=%d, total=%d tokens",
-        member_id, profile_tokens, safe_tokens, preferred_tokens, vector_tokens, total_tokens,
-    )
-
-    return ContextSlice(
+    return await assemble_context_from_parts(
+        query=query,
         member_profile=member_profile,
-        safe_exercises=safe_truncated,
-        preferred_exercises=preferred_truncated,
-        vector_hits=vector_truncated,
-        contraindicated_provenance=[],  # populated by retrieval_graph from RetrievalState
-        token_counts=SectionTokenCounts(
-            member_profile=profile_tokens,
-            safe_exercises=safe_tokens,
-            preferred_exercises=preferred_tokens,
-            vector_hits=vector_tokens,
-            total=total_tokens,
-        ),
+        safe_exercises=safe_exercises_raw,
+        preferred_exercises=preferred_raw,
+        performed_exercises=performed_raw,
+        avoided_exercises=[],
+        vector_docs=vector_docs,
+        recent_workout_feedback=[],
+        member_id=member_id,
+        vector_k=vector_k,
     )

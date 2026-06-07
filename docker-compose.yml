@@ -29,13 +29,17 @@ services:
       - neo4j_data:/data
       - neo4j_logs:/logs
     healthcheck:
-      test: ["CMD-SHELL", "wget -O /dev/null -q http://localhost:7474 || exit 1"]
+      test:
+        ["CMD-SHELL", "wget -O /dev/null -q http://localhost:7474 || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 10
       start_period: 60s
 
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
     image: ghcr.io/codewizard-dt/workoutwiz-backend:latest
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -56,6 +60,9 @@ services:
         condition: service_healthy
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
     image: ghcr.io/codewizard-dt/workoutwiz-frontend:latest
     ports:
       - "${FRONTEND_PORT:-3000}:80"

@@ -34,7 +34,7 @@ function formatPrescription(set: WorkoutSequence['sets'][number]): string {
   return '—'
 }
 
-({ sequences, exercises = [], memberId, workoutId, onAddCurrent }: PhaseTableProps) {
+export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onAddCurrent }: PhaseTableProps) {
   const exerciseById = new Map(exercises.map((ex) => [ex.id, ex]))
   const showFeedback = memberId != null && workoutId != null
 

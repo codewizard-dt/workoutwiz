@@ -12,7 +12,7 @@ interface FeedbackFormProps {
   onSuccess?: () => void
 }
 
-({ exerciseId, memberId, workoutId, workoutSetId, contextType = 'exercise', compact = false, onSuccess }: FeedbackFormProps) {
+export function FeedbackForm({ exerciseId, memberId, workoutId, workoutSetId, contextType = 'exercise', compact = false, onSuccess }: FeedbackFormProps) {
   const [rating, setRating] = useState<1 | 2 | 3 | 4 | 5 | null>(null)
   const [text, setText] = useState('')
   const { mutate, isPending, isSuccess, isError, error } = useKGFeedback()

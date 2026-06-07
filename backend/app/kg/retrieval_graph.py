@@ -23,7 +23,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, StateGraph
 from neo4j import AsyncDriver
 
-from app.kg.context_assembler import ContextSlice, assemble_context
+from app.kg.context_assembler import ContextSlice, assemble_context_from_parts
 from app.knowledge_graph.traversal import (
     get_avoided_exercises,
     get_contraindicated_exercise_ids,
@@ -194,15 +194,25 @@ def _make_nodes(
     async def assemble(state: RetrievalState) -> dict[str, Any]:
         member_id = state["member_id"]
         query = state.get("query", "")
-        # Count inputs before assembling
+        # Count inputs before assembling (from state — no re-query needed)
         input_count = (
             len(state.get("safe_exercises") or [])
             + len(state.get("preferred_exercises") or [])
             + len(state.get("vector_docs") or [])
         )
         t0 = time.monotonic()
-        # Delegate to context assembler — it handles dedup and budget
-        context = await assemble_context(member_id, query, driver)
+        # Delegate to context assembler using pre-fetched state — no redundant traversals
+        context = await assemble_context_from_parts(
+            query=query,
+            member_profile=state.get("member_profile"),
+            safe_exercises=state.get("safe_exercises") or [],
+            preferred_exercises=state.get("preferred_exercises") or [],
+            performed_exercises=state.get("performed_exercises") or [],
+            avoided_exercises=state.get("avoided_exercises") or [],
+            vector_docs=state.get("vector_docs") or [],
+            recent_workout_feedback=[],
+            member_id=member_id,
+        )
         latency_ms = int((time.monotonic() - t0) * 1000)
         output_count = len((context or {}).get("safe_exercises", [])) if context else 0
         audit_entry = {

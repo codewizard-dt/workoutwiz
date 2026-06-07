@@ -29,7 +29,7 @@
   docker compose up --build -d 2>&1 | tail -20
   ```
 - **Expected Result**: Output ends with lines like `Container workout-wiz-backend-1 Started` and `Container workout-wiz-frontend-1 Started`. No `Error` or `failed` lines.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-INT-002: All Services Healthy (no Exit codes)
 
@@ -44,7 +44,7 @@
   docker compose ps
   ```
 - **Expected Result**: Four rows — `db`, `neo4j`, `backend`, `frontend` — each with `Up` or `Up (healthy)` in the `STATUS` column. Zero rows with `Exit`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-INT-003: Backend Health Endpoint Responds
 
@@ -58,7 +58,7 @@
   curl -sS 'http://localhost:8000/healthz'
   ```
 - **Expected Result**: `{"status":"ok"}` (HTTP 200)
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-INT-004: Frontend Serves HTML on Host Port
 
@@ -73,7 +73,7 @@
   curl -sS 'http://localhost:5173' | head -3
   ```
 - **Expected Result**: Response starts with `<!doctype html>` — the Vite dev server HTML shell. No connection refused error.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-INT-005: Neo4j Browser Reachable on HTTP Port 7474
 
@@ -87,7 +87,7 @@
   curl -sS 'http://localhost:7474'
   ```
 - **Expected Result**: Response is a JSON object containing Neo4j server metadata (e.g. `{"bolt_routing":...}` or `{"data":...}`). HTTP 200. No connection refused.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-INT-006: Backend Logs Show Clean Startup (no crash)
 
@@ -101,7 +101,7 @@
   docker compose logs backend --tail=25
   ```
 - **Expected Result**: Logs include `INFO: Application startup complete.` — no `ERROR`, `Traceback`, or `Exception` lines. Uvicorn is running on `0.0.0.0:8000`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-INT-007: Stack Stops Cleanly
 
@@ -116,7 +116,7 @@
   docker compose down
   ```
 - **Expected Result**: Each of the four containers appears with `Stopping` → `Stopped` → `Removing` → `Removed`. The `workout-wiz_default` network is removed. Exit code 0 (no error text).
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ### UAT-INT-008: Stack Restarts Cleanly (idempotent)
 
@@ -132,7 +132,7 @@
   docker compose up -d 2>&1 | tail -10
   ```
 - **Expected Result**: Output shows all four services started. `docker compose ps` confirms no `Exit` status. Stack stops cleanly on the final `docker compose down`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->
 
 ---
 
@@ -149,4 +149,4 @@
   docker compose logs backend --tail=30
   ```
 - **Expected Result**: Logs show `Application startup complete.` with no Neo4j connection errors, no `ServiceUnavailable`, and no crash. The backend starts successfully even if Neo4j was still initializing.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-07 -->

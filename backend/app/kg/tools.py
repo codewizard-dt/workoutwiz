@@ -8,11 +8,10 @@ from __future__ import annotations
 
 import logging
 
-import neo4j
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
-from app.config import settings
+from app.kg.driver import create_neo4j_driver
 from app.kg.explainability import explain_skipped_exercise
 from app.kg.generation_graph import build_generation_graph
 from app.kg.retrieval_graph import build_retrieval_graph
@@ -47,10 +46,7 @@ class KGExplainInput(BaseModel):
 @tool("kg_recommend", args_schema=KGRecommendInput)
 async def kg_recommend_tool(member_id: str, query: str) -> dict[str, object]:
     """Retrieve a personalized, injury-aware workout recommendation from the knowledge graph."""
-    driver = neo4j.AsyncGraphDatabase.driver(
-        settings.neo4j_uri,
-        auth=(settings.neo4j_user, settings.neo4j_password),
-    )
+    driver = create_neo4j_driver()
     try:
         retrieval_graph = build_retrieval_graph(driver)
         retrieval_result = await retrieval_graph.ainvoke(
@@ -76,17 +72,12 @@ async def kg_recommend_tool(member_id: str, query: str) -> dict[str, object]:
     except Exception:
         logger.exception("Error in kg_recommend_tool for member %s", member_id)
         raise
-    finally:
-        await driver.close()
 
 
 @tool("kg_explain", args_schema=KGExplainInput)
 async def kg_explain_tool(member_id: str, exercise_id: str) -> dict[str, object]:
     """Explain why a specific exercise was excluded from a member's workout recommendation."""
-    driver = neo4j.AsyncGraphDatabase.driver(
-        settings.neo4j_uri,
-        auth=(settings.neo4j_user, settings.neo4j_password),
-    )
+    driver = create_neo4j_driver()
     try:
         explanation, _audit_entry, confidence = await explain_skipped_exercise(
             member_id=member_id,
@@ -99,8 +90,6 @@ async def kg_explain_tool(member_id: str, exercise_id: str) -> dict[str, object]
             "Error in kg_explain_tool for member %s, exercise %s", member_id, exercise_id
         )
         raise
-    finally:
-        await driver.close()
 
 
 # ---------------------------------------------------------------------------

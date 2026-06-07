@@ -37,7 +37,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   curl -sS -X POST 'http://localhost:8000/kg/recommend' -H 'Content-Type: application/json' -H "Authorization: Bearer $UAT_AUTH_TOKEN" -d "{\"member_id\": \"$UAT_MEMBER_ID\", \"query\": \"upper body strength workout, 45 minutes\"}" | jq '{member_id, fallback_used, exercise_count: (.exercises | length), first_exercise: .exercises[0]}'
   ```
 - **Expected Result**: `200 OK` with JSON body containing `member_id` (string), `exercises` (non-empty array), `overall_reasoning` (non-empty string), `skipped_exercise_ids` (array), and `fallback_used` (boolean). Each exercise object has `exercise_id`, `name`, `sets` (int), and `reasoning` (string); optionally `reps`, `duration_seconds`, `weight_kg`.
-- [FAIL: auto-judge: prerequisite not satisfied — backend not running on localhost:8000] <!-- 2026-06-06 -->
+- [FAIL: auto-judge: prerequisite not satisfied — backend container crashes on startup (ModuleNotFoundError: No module named 'app')] <!-- 2026-06-07 -->
 
 ### UAT-API-002: POST /kg/recommend — 401 without auth token
 - **Endpoint**: `POST /kg/recommend`
@@ -50,7 +50,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   curl -sS -X POST 'http://localhost:8000/kg/recommend' -H 'Content-Type: application/json' -d '{"member_id": "00000000-0000-0000-0000-000000000000", "query": "test"}'
   ```
 - **Expected Result**: `401 Unauthorized` response.
-- [FAIL: auto-judge: prerequisite not satisfied — backend not running on localhost:8000] <!-- 2026-06-06 -->
+- [FAIL: auto-judge: prerequisite not satisfied — backend container crashes on startup (ModuleNotFoundError: No module named 'app')] <!-- 2026-06-07 -->
 
 ### UAT-API-003: POST /kg/recommend — missing required fields returns 422
 - **Endpoint**: `POST /kg/recommend`
@@ -64,7 +64,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   curl -sS -X POST 'http://localhost:8000/kg/recommend' -H 'Content-Type: application/json' -H "Authorization: Bearer $UAT_AUTH_TOKEN" -d "{\"member_id\": \"$UAT_MEMBER_ID\"}"
   ```
 - **Expected Result**: `422 Unprocessable Entity` with a body describing the missing `query` field.
-- [FAIL: auto-judge: prerequisite not satisfied — backend not running on localhost:8000] <!-- 2026-06-06 -->
+- [FAIL: auto-judge: prerequisite not satisfied — backend container crashes on startup (ModuleNotFoundError: No module named 'app')] <!-- 2026-06-07 -->
 
 ---
 
