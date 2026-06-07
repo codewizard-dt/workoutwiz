@@ -1,6 +1,6 @@
 # Workout Wiz
 
-> **Demo slides**: [HTML](.docs/demo/runbook.slides.html) / [MD](.docs/demo/runbook.slides.md)
+> **Demo slides**: [HTML](.docs/demo/runbook.slides.html) / [MD](.docs/demo/runbook.md) / [MD Slides (Marp)](.docs/demo/runbook.slides.md)
 
 A fitness coaching API and web app built as an AI engineering take-home assessment. The backend is production-wired (async FastAPI, PostgreSQL, JWT auth, structured logging, resilient error handling); the LangGraph multi-agent routing layer sits between the chat UI and the REST API.
 
