@@ -74,6 +74,45 @@ def ingest_exercises(driver: neo4j.Driver, exercises: list[dict[str, Any]] | Non
                 estimated_rep_duration=ex.get("estimated_rep_duration"),
             )
 
+            # Wire Muscle nodes and TARGETS edges
+            if ex.get("muscle_groups"):
+                session.run(
+                    """
+                    MATCH (e:Exercise {id: $id})
+                    UNWIND $muscle_groups AS mg
+                    MERGE (m:Muscle {name: mg})
+                    MERGE (e)-[:TARGETS]->(m)
+                    """,
+                    id=str(ex["id"]),
+                    muscle_groups=ex.get("muscle_groups") or [],
+                )
+
+            # Wire Equipment nodes and REQUIRES edges
+            if ex.get("equipment_required"):
+                session.run(
+                    """
+                    MATCH (e:Exercise {id: $id})
+                    UNWIND $equipment_required AS eq
+                    MERGE (eq_node:Equipment {name: eq})
+                    MERGE (e)-[:REQUIRES]->(eq_node)
+                    """,
+                    id=str(ex["id"]),
+                    equipment_required=ex.get("equipment_required") or [],
+                )
+
+            # Wire MovementPattern nodes and HAS_PATTERN edges
+            if ex.get("movement_patterns"):
+                session.run(
+                    """
+                    MATCH (e:Exercise {id: $id})
+                    UNWIND $movement_patterns AS mp
+                    MERGE (p:MovementPattern {name: mp})
+                    MERGE (e)-[:HAS_PATTERN]->(p)
+                    """,
+                    id=str(ex["id"]),
+                    movement_patterns=ex.get("movement_patterns") or [],
+                )
+
         # Wire CONTRAINDICATED_BY edges for any pre-existing active Injury nodes
         # whose affected_joints overlap this exercise's joints_loaded.
         session.run(

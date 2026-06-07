@@ -8,6 +8,7 @@ import WorkoutsPage from '@/pages/WorkoutsPage'
 import WorkoutNewPage from '@/pages/WorkoutNewPage'
 import ChatPage from '@/pages/ChatPage'
 import WorkoutDetailPage from '@/pages/WorkoutDetailPage'
+import CoachPage from '@/pages/CoachPage'
 import { AppShell } from '@/components/AppShell'
 
 export const router = createBrowserRouter([
@@ -50,6 +51,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AppShell><WorkoutDetailPage /></AppShell>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/coach',
+    element: (
+      <ProtectedRoute>
+        <AppShell><CoachPage /></AppShell>
       </ProtectedRoute>
     ),
   },

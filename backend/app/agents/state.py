@@ -51,6 +51,7 @@ class AgentState(TypedDict):
 
     # User identity — populated by the FastAPI layer before graph invocation
     user_id: str | None
+    user_email: str | None
 
     # Audit fields — populated as the graph executes
     session_id: str | None

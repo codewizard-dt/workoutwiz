@@ -2,7 +2,7 @@ import time
 from typing import Any
 
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from langchain_core.tools import tool
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
@@ -80,6 +80,41 @@ def search_exercises_tool(
     ]
 
 
+
+_COOLDOWN_PATTERNS = ["regen", "mobility - static", "mobility - dynamic"]
+
+
+def _select_cooldown_exercises(exclude_ids: set[str], count: int = 2) -> list:
+    """Select low-intensity recovery exercises for the cooldown phase.
+
+    Filters the exercise cache for movement patterns that signal recovery
+    (regen, mobility - static, mobility - dynamic), skips any already used
+    in warmup/main, sorts by priority_tier ascending, and returns at most
+    `count` exercises. Returns [] if no recovery-tagged exercises exist.
+    """
+    patterns_lower = [p.lower() for p in _COOLDOWN_PATTERNS]
+    candidates = [
+        e
+        for e in get_all_exercises()
+        if str(e.id) not in exclude_ids
+        and _matches_movement_patterns_local(e, patterns_lower)
+    ]
+    candidates.sort(key=lambda e: e.priority_tier)
+    return candidates[:count]
+
+
+def _matches_movement_patterns_local(exercise: object, patterns_lower: list[str]) -> bool:
+    """Substring-match movement_patterns against any of the given patterns."""
+    mp = getattr(exercise, "movement_patterns", None)
+    if isinstance(mp, dict):
+        searchable = " ".join(str(v) for v in mp.values()).lower()
+    elif isinstance(mp, list):
+        searchable = " ".join(str(v) for v in mp).lower()
+    else:
+        searchable = str(mp).lower() if mp is not None else ""
+    return any(p in searchable for p in patterns_lower)
+
+
 @tool(args_schema=BuildWorkoutInput)
 def build_workout_tool(
     goal: str,
@@ -96,17 +131,20 @@ def build_workout_tool(
 
     warmup = valid[:2] if len(valid) >= 3 else []
     main = valid[2:] if len(valid) >= 3 else valid
-    cooldown: list[dict[str, Any]] = []
 
-    def exercise_to_dict(e: object) -> dict[str, Any]:
+    def exercise_to_dict(e: object, override_sets: int | None = None, override_rest: int | None = None) -> dict[str, Any]:
         return {
             "id": str(e.id),  # type: ignore[attr-defined]
             "name": e.name,  # type: ignore[attr-defined]
-            "sets": sets,
+            "sets": override_sets if override_sets is not None else sets,
             "reps": "10-12" if e.is_reps else None,  # type: ignore[attr-defined]
             "duration_s": 30 if e.is_duration else None,  # type: ignore[attr-defined]
-            "rest_s": rest_seconds,
+            "rest_s": override_rest if override_rest is not None else rest_seconds,
         }
+
+    exclude_ids = {str(e.id) for e in warmup + main}
+    cooldown_exercises = _select_cooldown_exercises(exclude_ids=exclude_ids)
+    cooldown = [exercise_to_dict(e, override_sets=1, override_rest=30) for e in cooldown_exercises]
 
     return {
         "goal": goal,
@@ -148,17 +186,25 @@ def _generate_node(state: AgentState) -> dict[str, Any]:
     llm = ChatAnthropic(model=model_name, api_key=settings.anthropic_api_key).bind_tools(_TOOLS)
     messages = [SystemMessage(content=_GENERATOR_SYSTEM_PROMPT)] + list(state["messages"])
     t0 = time.monotonic()
-    response = llm.invoke(messages)
-    latency_ms = int((time.monotonic() - t0) * 1000)
+    try:
+        response = llm.invoke(messages)
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        usage = getattr(response, "response_metadata", {})
+        tokens_in = usage.get("usage", {}).get("input_tokens", 0)
+        tokens_out = usage.get("usage", {}).get("output_tokens", 0)
+    except Exception as exc:  # noqa: BLE001
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        response = AIMessage(content="I'm temporarily unavailable to generate a workout. Please try again.")
+        tokens_in = 0
+        tokens_out = 0
 
-    usage = getattr(response, "response_metadata", {})
     audit_entry = {
         "event": "generator",
         "model": model_name,
         "provider": "anthropic",
         "latency_ms": latency_ms,
-        "tokens_in": usage.get("usage", {}).get("input_tokens", 0),
-        "tokens_out": usage.get("usage", {}).get("output_tokens", 0),
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
     }
 
     return {

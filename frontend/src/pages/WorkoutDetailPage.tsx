@@ -29,6 +29,7 @@ export default function WorkoutDetailPage() {
 
   useEffect(() => {
     if (workout) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (workout.enjoyment) setEnjoyment(workout.enjoyment as 1 | 2 | 3 | 4 | 5)
       if (workout.note != null) setNote(workout.note)
     }
@@ -396,7 +397,7 @@ export default function WorkoutDetailPage() {
         workoutId={workout.id}
         onAddCurrent={(exerciseId) => {
           const ex = exercises.find((e) => e.id === exerciseId)
-          addToDraft(exerciseId, ex?.is_duration === true && ex?.is_reps === false)
+          addToDraft(exerciseId, !!ex?.is_duration && !ex.is_reps)
         }}
       />
     </div>

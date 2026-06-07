@@ -18,7 +18,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import neo4j
 
@@ -35,12 +35,12 @@ def _load_subset() -> dict[str, Any]:
             f"SNOMED subset not found at {_SUBSET_PATH}. "
             "Run: cd backend && python scripts/build_snomed_subset.py"
         )
-    return json.loads(_SUBSET_PATH.read_text())
+    return cast(dict[str, Any], json.loads(_SUBSET_PATH.read_text()))
 
 
 # ── BodyStructure nodes ────────────────────────────────────────────────────
 
-def _merge_body_structure(tx: neo4j.ManagedTransaction, node: dict) -> None:
+def _merge_body_structure(tx: neo4j.ManagedTransaction, node: dict[str, Any]) -> None:
     tx.run(
         """
         MERGE (b:BodyStructure {snomed_code: $code})
@@ -69,7 +69,7 @@ def _merge_part_of(tx: neo4j.ManagedTransaction, child_code: str, parent_code: s
 
 # ── Disorder nodes ─────────────────────────────────────────────────────────
 
-def _merge_disorder(tx: neo4j.ManagedTransaction, disorder: dict) -> None:
+def _merge_disorder(tx: neo4j.ManagedTransaction, disorder: dict[str, Any]) -> None:
     tx.run(
         """
         MERGE (d:Disorder {snomed_code: $code})
@@ -92,7 +92,7 @@ def _merge_disorder(tx: neo4j.ManagedTransaction, disorder: dict) -> None:
 
 def _merge_finding_site_edge(
     tx: neo4j.ManagedTransaction,
-    disorder: dict,
+    disorder: dict[str, Any],
     joint_code_map: dict[str, str],
 ) -> None:
     fs_code = disorder.get("finding_site_code")
@@ -144,7 +144,8 @@ def _wire_exercise_maps_to(session: neo4j.Session, joint_catalog_terms: list[str
         """,
         catalog_terms=joint_catalog_terms,
     )
-    return result.single()["created"]
+    record = result.single()
+    return int(record["created"]) if record is not None else 0
 
 
 # ── Injury → Disorder MAPS_TO_DISORDER edges ───────────────────────────────
@@ -163,7 +164,8 @@ def _wire_injury_maps_to_disorder(session: neo4j.Session) -> int:
         RETURN count(r) AS linked
         """
     )
-    return result.single()["linked"]
+    record = result.single()
+    return int(record["linked"]) if record is not None else 0
 
 
 # ── public entry point ─────────────────────────────────────────────────────
@@ -174,8 +176,8 @@ def ingest_snomed(driver: neo4j.Driver) -> dict[str, int]:
     Returns a summary dict with counts of nodes and edges created/merged.
     """
     subset = _load_subset()
-    joints: list[dict] = subset.get("joints", [])
-    disorders: list[dict] = subset.get("injuries", [])
+    joints: list[dict[str, Any]] = subset.get("joints", [])
+    disorders: list[dict[str, Any]] = subset.get("injuries", [])
 
     counts: dict[str, int] = {}
 

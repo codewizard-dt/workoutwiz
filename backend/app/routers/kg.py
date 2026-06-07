@@ -236,7 +236,7 @@ async def get_kg_audit(
     # Convert to dict format for response
     audit_log = []
     for entry in kg_entries:
-        entry_dict = {
+        entry_dict: dict[str, Any] = {
             "event": entry.event,
             "session_id": entry.session_id,
         }

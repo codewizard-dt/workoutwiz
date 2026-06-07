@@ -44,7 +44,7 @@ export function useDraftWorkout() {
         id: `draft-${Date.now()}`,
         sequence_id: 'draft-main',
         exercise_id: exerciseId,
-        set_type: (isCardio ? 'CARDIO' : 'STRENGTH') as 'CARDIO' | 'STRENGTH',
+        set_type: isCardio ? 'CARDIO' : ('STRENGTH' as const),
         position: existingSets.length * 100,
         reps: isCardio ? undefined : 10,
         weight_kg: undefined,

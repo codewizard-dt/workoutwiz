@@ -524,3 +524,122 @@ async def get_workout_feedback(
         member_id, len(records),
     )
     return records
+
+
+# ---------------------------------------------------------------------------
+# Typed-node traversal helpers (Muscle / Equipment / MovementPattern)
+# ---------------------------------------------------------------------------
+
+_EXERCISES_BY_MUSCLE_QUERY = """
+MATCH (e:Exercise)-[:TARGETS]->(:Muscle {name: $muscle_name})
+RETURN e.id AS id, e.name AS name, e.priority_tier AS priority_tier
+ORDER BY e.priority_tier ASC, e.name ASC
+"""
+
+_EXERCISES_BY_EQUIPMENT_QUERY = """
+MATCH (e:Exercise)-[:REQUIRES]->(:Equipment {name: $equipment_name})
+RETURN e.id AS id, e.name AS name, e.priority_tier AS priority_tier
+ORDER BY e.priority_tier ASC, e.name ASC
+"""
+
+_EXERCISES_BY_PATTERN_QUERY = """
+MATCH (e:Exercise)-[:HAS_PATTERN]->(:MovementPattern {name: $pattern_name})
+RETURN e.id AS id, e.name AS name, e.priority_tier AS priority_tier
+ORDER BY e.priority_tier ASC, e.name ASC
+"""
+
+
+async def get_exercises_targeting_muscle(
+    muscle_name: str,
+    driver: AsyncDriver,
+    database: str = "neo4j",
+) -> list[dict[str, Any]]:
+    """Return all exercises that target the given muscle.
+
+    Traverses the ``(:Exercise)-[:TARGETS]->(:Muscle {name})`` edge.
+
+    Args:
+        muscle_name: The exact ``name`` property of the ``Muscle`` node
+            (e.g. ``"quadriceps"``, ``"chest"``).
+        driver: An open ``neo4j.AsyncDriver`` instance.
+        database: Neo4j database name (default: ``"neo4j"``).
+
+    Returns:
+        A list of dicts with keys ``id``, ``name``, ``priority_tier``,
+        ordered by ``priority_tier ASC``, then ``name ASC``.
+        Returns ``[]`` when no exercises target the given muscle.
+    """
+    async with driver.session(database=database) as session:
+        result = await session.run(
+            _EXERCISES_BY_MUSCLE_QUERY, muscle_name=muscle_name
+        )
+        records = await result.data()
+
+    logger.debug(
+        "Muscle '%s': %d exercise(s) found.", muscle_name, len(records)
+    )
+    return records
+
+
+async def get_exercises_by_equipment(
+    equipment_name: str,
+    driver: AsyncDriver,
+    database: str = "neo4j",
+) -> list[dict[str, Any]]:
+    """Return all exercises that require the given equipment.
+
+    Traverses the ``(:Exercise)-[:REQUIRES]->(:Equipment {name})`` edge.
+
+    Args:
+        equipment_name: The exact ``name`` property of the ``Equipment`` node
+            (e.g. ``"Barbell"``, ``"Dumbbell"``).
+        driver: An open ``neo4j.AsyncDriver`` instance.
+        database: Neo4j database name (default: ``"neo4j"``).
+
+    Returns:
+        A list of dicts with keys ``id``, ``name``, ``priority_tier``,
+        ordered by ``priority_tier ASC``, then ``name ASC``.
+        Returns ``[]`` when no exercises require the given equipment.
+    """
+    async with driver.session(database=database) as session:
+        result = await session.run(
+            _EXERCISES_BY_EQUIPMENT_QUERY, equipment_name=equipment_name
+        )
+        records = await result.data()
+
+    logger.debug(
+        "Equipment '%s': %d exercise(s) found.", equipment_name, len(records)
+    )
+    return records
+
+
+async def get_exercises_by_pattern(
+    pattern_name: str,
+    driver: AsyncDriver,
+    database: str = "neo4j",
+) -> list[dict[str, Any]]:
+    """Return all exercises with the given movement pattern.
+
+    Traverses the ``(:Exercise)-[:HAS_PATTERN]->(:MovementPattern {name})`` edge.
+
+    Args:
+        pattern_name: The exact ``name`` property of the ``MovementPattern`` node
+            (e.g. ``"upper push - horizontal"``, ``"core - anti-extension"``).
+        driver: An open ``neo4j.AsyncDriver`` instance.
+        database: Neo4j database name (default: ``"neo4j"``).
+
+    Returns:
+        A list of dicts with keys ``id``, ``name``, ``priority_tier``,
+        ordered by ``priority_tier ASC``, then ``name ASC``.
+        Returns ``[]`` when no exercises match the given pattern.
+    """
+    async with driver.session(database=database) as session:
+        result = await session.run(
+            _EXERCISES_BY_PATTERN_QUERY, pattern_name=pattern_name
+        )
+        records = await result.data()
+
+    logger.debug(
+        "MovementPattern '%s': %d exercise(s) found.", pattern_name, len(records)
+    )
+    return records

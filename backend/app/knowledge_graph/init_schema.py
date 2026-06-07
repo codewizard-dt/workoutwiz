@@ -63,6 +63,18 @@ CONSTRAINTS: list[str] = [
     CREATE CONSTRAINT disorder_snomed_code IF NOT EXISTS
     FOR (d:Disorder) REQUIRE d.snomed_code IS UNIQUE
     """,
+    """
+    CREATE CONSTRAINT muscle_name IF NOT EXISTS
+    FOR (m:Muscle) REQUIRE m.name IS UNIQUE
+    """,
+    """
+    CREATE CONSTRAINT movement_pattern_name IF NOT EXISTS
+    FOR (p:MovementPattern) REQUIRE p.name IS UNIQUE
+    """,
+    """
+    CREATE CONSTRAINT equipment_name IF NOT EXISTS
+    FOR (eq:Equipment) REQUIRE eq.name IS UNIQUE
+    """,
 ]
 
 # ---------------------------------------------------------------------------

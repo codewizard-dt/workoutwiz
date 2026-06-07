@@ -23,7 +23,7 @@ export function FeedbackForm({ exerciseId, memberId, workoutId, workoutSetId, co
         member_id: memberId,
         exercise_id: exerciseId,
         rating: v,
-        text: extraText?.trim() || undefined,
+        text: extraText?.trim() !== '' ? extraText?.trim() : undefined,
         workout_id: workoutId,
         workout_set_id: workoutSetId,
         context_type: contextType,
@@ -38,7 +38,7 @@ export function FeedbackForm({ exerciseId, memberId, workoutId, workoutSetId, co
       <RatingWidget
         value={rating}
         compact
-        disabled={isPending || isSuccess}
+        disabled={isPending}
         onChange={(v) => {
           setRating(v)
           submit(v)

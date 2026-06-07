@@ -115,7 +115,7 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
                             <FeedbackForm
                               compact
                               exerciseId={set.exercise_id}
-                              memberId={memberId!}
+                              memberId={memberId}
                               workoutId={workoutId}
                               workoutSetId={set.id}
                               contextType="exercise"

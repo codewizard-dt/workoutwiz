@@ -1,7 +1,7 @@
 import time
 from typing import Any
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from langgraph.graph import StateGraph, START, END
 
 from app.agents.state import AgentState
@@ -24,19 +24,32 @@ def _chat_node(state: AgentState) -> dict[str, Any]:
     model_name = settings.coach_model
     llm = ChatAnthropic(model=model_name, api_key=settings.anthropic_api_key)
 
-    messages = [SystemMessage(content=_COACH_SYSTEM_PROMPT)] + list(state["messages"])
-    t0 = time.monotonic()
-    response = llm.invoke(messages)
-    latency_ms = int((time.monotonic() - t0) * 1000)
+    identity_prefix = ""
+    if email := state.get("user_email"):
+        display = email.split("@")[0].replace(".", " ").title()
+        identity_prefix = f"The user's name is {display} (email: {email}).\n\n"
 
-    usage = getattr(response, "response_metadata", {})
+    messages = [SystemMessage(content=identity_prefix + _COACH_SYSTEM_PROMPT)] + list(state["messages"])
+    t0 = time.monotonic()
+    try:
+        response = llm.invoke(messages)
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        usage = getattr(response, "response_metadata", {})
+        tokens_in = usage.get("usage", {}).get("input_tokens", 0)
+        tokens_out = usage.get("usage", {}).get("output_tokens", 0)
+    except Exception as exc:  # noqa: BLE001
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        response = AIMessage(content="I'm temporarily unavailable. Please try again in a moment.")
+        tokens_in = 0
+        tokens_out = 0
+
     audit_entry = {
         "event": "coach",
         "model": model_name,
         "provider": "anthropic",
         "latency_ms": latency_ms,
-        "tokens_in": usage.get("usage", {}).get("input_tokens", 0),
-        "tokens_out": usage.get("usage", {}).get("output_tokens", 0),
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
     }
 
     return {

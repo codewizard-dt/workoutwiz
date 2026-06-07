@@ -50,7 +50,7 @@ class RecommendedExercise(BaseModel):
     reasoning: str
     source_type: Literal["SAFE_SET", "PREFERRED", "VECTOR_SEARCH", "FALLBACK"]
     source_id: str | None = None
-    provenance: dict | None = None
+    provenance: dict[str, Any] | None = None
 
 
 class WorkoutRecommendation(BaseModel):
@@ -124,6 +124,7 @@ def _build_generation_prompt(
     profile = context.get("member_profile") or {}
     safe_exercises = context.get("safe_exercises") or []
     preferred_exercises = context.get("preferred_exercises") or []
+    avoided_exercises = context.get("avoided_exercises") or []
 
     profile_text = json.dumps(profile, indent=2) if profile else "(not available)"
     safe_text = (
@@ -132,6 +133,14 @@ def _build_generation_prompt(
     preferred_text = (
         json.dumps(preferred_exercises, indent=2) if preferred_exercises else "(none)"
     )
+
+    avoided_section = ""
+    if avoided_exercises:
+        lines = "\n".join(
+            f"- {ex.get('name', ex.get('id', 'unknown'))} (avg rating: {ex.get('avg_rating', '?')}/5)"
+            for ex in avoided_exercises
+        )
+        avoided_section = f"\n\nEXERCISES TO AVOID (member has rated these poorly):\n{lines}"
 
     human_content = f"""\
 <member_profile>
@@ -144,7 +153,7 @@ def _build_generation_prompt(
 
 <preferred_exercises>
 {preferred_text}
-</preferred_exercises>
+</preferred_exercises>{avoided_section}
 
 <member_request>
 {query}
@@ -161,7 +170,7 @@ Please design a personalized workout for this member using only the exercises in
 
 
 
-def _build_provenance(rec: dict, decision: str) -> dict:
+def _build_provenance(rec: dict[str, Any], decision: str) -> dict[str, Any]:
     """Build a PROV-O-aligned provenance trace from a contraindicated_provenance record."""
     return {
         "prov_type": "prov:wasDerivedFrom",
@@ -187,7 +196,7 @@ def _build_provenance(rec: dict, decision: str) -> dict:
 
 def _enrich_recommendation_with_sources(
     recommendation: WorkoutRecommendation,
-    context: ContextSlice,
+    context: ContextSlice | None,
 ) -> WorkoutRecommendation:
     """Post-process recommendation to populate source_type and source_id fields.
     
@@ -207,7 +216,7 @@ def _enrich_recommendation_with_sources(
 
     # Index SNOMED provenance by exercise_id for O(1) lookup
     prov_records = context.get("contraindicated_provenance") or []
-    prov_by_exercise: dict[str, list[dict]] = {}
+    prov_by_exercise: dict[str, list[dict[str, Any]]] = {}
     for rec in prov_records:
         prov_by_exercise.setdefault(rec["exercise_id"], []).append(rec)
 
@@ -228,7 +237,7 @@ def _enrich_recommendation_with_sources(
             source_id = f"safe_{ex_id}"
 
         # Build PROV-O-aligned provenance trace for this recommended exercise
-        prov: dict | None = None
+        prov: dict[str, Any] | None = None
         if ex_id in prov_by_exercise:
             # Exercise appears in contraindicated set — shouldn't reach here after safety gate,
             # but record the path defensively

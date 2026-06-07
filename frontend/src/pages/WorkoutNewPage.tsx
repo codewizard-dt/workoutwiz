@@ -6,7 +6,7 @@ import { useChat } from '@/hooks/useChat'
 import { useDraftWorkout } from '@/hooks/useDraftWorkout'
 import { ChatBubble } from '@/components/ChatBubble'
 import { PhaseTable } from '@/components/PhaseTable'
-import type { WorkoutSequenceCreate, WorkoutSetCreate, WorkoutPhase, WorkoutSequence } from '@/types'
+import type { WorkoutSequence, WorkoutSequenceCreate, WorkoutSetCreate, WorkoutPhase } from '@/types'
 
 const WORKOUT_CHIPS = [
   'Challenging workout',
@@ -92,10 +92,12 @@ export default function WorkoutNewPage() {
 
     createWorkout.mutate(
       { started_at: new Date().toISOString(), sequences: payload },
-      { onSuccess: (result) => {
-        clearDraft()
-        navigate(`/workouts/${result.id}`)
-      } }
+      {
+        onSuccess: (result) => {
+          clearDraft()
+          navigate(`/workouts/${result.id}`)
+        }
+      }
     )
   }
 

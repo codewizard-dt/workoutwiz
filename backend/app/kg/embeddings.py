@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_vector_store_singleton: "Neo4jVector | None" = None
+_vector_store_singleton: Neo4jVector | None = None
 
 INDEX_NAME = "exercise_embeddings"
 NODE_LABEL = "Exercise"

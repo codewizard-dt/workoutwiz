@@ -119,6 +119,7 @@ async def _safe_vector_search(query: str, k: int) -> list[Any]:
 
 async def assemble_context_from_parts(
     *,
+<<<<<<< Updated upstream
     query: str,
     member_profile: dict[str, Any] | None,
     safe_exercises: list[dict[str, Any]],
@@ -250,27 +251,47 @@ async def assemble_context_from_parts(
 
 async def assemble_context(
     member_id: str,
+=======
+>>>>>>> Stashed changes
     query: str,
-    driver: AsyncDriver,
-    database: str = "neo4j",
+    member_profile: dict[str, Any] | None,
+    safe_exercises: list[dict[str, Any]],
+    preferred_exercises: list[dict[str, Any]],
+    performed_exercises: list[dict[str, Any]],
+    avoided_exercises: list[dict[str, Any]],
+    vector_docs: list[Any],
+    recent_workout_feedback: list[dict[str, Any]],
+    member_id: str = "",
     vector_k: int = 10,
 ) -> ContextSlice:
     """
-    Assemble a token-budgeted context slice for the generation agent.
+    Assemble a token-budgeted context slice from already-fetched parts.
 
+<<<<<<< Updated upstream
     Thin wrapper: runs the same parallel fetches as before, then delegates
     dedup/budget logic to assemble_context_from_parts(). Preserves the original
     public signature and behavior (including member-not-found vector-only fallback).
+=======
+    This is the core dedup/budget logic extracted from assemble_context().
+    It operates entirely on the passed-in parts — it does NOT run any
+    Neo4j traversals or vector searches.
+>>>>>>> Stashed changes
 
     Args:
-        member_id: The Member node's `id` property (UUID string).
-        query: The user's workout query (used for vector similarity search).
-        driver: An open neo4j.AsyncDriver instance.
-        database: Neo4j database name (default: "neo4j").
-        vector_k: Number of vector similarity candidates to fetch (default: 10).
+        query: The user's workout query (used only if a vector fallback is needed).
+        member_profile: Pre-fetched member profile dict, or None if not found.
+        safe_exercises: Pre-fetched list of safe exercise dicts.
+        preferred_exercises: Pre-fetched preferred exercise dicts.
+        performed_exercises: Pre-fetched performed exercise dicts.
+        avoided_exercises: Pre-fetched avoided exercise dicts.
+        vector_docs: Pre-fetched vector similarity docs (LangChain Document or dict).
+        recent_workout_feedback: Pre-fetched workout feedback dicts.
+        member_id: Optional member identifier (used only for logging).
+        vector_k: Unused here (kept for signature parity); pass-through only.
 
     Returns:
         A ContextSlice TypedDict with all sections and token_counts.
+<<<<<<< Updated upstream
         Returns a vector-only ContextSlice when the member is not found.
     """
     # Step 1: Run traversals in parallel (same as original)
@@ -304,6 +325,165 @@ async def assemble_context(
         avoided_exercises=[],
         vector_docs=vector_docs,
         recent_workout_feedback=[],
+        member_id=member_id,
+        vector_k=vector_k,
+=======
+        Returns an empty ContextSlice (with zero counts) when member_profile is falsy.
+    """
+    if not member_profile:
+        # No graph profile: still surface vector hits so the generation agent has
+        # exercise candidates. Treat vector hits as safe_exercises.
+        vector_hits_raw: list[dict[str, Any]] = []
+        for doc in vector_docs:
+            if hasattr(doc, "page_content") and hasattr(doc, "metadata"):
+                ex_id = doc.metadata.get("id")
+                vector_hits_raw.append(
+                    {"id": ex_id, "name": doc.page_content, "score": doc.metadata.get("score")}
+                )
+            elif isinstance(doc, dict):
+                vector_hits_raw.append(doc)
+        vector_truncated, vector_tokens = _truncate_to_budget(vector_hits_raw, VECTOR_HITS_BUDGET)
+        return ContextSlice(
+            member_profile={},
+            safe_exercises=vector_truncated,  # treated as safe for generation purposes
+            preferred_exercises=[],
+            avoided_exercises=[],
+            recent_workout_feedback=[],
+            vector_hits=vector_truncated,
+            contraindicated_provenance=[],
+            token_counts=SectionTokenCounts(
+                member_profile=0,
+                safe_exercises=vector_tokens,
+                preferred_exercises=0,
+                vector_hits=vector_tokens,
+                total=vector_tokens,
+            ),
+        )
+
+    # Build the safe exercise ID set for deduplication
+    safe_ids: set[str] = {e["id"] for e in safe_exercises}
+
+    # Combine preferred + performed, deduplicated by id, filtered to safe set
+    seen_preferred: set[str] = set()
+    preferred_deduped: list[dict[str, Any]] = []
+    for ex in preferred_exercises + performed_exercises:
+        ex_id = ex.get("id")
+        if ex_id and ex_id in safe_ids and ex_id not in seen_preferred:
+            preferred_deduped.append(ex)
+            seen_preferred.add(ex_id)
+
+    # Filter vector hits to safe set and deduplicate against preferred
+    vector_hits_filtered: list[dict[str, Any]] = []
+    for doc in vector_docs:
+        if hasattr(doc, "page_content") and hasattr(doc, "metadata"):
+            ex_id = doc.metadata.get("id")
+        else:
+            ex_id = doc.get("id") if isinstance(doc, dict) else None
+        if ex_id and ex_id in safe_ids and ex_id not in seen_preferred:
+            vector_hits_filtered.append(
+                {"id": ex_id, "name": doc.page_content, "score": doc.metadata.get("score")}
+                if hasattr(doc, "page_content")
+                else doc
+            )
+
+    # Apply per-section token budgets
+    profile_tokens = _estimate_tokens(member_profile)
+    if profile_tokens > MEMBER_PROFILE_BUDGET:
+        # Trim to essential fields only
+        member_profile = {
+            k: member_profile[k]
+            for k in ("id", "name", "goals", "equipment", "fitness_level", "injury_names")
+            if k in member_profile
+        }
+        profile_tokens = _estimate_tokens(member_profile)
+
+    safe_truncated, safe_tokens = _truncate_to_budget(safe_exercises, SAFE_EXERCISES_BUDGET)
+    preferred_truncated, preferred_tokens = _truncate_to_budget(preferred_deduped, PREFERRED_EXERCISES_BUDGET)
+    vector_truncated, vector_tokens = _truncate_to_budget(vector_hits_filtered, VECTOR_HITS_BUDGET)
+
+    total_tokens = profile_tokens + safe_tokens + preferred_tokens + vector_tokens
+    logger.info(
+        "Context assembled for member %s: profile=%d, safe=%d, preferred=%d, vector=%d, total=%d tokens",
+        member_id, profile_tokens, safe_tokens, preferred_tokens, vector_tokens, total_tokens,
+    )
+
+    return ContextSlice(
+        member_profile=member_profile,
+        safe_exercises=safe_truncated,
+        preferred_exercises=preferred_truncated,
+        avoided_exercises=avoided_exercises,
+        recent_workout_feedback=recent_workout_feedback,
+        vector_hits=vector_truncated,
+        contraindicated_provenance=[],  # populated by retrieval_graph from RetrievalState
+        token_counts=SectionTokenCounts(
+            member_profile=profile_tokens,
+            safe_exercises=safe_tokens,
+            preferred_exercises=preferred_tokens,
+            vector_hits=vector_tokens,
+            total=total_tokens,
+        ),
+>>>>>>> Stashed changes
+    )
+
+
+async def assemble_context(
+    member_id: str,
+    query: str,
+    driver: AsyncDriver,
+    database: str = "neo4j",
+    vector_k: int = 10,
+) -> ContextSlice:
+    """
+    Assemble a token-budgeted context slice for the generation agent.
+
+    Thin wrapper that runs all parallel fetches, then delegates the
+    dedup/budget logic to assemble_context_from_parts().
+
+    Args:
+        member_id: The Member node's `id` property (UUID string).
+        query: The user's workout query (used for vector similarity search).
+        driver: An open neo4j.AsyncDriver instance.
+        database: Neo4j database name (default: "neo4j").
+        vector_k: Number of vector similarity candidates to fetch (default: 10).
+
+    Returns:
+        A ContextSlice TypedDict with all sections and token_counts.
+        Returns an empty ContextSlice (with zero counts) when the member is not found.
+    """
+    # Run all traversals in parallel
+    (
+        member_profile,
+        safe_exercises_raw,
+        preferred_raw,
+        performed_raw,
+        avoided_raw,
+        workout_feedback_raw,
+    ) = await asyncio.gather(
+        get_member_profile(member_id, driver, database=database),
+        get_safe_exercises(member_id, driver, database=database),
+        _safe_call(get_preferred_exercises, member_id, driver, database=database),
+        _safe_call(get_performed_exercises, member_id, driver, database=database),
+        _safe_call(get_avoided_exercises, member_id, driver, database=database),
+        _safe_call(get_workout_feedback, member_id, driver, database=database),
+    )
+
+    if member_profile is None:
+        logger.warning(
+            "assemble_context: member '%s' not found in Neo4j — falling back to vector-only context.",
+            member_id,
+        )
+
+    vector_docs = await _safe_vector_search(query, k=vector_k)
+
+    return await assemble_context_from_parts(
+        query=query,
+        member_profile=member_profile,
+        safe_exercises=safe_exercises_raw,
+        preferred_exercises=preferred_raw,
+        performed_exercises=performed_raw,
+        avoided_exercises=avoided_raw,
+        vector_docs=vector_docs,
+        recent_workout_feedback=workout_feedback_raw,
         member_id=member_id,
         vector_k=vector_k,
     )

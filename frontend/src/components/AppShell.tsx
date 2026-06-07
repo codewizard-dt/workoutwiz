@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../context/AuthContext'
+import { useMe } from '@/hooks'
 
 interface AppShellProps {
   children: React.ReactNode
@@ -11,6 +12,7 @@ const NAV_LINKS = [
   { to: '/chat', label: 'AI Coach' },
   { to: '/workouts', label: 'Workouts' },
   { to: '/exercises', label: 'Exercises' },
+  { to: '/coach', label: 'Coach View' },
 ] as const
 
 function isNavActive(to: string, pathname: string): boolean {
@@ -25,6 +27,10 @@ export function AppShell({ children }: AppShellProps) {
   const { logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const { data: me } = useMe()
+  const displayName = me?.email
+    ? me.email.split('@')[0].split('.')[0].replace(/^./, (c) => c.toUpperCase())
+    : null
 
   const [draftCount, setDraftCount] = useState(() => {
     try {
@@ -130,6 +136,14 @@ export function AppShell({ children }: AppShellProps) {
         <div style={{ flex: 1 }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          {displayName && (
+            <span
+              className="topnav-desktop"
+              style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}
+            >
+              Hi, {displayName}!
+            </span>
+          )}
           <Link to="/workouts/new" style={{ textDecoration: 'none' }} className="topnav-desktop">
             <button type="button" className="ww-btn ww-btn--gradient ww-btn--sm">
               {draftCount > 0 ? `Current Workout (${draftCount})` : 'Start New Workout'}

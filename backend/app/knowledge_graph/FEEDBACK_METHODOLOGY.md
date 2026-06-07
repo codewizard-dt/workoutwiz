@@ -39,8 +39,8 @@ Feedback lives in two places with different jobs:
 - **PG→Neo4j sync** (`ingest_feedback.py::ingest_all_feedback`) — reads every `ExerciseFeedback`
   row and upserts the corresponding graph nodes/edges via `_upsert_feedback_batch`.
 - **Runtime API** (`feedback_service.py::write_feedback`, behind `POST /kg/feedback`) — writes
-  **Neo4j only**. ⚠️ See "Known characteristics" below — the live path does not currently
-  persist to PostgreSQL.
+  **both Neo4j and PostgreSQL** (via `pg_session: AsyncSession`). Fully dual-writes on the live
+  path, matching the seed path.
 
 ---
 
@@ -297,10 +297,10 @@ signal during demos.
 | `backend/app/models/feedback.py` | `ExerciseFeedback` table + `FeedbackContextType` enum |
 | `backend/app/schemas/kg.py` | `FeedbackPayload` (API contract) |
 | `backend/app/routers/kg.py` | `POST /kg/feedback` endpoint |
-| `backend/app/kg/feedback_service.py` | `write_feedback` — runtime graph write, branches on context |
+| `backend/app/kg/feedback_service.py` | `write_feedback` — runtime dual-write (Neo4j + PostgreSQL via `pg_session`), branches on context |
 | `backend/app/knowledge_graph/ingest_feedback.py` | Cypher constants + PG→Neo4j sync (`ingest_all_feedback`) |
 | `backend/app/knowledge_graph/seed.py` | `seed_feedback` — synthetic dual-write |
-| `backend/app/knowledge_graph/traversal.py` | `get_preferred_exercises` + `_PREFERRED_EXERCISES_QUERY` |
-| `backend/app/kg/retrieval_graph.py` | `run_preference_traversal` node |
+| `backend/app/knowledge_graph/traversal.py` | `get_preferred_exercises`, `get_avoided_exercises`, `get_rating_history`, `get_workout_feedback` + their Cypher constants |
+| `backend/app/kg/retrieval_graph.py` | `run_preference_traversal` node — fetches preferred and avoided exercises into `RetrievalState` |
 | `backend/app/knowledge_graph/init_schema.py` | `FeedbackEvent` uniqueness constraint + `created_at` index |
 | `.docs/knowledge-graph-schema.md` | Node/edge reference (`FeedbackEvent`, `RATED`) |

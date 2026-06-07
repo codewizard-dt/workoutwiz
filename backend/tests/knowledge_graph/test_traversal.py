@@ -16,6 +16,8 @@ import pytest
 
 from app.knowledge_graph.traversal import (
     get_contraindicated_exercise_ids,
+    get_exercises_by_equipment,
+    get_exercises_targeting_muscle,
     get_member_profile,
     get_performed_exercises,
     get_preferred_exercises,
@@ -287,3 +289,95 @@ async def test_get_performed_exercises_uses_limit_param() -> None:
     call_kwargs = session.run.call_args
     assert call_kwargs is not None
     assert "5" in str(call_kwargs) or call_kwargs.kwargs.get("limit") == 5 or 5 in call_kwargs.args
+
+
+# ---------------------------------------------------------------------------
+# get_exercises_targeting_muscle
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_exercises_targeting_muscle_returns_list() -> None:
+    """Returns canned list for a known muscle name."""
+    canned = [
+        {"id": "ex-1", "name": "Squat", "priority_tier": 1},
+        {"id": "ex-2", "name": "Leg Press", "priority_tier": 2},
+    ]
+    driver = _make_driver(run_return=canned)
+
+    result = await get_exercises_targeting_muscle("quadriceps", driver)
+
+    assert result == canned
+
+
+@pytest.mark.asyncio
+async def test_get_exercises_targeting_muscle_passes_param() -> None:
+    """The muscle_name argument is forwarded as a query parameter."""
+    driver = _make_driver(run_return=[{"id": "ex-1", "name": "Squat", "priority_tier": 1}])
+
+    await get_exercises_targeting_muscle("glutes", driver)
+
+    session_cm = driver.session.return_value
+    session = session_cm.__aenter__.return_value
+    call_args = session.run.call_args
+    assert call_args is not None
+    # muscle_name should appear in kwargs or args
+    assert (
+        call_args.kwargs.get("muscle_name") == "glutes"
+        or "glutes" in str(call_args)
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_exercises_targeting_muscle_empty_when_no_match() -> None:
+    """Returns [] when driver returns no records."""
+    driver = _make_driver(run_return=[])
+
+    result = await get_exercises_targeting_muscle("quadriceps", driver)
+
+    assert result == []
+
+
+# ---------------------------------------------------------------------------
+# get_exercises_by_equipment
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_exercises_by_equipment_returns_list() -> None:
+    """Returns canned list for a known equipment name."""
+    canned = [
+        {"id": "ex-3", "name": "Barbell Bench Press", "priority_tier": 1},
+    ]
+    driver = _make_driver(run_return=canned)
+
+    result = await get_exercises_by_equipment("Barbell", driver)
+
+    assert result == canned
+
+
+@pytest.mark.asyncio
+async def test_get_exercises_by_equipment_passes_param() -> None:
+    """The equipment_name argument is forwarded as a query parameter."""
+    driver = _make_driver(run_return=[{"id": "ex-3", "name": "Barbell Bench Press", "priority_tier": 1}])
+
+    await get_exercises_by_equipment("Dumbbell", driver)
+
+    session_cm = driver.session.return_value
+    session = session_cm.__aenter__.return_value
+    call_args = session.run.call_args
+    assert call_args is not None
+    assert (
+        call_args.kwargs.get("equipment_name") == "Dumbbell"
+        or "Dumbbell" in str(call_args)
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_exercises_by_equipment_empty_when_no_match() -> None:
+    """Returns [] when driver returns no records."""
+    driver = _make_driver(run_return=[])
+
+    result = await get_exercises_by_equipment("Barbell", driver)
+
+    assert result == []

@@ -16,4 +16,4 @@ def test_route_decision_confidence_bounds():
 
 
 def test_intent_values():
-    assert set(Intent) == {Intent.COACH, Intent.WORKOUT_GENERATE, Intent.WORKOUT_LOG, Intent.FALLBACK}
+    assert set(Intent) == {Intent.COACH, Intent.WORKOUT_GENERATE, Intent.WORKOUT_LOG, Intent.FALLBACK, Intent.KNOWLEDGE_GRAPH}

@@ -52,6 +52,7 @@ async def chat(
         "messages": [],
         "route_decision": None,
         "user_id": str(user.id),
+        "user_email": user.email,
         "session_id": session_id,
         "audit_log": [],
         "kg_result": None,

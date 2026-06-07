@@ -21,7 +21,7 @@ function dominantType(workout: Workout): 'STRENGTH' | 'CARDIO' | null {
   for (const seq of workout.sequences) {
     for (const set of seq.sets) {
       if (set.set_type === 'STRENGTH') strength++
-      else if (set.set_type === 'CARDIO') cardio++
+      else cardio++
     }
   }
   if (strength === 0 && cardio === 0) return null

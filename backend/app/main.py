@@ -158,3 +158,5 @@ from app.routers import chat
 app.include_router(chat.router)
 from app.routers import kg as kg_router_module
 app.include_router(kg_router_module.router)
+from app.routers import coach as coach_router_module
+app.include_router(coach_router_module.router)

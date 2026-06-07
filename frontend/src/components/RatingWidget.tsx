@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, createPortal } from 'react'
+import type React from 'react'
 import { cn } from '@/lib/utils'
 
 const EMOJI: Record<number, string> = {
@@ -24,6 +25,14 @@ interface RatingWidgetProps {
   /** Compact mode: shows a single face button; click to open the full picker popover. */
   compact?: boolean
   label?: string
+  /** Alignment of the compact popover relative to the trigger button. Defaults to 'left'. */
+  popoverAlign?: 'left' | 'center' | 'right'
+}
+
+const POPOVER_ALIGN_STYLE: Record<'left' | 'center' | 'right', React.CSSProperties> = {
+  left:   { left: 0 },
+  center: { left: '50%', transform: 'translateX(-50%)' },
+  right:  { right: 0 },
 }
 
 export function RatingWidget({
@@ -32,10 +41,12 @@ export function RatingWidget({
   disabled = false,
   compact = false,
   label,
+  popoverAlign = 'left',
 }: RatingWidgetProps) {
   const [hovered, setHovered] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null)
 
   // Close popover on click-outside or Escape
   useEffect(() => {
@@ -62,15 +73,31 @@ export function RatingWidget({
     const face = value != null ? EMOJI[value] : '😐'
     const faceLabel = value != null ? LABEL[value] : 'Rate'
 
+    // Measure button position when opening so the portal popup can be placed correctly
+    function handleToggle() {
+      if (!open && wrapperRef.current) {
+        const rect = wrapperRef.current.getBoundingClientRect()
+        setPopoverPos({ top: rect.top + window.scrollY, left: rect.left + window.scrollX })
+      }
+      setOpen((o) => !o)
+    }
+
+    // Derive portal popup left from alignment prop + measured position
+    function portalLeft(pos: { top: number; left: number; }) {
+      if (popoverAlign === 'right') return pos.left  // right edge: needs popup width, handled via transform
+      if (popoverAlign === 'center') return pos.left  // center: also handled via transform
+      return pos.left  // left: align popup left with button left
+    }
+
     return (
-      <div ref={wrapperRef} style={{ position: 'relative', display: 'inline-block' }}>
+      <div ref={wrapperRef} style={{ display: 'inline-block', width: 'fit-content' }}>
         <button
           type="button"
           aria-label={value != null ? `Rated ${faceLabel} — click to change` : 'Rate this exercise'}
           aria-expanded={open}
           aria-haspopup="true"
           disabled={disabled}
-          onClick={() => { setOpen((o) => !o) }}
+          onClick={handleToggle}
           className="ww-btn ww-btn--ghost ww-iconbtn"
           style={{
             fontSize: '1.25rem',
@@ -79,26 +106,30 @@ export function RatingWidget({
           }}
           onMouseEnter={(e) => {
             if (!disabled) {
-              ;(e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 0 2px var(--accent)'
+              e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent)'
             }
           }}
           onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.boxShadow = ''
+            e.currentTarget.style.boxShadow = ''
           }}
         >
           {face}
         </button>
 
-        {open && (
+        {open && popoverPos !== null && createPortal(
           <div
             role="dialog"
             aria-label="Select rating"
             style={{
               position: 'absolute',
-              bottom: 'calc(100% + var(--space-1))',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 50,
+              top: popoverPos.top - 8,  // 8px gap above button
+              left: portalLeft(popoverPos),
+              transform: popoverAlign === 'center'
+                ? 'translate(-50%, -100%)'
+                : popoverAlign === 'right'
+                  ? 'translate(-100%, -100%)'
+                  : 'translateY(-100%)',
+              zIndex: 9999,
               background: 'var(--popover, var(--card))',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-md)',
@@ -130,7 +161,8 @@ export function RatingWidget({
                 {EMOJI[n]}
               </button>
             ))}
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
     )

@@ -4,6 +4,7 @@ import { useChat } from '../hooks/useChat'
 import { useWorkouts } from '../hooks/useWorkouts'
 import { useMe } from '@/hooks'
 import { ChatBubble } from '@/components/ChatBubble'
+import { TypingBubble } from '@/components/TypingBubble'
 import { WorkoutCard } from '@/components/WorkoutCard'
 import { FeedbackForm } from '@/components/FeedbackForm'
 import { cn } from '@/lib/utils'
@@ -326,12 +327,7 @@ export default function ChatPage() {
             )}
 
             {/* Loading indicator bubble */}
-            {isLoading && (
-              <ChatBubble
-                role="assistant"
-                content="Routing…"
-              />
-            )}
+            {isLoading && <TypingBubble label="Routing" />}
           </div>
 
           {/* Composer — sticky to bottom on mobile */}

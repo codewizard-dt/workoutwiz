@@ -1,39 +1,55 @@
 # Project Status
 
-**Last updated:** 2026-06-06 (ROADMAP-005 completed: all observability instrumentation and testing done)
+**Last updated:** 2026-06-07 (ROADMAP-006 created: 16 assessment-gap-closure tasks (086–101) authored via /task-add)
 
 ## Current Focus
 
-[ROADMAP-004: Knowledge Graph Coaching System](.docs/roadmaps/004-knowledge-graph-coaching-system.md) — building the Neo4j-backed coaching layer with GraphRAG retrieval, injury-aware generation, and exercise feedback.
+[ROADMAP-006: Assessment Gap Closure](.docs/roadmaps/006-assessment-gap-closure.md) — close every gap from the 2026-06-07 assessment audit (multi-agent, knowledge-graph, and candidate-assessment-main specs) so the repo is submission-ready.
 
-- [TASK-049: Injury ingestion](.docs/tasks/049-injury-ingestion.md) — ingest synthetic injury records into Neo4j as Injury nodes + HAS_INJURY + CONTRAINDICATED_BY edges.
-- [TASK-050: Exercise Neo4j ingestion](.docs/tasks/050-exercise-neo4j-ingestion.md) — load all 50 exercises from exercises.json into Neo4j as Exercise nodes and wire CONTRAINDICATED_BY edges to pre-existing Injury nodes.
-- [TASK-051: Member profile ingestion](.docs/tasks/051-member-profile-ingestion.md) — create standalone idempotent ingest_members.py that MERGEs 15 synthetic Member nodes into Neo4j with all schema-required goal/preference properties.
-- [TASK-052: Workout history ingestion](.docs/tasks/052-ingest-workout-history-neo4j.md) — load synthetic workout sessions into Neo4j as WorkoutSession nodes with PERFORMED and INCLUDED edges.
-- [TASK-053: Feedback ingestion](.docs/tasks/053-feedback-ingestion-neo4j.md) — load ExerciseFeedback rows from PostgreSQL into Neo4j as FeedbackEvent nodes with edges to Exercise, WorkoutSession, and Set nodes.
-- [TASK-054: ADR — GraphRAG retrieval strategy](.docs/tasks/054-graphrag-adr.md) — create an ADR covering traversal depth, embedding model, context token budget, and merge strategy for the GraphRAG retrieval layer.
-- [TASK-055: Vector embeddings](.docs/tasks/055-vector-embeddings.md) — implement embed_exercises() and get_exercise_vector_store() with swappable embedding providers and Neo4j vector index.
-- [TASK-056: Injury traversal queries](.docs/tasks/056-injury-traversal-queries.md) — implement Cypher traversal queries for injury-aware exercise filtering and member profile lookup.
-- [TASK-057: Preference/feedback traversal](.docs/tasks/057-preference-feedback-traversal.md) — extend traversal.py with get_preferred_exercises() and get_performed_exercises() for preference and recency signals.
-- [TASK-058: Context assembler](.docs/tasks/058-context-assembler.md) — create context_assembler.py with assemble_context() that merges traversal + vector results into a 2048-token-budgeted ContextSlice.
-- [TASK-059: Retrieval sub-graph](.docs/tasks/059-retrieval-subgraph.md) — create retrieval_graph.py LangGraph StateGraph orchestrating the full GraphRAG retrieval pipeline, and wire KNOWLEDGE_GRAPH intent into the hub.
+**Phase 1 — Quick Wins**
+- [TASK-086: README KG production-eval section](.docs/tasks/086-readme-kg-production-eval.md) — add a "How I would evaluate the KG system in production" README section.
+- [TASK-087: Fix stale test_intent_values](.docs/tasks/087-fix-stale-intent-values-test.md) — add KNOWLEDGE_GRAPH to the Intent-enum test assertion.
+- [TASK-088: Cooldown phase in build_workout](.docs/tasks/088-build-workout-cooldown-phase.md) — emit a non-empty cooldown phase of stretch/mobility movements.
+- [TASK-089: Sub-agent LLM error handling](.docs/tasks/089-subagent-llm-error-handling.md) — graceful fallback + audit entry in coach/generator nodes instead of HTTP 500.
+
+**Phase 2 — KG Depth**
+- [TASK-090: 3-pass concept resolver](.docs/tasks/090-concept-resolver-3pass.md) — runtime exact → fuzzy → embedding resolver with confidence thresholds.
+- [TASK-091: Muscle/MovementPattern/Equipment nodes](.docs/tasks/091-kg-muscle-equipment-pattern-nodes.md) — promote array properties to first-class nodes with typed edges.
+- [TASK-092: Fix retrieval double-traversal](.docs/tasks/092-fix-retrieval-double-traversal.md) — thread pre-fetched state into assemble_context.
+- [TASK-093: Neo4j driver singleton](.docs/tasks/093-neo4j-driver-singleton.md) — shared connection-pooled driver via lifespan + dependency.
+
+**Phase 3 — Frontend Completion**
+- [TASK-094: Exclusion/equipment filter UI](.docs/tasks/094-workout-exclusion-filter-ui.md) — interactive adjustment controls on the New Workout page.
+- [TASK-095: Coach chat image support](.docs/tasks/095-coach-chat-image-support.md) — attach and view images in the Coach Copilot chat.
+- [TASK-096: Coach message/comparison charts](.docs/tasks/096-coach-message-charts.md) — message-pattern + 4-week comparison charts (Recharts).
+- [TASK-097: Coach member switcher](.docs/tasks/097-coach-member-switcher.md) — member list/switcher (depends on 099).
+- [TASK-098: Workout duration field](.docs/tasks/098-workout-duration-field.md) — structured session-duration/time-window control.
+
+**Phase 4 — Polish**
+- [TASK-099: Multi-persona context seeding](.docs/tasks/099-seed-multi-persona-context.md) — rich member context for all personas, not just Jordan Rivera.
+- [TASK-100: OPE & COPPER ontology docs](.docs/tasks/100-document-ope-copper-ontologies.md) — document what was used vs omitted, with rationale.
+- [TASK-101: Fix ChatMessage kg_result type](.docs/tasks/101-fix-chatmessage-kg-result-type.md) — add kg_result to the exported TypeScript interface.
 
 ## Active Tasks
 
 | # | Task | Objective |
 |---|------|-----------|
-| 049 | [injury-ingestion](.docs/tasks/049-injury-ingestion.md) | Ingest synthetic injury records into Neo4j as Injury nodes + HAS_INJURY + CONTRAINDICATED_BY edges. |
-| 050 | [exercise-neo4j-ingestion](.docs/tasks/050-exercise-neo4j-ingestion.md) | Load all 50 exercises from exercises.json into Neo4j as Exercise nodes and wire CONTRAINDICATED_BY edges to pre-existing Injury nodes. |
-| 051 | [member-profile-ingestion](.docs/tasks/051-member-profile-ingestion.md) | Create standalone idempotent ingest_members.py that MERGEs 15 synthetic Member nodes into Neo4j with all schema-required goal/preference properties. |
-| 052 | [ingest-workout-history-neo4j](.docs/tasks/052-ingest-workout-history-neo4j.md) | Create ingest_workout_history.py — load synthetic workout sessions into Neo4j as WorkoutSession nodes with PERFORMED and INCLUDED edges. |
-| 053 | [feedback-ingestion-neo4j](.docs/tasks/053-feedback-ingestion-neo4j.md) | Load ExerciseFeedback rows from PostgreSQL into Neo4j as FeedbackEvent nodes with edges to Exercise, WorkoutSession, and Set nodes. |
-| 054 | [graphrag-adr](.docs/tasks/054-graphrag-adr.md) | Create an ADR for the GraphRAG retrieval strategy covering traversal depth, embedding model, context token budget, and merge strategy. |
-| 055 | [vector-embeddings](.docs/tasks/055-vector-embeddings.md) | Implement embed_exercises() and get_exercise_vector_store() in backend/app/kg/embeddings.py with swappable sentence-transformers/OpenAI providers and a Neo4j vector index. |
-| 056 | [injury-traversal-queries](.docs/tasks/056-injury-traversal-queries.md) | Implement Cypher traversal queries in backend/app/kg/traversal.py for injury-aware exercise filtering and member profile lookup. |
-| 057 | [preference-feedback-traversal](.docs/tasks/057-preference-feedback-traversal.md) | Extend traversal.py with get_preferred_exercises() and get_performed_exercises() for preference and recency signals. |
-| 058 | [context-assembler](.docs/tasks/058-context-assembler.md) | Create context_assembler.py with assemble_context() that merges traversal + vector results into a 2048-token-budgeted ContextSlice dict. |
-| 059 | [retrieval-subgraph](.docs/tasks/059-retrieval-subgraph.md) | Create retrieval_graph.py with a LangGraph StateGraph orchestrating the full GraphRAG retrieval pipeline, and wire KNOWLEDGE_GRAPH intent into the hub. |
-| 074 | [observability-adr](.docs/tasks/074-observability-adr.md) | Write Observability Stack ADR — document in-process audit_log extension to all agent nodes and KG layers. |
+| 086 | [readme-kg-production-eval](.docs/tasks/086-readme-kg-production-eval.md) | Add a "How I would evaluate the KG system in production" README section (retrieval quality, injury-safety monitoring, latency, GraphRAG signals). |
+| 087 | [fix-stale-intent-values-test](.docs/tasks/087-fix-stale-intent-values-test.md) | Update test_intent_values to include KNOWLEDGE_GRAPH so the Intent-enum assertion passes. |
+| 088 | [build-workout-cooldown-phase](.docs/tasks/088-build-workout-cooldown-phase.md) | Make build_workout_tool emit a non-empty cooldown phase of low-intensity stretch/mobility movements from the dataset. |
+| 089 | [subagent-llm-error-handling](.docs/tasks/089-subagent-llm-error-handling.md) | Wrap LLM calls in coach/generator nodes to return a graceful fallback + audit entry instead of HTTP 500. |
+| 090 | [concept-resolver-3pass](.docs/tasks/090-concept-resolver-3pass.md) | Implement a runtime 3-pass concept resolver (exact → fuzzy → embedding) with confidence thresholds and graceful degradation. |
+| 091 | [kg-muscle-equipment-pattern-nodes](.docs/tasks/091-kg-muscle-equipment-pattern-nodes.md) | Promote Muscle/MovementPattern/Equipment to first-class Neo4j nodes with typed TARGETS/REQUIRES/HAS_PATTERN edges. |
+| 092 | [fix-retrieval-double-traversal](.docs/tasks/092-fix-retrieval-double-traversal.md) | Eliminate redundant double-traversal in retrieval_graph.assemble by threading pre-fetched state into context assembly. |
+| 093 | [neo4j-driver-singleton](.docs/tasks/093-neo4j-driver-singleton.md) | Replace per-request Neo4j driver instantiation with a shared connection-pooled driver via lifespan + dependency. |
+| 094 | [workout-exclusion-filter-ui](.docs/tasks/094-workout-exclusion-filter-ui.md) | Add interactive exercise-exclusion and equipment-filter controls to the New Workout page. |
+| 095 | [coach-chat-image-support](.docs/tasks/095-coach-chat-image-support.md) | Let a coach attach and view images in the Coach Copilot chat (client-side MVP). |
+| 096 | [coach-message-charts](.docs/tasks/096-coach-message-charts.md) | Add message-pattern and 4-week comparison charts to the Coach dashboard using Recharts. |
+| 097 | [coach-member-switcher](.docs/tasks/097-coach-member-switcher.md) | Add a member list/switcher so the coach dashboard is not hardcoded to one member (depends on 099). |
+| 098 | [workout-duration-field](.docs/tasks/098-workout-duration-field.md) | Add a structured session-duration/time-window control to the New Workout page. |
+| 099 | [seed-multi-persona-context](.docs/tasks/099-seed-multi-persona-context.md) | Seed rich member context (labs, chat, workouts, profile) for all personas, not just Jordan Rivera (blocks 097). |
+| 100 | [document-ope-copper-ontologies](.docs/tasks/100-document-ope-copper-ontologies.md) | Document OPE & COPPER ontology decisions (used vs omitted, with rationale) in the methodology doc. |
+| 101 | [fix-chatmessage-kg-result-type](.docs/tasks/101-fix-chatmessage-kg-result-type.md) | Add the kg_result field (and KGResult type) to the exported ChatMessage TypeScript interface. |
 
 ## Recently Completed
 

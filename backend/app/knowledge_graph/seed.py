@@ -408,6 +408,28 @@ PERSONAS: list[dict[str, Any]] = [
             },
         ],
     },
+    # Assessment demo member — seeded from candidate-assessment-main/data/member-context.json
+    # Uses a distinct email from the generic "Jordan Rivera" persona above
+    {
+        "name": "Jordan Rivera (Demo)",
+        "email": "jordan.rivera@workoutwiz.demo",
+        "password": "password123",
+        "goals": ["strength", "rehabilitation"],
+        "equipment": ["Dumbbell", "Kettlebell", "Yoga Mat", "Resistance Band - Loop", "Flat Bench"],
+        "sessions_per_week": 4,
+        "injuries": [
+            {
+                "name": "Patellofemoral pain syndrome (left knee)",
+                "affected_joints": ["knee"],
+                "severity": "mild",
+                "status": "recovering",
+                "onset_date": "2026-05-10",
+                "region": "left knee",
+                "notes": "Patellofemoral pain after hiking trip. Cleared for low-impact loading; avoid deep knee flexion under load and plyometrics.",
+                "snomedct_hint": "Patellofemoral pain syndrome",
+            }
+        ],
+    },
     {
         "name": "Drew Robinson",
         "email": "drew@example.com",
@@ -434,6 +456,199 @@ PERSONAS: list[dict[str, Any]] = [
 _EXERCISES_PATH = Path(__file__).parent.parent.parent / "exercises.json"
 
 
+
+
+# Human-readable goal texts for the goal keys used in PERSONAS
+_GOAL_TEXT: dict[str, str] = {
+    "strength": "Build overall strength",
+    "muscle_gain": "Increase lean muscle mass",
+    "fat_loss": "Reduce body fat",
+    "endurance": "Improve cardiovascular endurance",
+    "athletic_performance": "Improve athletic performance",
+    "rehabilitation": "Recover safely from current injuries",
+    "general_fitness": "Improve overall fitness",
+    "mobility": "Improve joint mobility and flexibility",
+    "posture": "Correct postural imbalances",
+    "hypertrophy": "Maximize muscle hypertrophy",
+    "upper_body_strength": "Build upper body strength",
+}
+
+
+def seed_coaching_context_all(
+    driver: neo4j.Driver,
+    member_map: dict[str, uuid.UUID],
+    fake: Faker,
+) -> None:
+    """Generate AdherenceWeek, CoachBrief, BiomarkerSnapshot, and Goal nodes for EVERY persona.
+
+    Produces realistic but synthetic coaching signals for each member so the
+    /coach/brief endpoint returns meaningful data regardless of which account is
+    used during a demo.  Jordan Rivera (Demo)'s assessment-specific data is
+    applied afterwards by seed_assessment_member_context() and overwrites these
+    defaults.
+    """
+    # Fixed reference date so re-runs stay idempotent (data won't change)
+    ref_weeks = ["2026-05-12", "2026-05-19", "2026-05-26", "2026-06-02"]
+
+    with driver.session() as session:
+        for persona in PERSONAS:
+            member_id = str(member_map[persona["email"]])
+            has_active_injury = any(i["status"] == "active" for i in persona["injuries"])
+            sessions_pw = persona["sessions_per_week"]
+
+            # --- Adherence (4 weeks) -----------------------------------------
+            # Members with active injuries or fewer sessions tend to miss more
+            base_pct = 90 if not has_active_injury else 70
+            pcts = []
+            for i in range(4):
+                jitter = random.randint(-15, 10)
+                trend = -5 * i if has_active_injury else 0  # slight decline when injured
+                pct = max(0, min(100, base_pct + jitter + trend))
+                # Round to nearest 25 for visual clarity
+                pct = round(pct / 25) * 25
+                pcts.append(pct)
+
+            for week_of, pct in zip(ref_weeks, pcts):
+                week_id = f"{member_id}:adherence:{week_of}"
+                session.run(
+                    """
+                    MERGE (a:AdherenceWeek {id: $id})
+                    SET a += {week_of: $week_of, pct: $pct}
+                    WITH a
+                    MATCH (m:Member {id: $member_id})
+                    MERGE (m)-[:REPORTED_ADHERENCE]->(a)
+                    """,
+                    id=week_id, week_of=week_of, pct=pct, member_id=member_id,
+                )
+
+            # --- Churn risk (derived from adherence trend) -------------------
+            trend_delta = pcts[-1] - pcts[0]
+            if trend_delta <= -25 or pcts[-1] < 50:
+                churn_level = "elevated"
+                churn_reasons = [
+                    f"Weekly adherence dropped to {pcts[-1]}%",
+                    "One or more missed sessions with no reschedule",
+                ]
+            elif trend_delta < 0 or pcts[-1] < 75:
+                churn_level = "moderate"
+                churn_reasons = [f"Adherence slipped to {pcts[-1]}% this week"]
+            else:
+                churn_level = "low"
+                churn_reasons = [f"Consistent {pcts[-1]}% adherence last week"]
+
+            # --- Morning tasks ------------------------------------------------
+            morning_task_types = ["review"]
+            morning_task_texts = [
+                f"Review {persona['name'].split()[0]}'s last session and plan this week's progression."
+            ]
+            if has_active_injury:
+                morning_task_types.append("review_risk")
+                injury_name = persona["injuries"][0]["name"]
+                morning_task_texts.append(
+                    f"Check recovery status: {injury_name} — confirm pain-free range before loading."
+                )
+            if pcts[-1] >= 100:
+                morning_task_types.insert(0, "celebrate")
+                morning_task_texts.insert(
+                    0, f"{persona['name'].split()[0]} hit 100% adherence last week — acknowledge the streak!"
+                )
+
+            brief_id = f"{member_id}:coach_brief:2026-06-04"
+            session.run(
+                """
+                MERGE (cb:CoachBrief {id: $id})
+                SET cb += {
+                    generated_for: '2026-06-04',
+                    churn_risk_level: $churn_risk_level,
+                    churn_risk_reasons: $churn_risk_reasons,
+                    morning_task_types: $morning_task_types,
+                    morning_task_texts: $morning_task_texts
+                }
+                WITH cb
+                MATCH (m:Member {id: $member_id})
+                MERGE (m)-[:HAS_COACH_BRIEF]->(cb)
+                """,
+                id=brief_id,
+                churn_risk_level=churn_level,
+                churn_risk_reasons=churn_reasons,
+                morning_task_types=morning_task_types,
+                morning_task_texts=morning_task_texts,
+                member_id=member_id,
+            )
+
+            # --- Biomarker snapshot ------------------------------------------
+            bio_id = f"{member_id}:biomarkers:2026-06-04"
+            resting_hr = random.randint(52, 75)
+            hrv = random.randint(30, 70)
+            sleep_7d = [round(random.uniform(5.5, 8.5), 1) for _ in range(7)]
+            base_weight = random.uniform(62.0, 95.0)
+            weight_trend = [round(base_weight + random.uniform(-0.5, 0.5), 1) for _ in range(3)]
+            session.run(
+                """
+                MERGE (b:BiomarkerSnapshot {id: $id})
+                SET b += {
+                    date: '2026-06-04',
+                    resting_hr_bpm: $resting_hr_bpm,
+                    hrv_ms: $hrv_ms,
+                    sleep_hours_last_7_days: $sleep_hours_last_7_days,
+                    weight_trend_dates: $weight_trend_dates,
+                    weight_trend_kg: $weight_trend_kg
+                }
+                WITH b
+                MATCH (m:Member {id: $member_id})
+                MERGE (m)-[:HAS_BIOMARKER]->(b)
+                """,
+                id=bio_id,
+                resting_hr_bpm=resting_hr,
+                hrv_ms=hrv,
+                sleep_hours_last_7_days=sleep_7d,
+                weight_trend_dates=["2026-05-05", "2026-05-19", "2026-06-02"],
+                weight_trend_kg=weight_trend,
+                member_id=member_id,
+            )
+
+            # --- Goal nodes (from persona goal keys) -------------------------
+            for i, goal_key in enumerate(persona.get("goals", [])):
+                goal_text = _GOAL_TEXT.get(goal_key, goal_key.replace("_", " ").title())
+                goal_node_id = f"{member_id}:goal:{goal_key}"
+                session.run(
+                    """
+                    MERGE (g:Goal {id: $id})
+                    SET g += {text: $text, priority: $priority, target_date: null}
+                    WITH g
+                    MATCH (m:Member {id: $member_id})
+                    MERGE (m)-[:HAS_GOAL]->(g)
+                    """,
+                    id=goal_node_id,
+                    text=goal_text,
+                    priority=1 if i == 0 else 2,
+                    member_id=member_id,
+                )
+
+            # --- Preference node ---------------------------------------------
+            pref_id = f"{member_id}:preferences"
+            session.run(
+                """
+                MERGE (p:Preference {id: $id})
+                SET p += {
+                    preferred_session_minutes: $session_min,
+                    training_days_per_week: $sessions_pw,
+                    preferred_days: [],
+                    dislikes: [],
+                    notes: $notes
+                }
+                WITH p
+                MATCH (m:Member {id: $member_id})
+                MERGE (m)-[:HAS_PREFERENCE]->(p)
+                """,
+                id=pref_id,
+                session_min=45 + (sessions_pw * 2),
+                sessions_pw=sessions_pw,
+                notes=f"Trains {sessions_pw}x/week. Available equipment: {', '.join(persona['equipment'][:3])}{'…' if len(persona['equipment']) > 3 else ''}.",
+                member_id=member_id,
+            )
+
+    logger.info("Seeded coaching context (adherence, brief, biomarkers, goals) for all %d members.", len(PERSONAS))
 def load_exercises() -> list[dict[str, Any]]:
     with open(_EXERCISES_PATH) as f:
         return json.load(f)  # type: ignore[no-any-return]
@@ -466,7 +681,11 @@ def _now_utc() -> datetime:
 # ---------------------------------------------------------------------------
 
 def seed_postgres_users(session: Session) -> dict[str, uuid.UUID]:
-    """Insert users and return {email: uuid} map."""
+    """Upsert users and return {email: uuid} map.
+
+    Uses ON CONFLICT (email) DO UPDATE so re-runs refresh the password hash
+    and always return the canonical id — no separate SELECT needed.
+    """
     member_map: dict[str, uuid.UUID] = {}
     for persona in PERSONAS:
         hashed = _bcrypt_lib.hashpw(persona["password"].encode(), _bcrypt_lib.gensalt()).decode()
@@ -476,7 +695,10 @@ def seed_postgres_users(session: Session) -> dict[str, uuid.UUID]:
                 """
                 INSERT INTO "user" (id, email, hashed_password, is_active, is_superuser, is_verified)
                 VALUES (:id, :email, :hashed_password, true, false, true)
-                ON CONFLICT (email) DO NOTHING
+                ON CONFLICT (email) DO UPDATE SET
+                    hashed_password = EXCLUDED.hashed_password,
+                    is_active       = true,
+                    is_verified     = true
                 RETURNING id
                 """
             ),
@@ -487,18 +709,9 @@ def seed_postgres_users(session: Session) -> dict[str, uuid.UUID]:
             },
         )
         row = result.fetchone()
-        if row:
-            member_map[persona["email"]] = row[0]
-            logger.info("Created user: %s (%s)", persona["email"], row[0])
-        else:
-            # User already exists — fetch the existing id
-            existing = session.execute(
-                text('SELECT id FROM "user" WHERE email = :email'),
-                {"email": persona["email"]},
-            ).fetchone()
-            assert existing is not None, f"User {persona['email']} not found after conflict"
-            member_map[persona["email"]] = existing[0]
-            logger.info("Existing user: %s (%s)", persona["email"], existing[0])
+        assert row is not None
+        member_map[persona["email"]] = row[0]
+        logger.info("Upserted user: %s (%s)", persona["email"], row[0])
 
     return member_map
 
@@ -661,7 +874,11 @@ def seed_feedback(
     exercises: list[dict[str, Any]],
     fake: Faker,
 ) -> None:
-    """20 FeedbackEvent nodes per member, written to both PostgreSQL and Neo4j."""
+    """20 FeedbackEvent nodes per member, written to both PostgreSQL and Neo4j.
+
+    Feedback IDs are deterministic (uuid5) so re-running the seed upserts
+    existing rows rather than accumulating duplicates.
+    """
     feedback_per_member = 20
     with driver.session() as neo_session:
         for persona in PERSONAS:
@@ -685,7 +902,11 @@ def seed_feedback(
                     start_date="-90d", end_date="now"
                 ).replace(tzinfo=UTC)
 
-                feedback_id = uuid.uuid4()
+                # Deterministic UUID — same member + exercise + index always yields the same row
+                feedback_id = uuid.uuid5(
+                    uuid.NAMESPACE_DNS,
+                    f"feedback:{persona['email']}:{ex['id']}:{_i}",
+                )
 
                 # --- PostgreSQL ---
                 pg_session.execute(
@@ -697,7 +918,10 @@ def seed_feedback(
                         VALUES
                             (:id, :user_id, :exercise_id, NULL, NULL,
                              :rating, :feedback_text, 'exercise', :created_at)
-                        ON CONFLICT DO NOTHING
+                        ON CONFLICT (id) DO UPDATE SET
+                            rating        = EXCLUDED.rating,
+                            feedback_text = EXCLUDED.feedback_text,
+                            created_at    = EXCLUDED.created_at
                         """
                     ),
                     {
@@ -743,6 +967,286 @@ def seed_feedback(
 
 
 # ---------------------------------------------------------------------------
+# Assessment member context seeding (Jordan Rivera demo)
+# ---------------------------------------------------------------------------
+
+_ASSESSMENT_MEMBER_EMAIL = "jordan.rivera@workoutwiz.demo"
+
+
+def seed_assessment_member_context(
+    driver: neo4j.Driver,
+    member_map: dict[str, uuid.UUID],
+) -> None:
+    """Seed extended member context for the assessment demo member (Jordan Rivera).
+
+    Adds Goal, Preference, AdherenceWeek, BiomarkerSnapshot, LabResult,
+    AssessmentWorkout, ChatMessage, and CoachBrief nodes linked to the Member node
+    created by the normal persona seeding. Data sourced from member-context.json.
+    """
+    email = _ASSESSMENT_MEMBER_EMAIL
+    if email not in member_map:
+        logger.warning("Assessment member %s not in member_map; skipping context seed", email)
+        return
+
+    member_id = str(member_map[email])
+
+    with driver.session() as session:
+        # Extend Member node with rich profile properties
+        session.run(
+            """
+            MATCH (m:Member {id: $id})
+            SET m += {
+                display_name: $display_name,
+                age: $age,
+                sex: $sex,
+                height_cm: $height_cm,
+                weight_kg: $weight_kg,
+                timezone: $timezone,
+                member_since: $member_since,
+                tier: $tier,
+                coach_id: $coach_id
+            }
+            """,
+            id=member_id,
+            display_name="Jordan Rivera",
+            age=41,
+            sex="female",
+            height_cm=168,
+            weight_kg=71.2,
+            timezone="America/Los_Angeles",
+            member_since="2024-09-15",
+            tier="1:1 Coaching",
+            coach_id="coach_01HXSAM",
+        )
+
+        # Goal nodes (3)
+        for goal in [
+            {"id": "goal_strength", "text": "Build lower-body strength", "priority": 1, "target_date": "2026-09-01"},
+            {"id": "goal_knee", "text": "Return to pain-free squatting after left-knee flare-up", "priority": 1, "target_date": "2026-07-15"},
+            {"id": "goal_sleep", "text": "Average 7+ hours of sleep on weeknights", "priority": 2, "target_date": None},
+        ]:
+            goal_node_id = f"{member_id}:{goal['id']}"
+            session.run(
+                """
+                MERGE (g:Goal {id: $id})
+                SET g += {text: $text, priority: $priority, target_date: $target_date}
+                WITH g
+                MATCH (m:Member {id: $member_id})
+                MERGE (m)-[:HAS_GOAL]->(g)
+                """,
+                id=goal_node_id,
+                text=goal["text"],
+                priority=goal["priority"],
+                target_date=goal.get("target_date"),
+                member_id=member_id,
+            )
+
+        # Preference node
+        pref_id = f"{member_id}:preferences"
+        session.run(
+            """
+            MERGE (p:Preference {id: $id})
+            SET p += {
+                preferred_session_minutes: $preferred_session_minutes,
+                training_days_per_week: $training_days_per_week,
+                preferred_days: $preferred_days,
+                dislikes: $dislikes,
+                notes: $notes
+            }
+            WITH p
+            MATCH (m:Member {id: $member_id})
+            MERGE (m)-[:HAS_PREFERENCE]->(p)
+            """,
+            id=pref_id,
+            preferred_session_minutes=50,
+            training_days_per_week=4,
+            preferred_days=["Mon", "Wed", "Thu", "Sat"],
+            dislikes=["Deadlift", "Burpees"],
+            notes="Prefers dumbbell and kettlebell work; trains at home. Dislikes high-impact jumping.",
+            member_id=member_id,
+        )
+
+        # AdherenceWeek nodes (4 weeks, declining trend)
+        for week in [
+            {"week_of": "2026-05-12", "pct": 100},
+            {"week_of": "2026-05-19", "pct": 100},
+            {"week_of": "2026-05-26", "pct": 75},
+            {"week_of": "2026-06-02", "pct": 50},
+        ]:
+            week_id = f"{member_id}:adherence:{week['week_of']}"
+            session.run(
+                """
+                MERGE (a:AdherenceWeek {id: $id})
+                SET a += {week_of: $week_of, pct: $pct}
+                WITH a
+                MATCH (m:Member {id: $member_id})
+                MERGE (m)-[:REPORTED_ADHERENCE]->(a)
+                """,
+                id=week_id,
+                week_of=week["week_of"],
+                pct=week["pct"],
+                member_id=member_id,
+            )
+
+        # BiomarkerSnapshot node
+        bio_id = f"{member_id}:biomarkers:2026-06-04"
+        session.run(
+            """
+            MERGE (b:BiomarkerSnapshot {id: $id})
+            SET b += {
+                date: $date,
+                resting_hr_bpm: $resting_hr_bpm,
+                hrv_ms: $hrv_ms,
+                sleep_hours_last_7_days: $sleep_hours_last_7_days,
+                weight_trend_dates: $weight_trend_dates,
+                weight_trend_kg: $weight_trend_kg
+            }
+            WITH b
+            MATCH (m:Member {id: $member_id})
+            MERGE (m)-[:HAS_BIOMARKER]->(b)
+            """,
+            id=bio_id,
+            date="2026-06-04",
+            resting_hr_bpm=58,
+            hrv_ms=47,
+            sleep_hours_last_7_days=[6.1, 5.4, 7.2, 6.0, 5.1, 7.8, 6.3],
+            weight_trend_dates=["2026-05-05", "2026-05-19", "2026-06-02"],
+            weight_trend_kg=[72.4, 71.9, 71.2],
+            member_id=member_id,
+        )
+
+        # LabResult — blood panel
+        blood_id = f"{member_id}:labs:blood_panel"
+        session.run(
+            """
+            MERGE (l:LabResult {id: $id})
+            SET l += {
+                type: 'blood_panel', date: $date,
+                ldl_mg_dl: $ldl_mg_dl, hdl_mg_dl: $hdl_mg_dl,
+                triglycerides_mg_dl: $triglycerides_mg_dl, hba1c_pct: $hba1c_pct,
+                vitamin_d_ng_ml: $vitamin_d_ng_ml, ferritin_ng_ml: $ferritin_ng_ml,
+                crp_mg_l: $crp_mg_l
+            }
+            WITH l
+            MATCH (m:Member {id: $member_id})
+            MERGE (m)-[:HAS_LAB_RESULT]->(l)
+            """,
+            id=blood_id, date="2026-04-20",
+            ldl_mg_dl=118, hdl_mg_dl=61, triglycerides_mg_dl=96,
+            hba1c_pct=5.3, vitamin_d_ng_ml=28, ferritin_ng_ml=41, crp_mg_l=1.2,
+            member_id=member_id,
+        )
+
+        # LabResult — DEXA scan
+        dexa_id = f"{member_id}:labs:dexa_scan"
+        session.run(
+            """
+            MERGE (l:LabResult {id: $id})
+            SET l += {
+                type: 'dexa_scan', date: $date,
+                body_fat_pct: $body_fat_pct, lean_mass_kg: $lean_mass_kg,
+                fat_mass_kg: $fat_mass_kg, bone_density_z_score: $bone_density_z_score,
+                visceral_fat_cm2: $visceral_fat_cm2
+            }
+            WITH l
+            MATCH (m:Member {id: $member_id})
+            MERGE (m)-[:HAS_LAB_RESULT]->(l)
+            """,
+            id=dexa_id, date="2026-03-30",
+            body_fat_pct=29.4, lean_mass_kg=47.1, fat_mass_kg=21.0,
+            bone_density_z_score=0.4, visceral_fat_cm2=78,
+            member_id=member_id,
+        )
+
+        # ChatMessage nodes (member↔coach conversation history)
+        for i, msg in enumerate([
+            {"ts": "2026-06-03T18:42:00-07:00", "from_": "member", "text": "Knocked out the lower body session! Knee felt okay with the box squats."},
+            {"ts": "2026-06-03T19:05:00-07:00", "from_": "coach", "text": "Love it — that's the green light we wanted. How's the knee this morning vs. after?"},
+            {"ts": "2026-05-30T08:12:00-07:00", "from_": "member", "text": "Skipped Thursday, work blew up and I was wiped. Sorry!"},
+            {"ts": "2026-05-22T07:50:00-07:00", "from_": "member", "text": "Still no barbell at home btw — only DBs and a kettlebell."},
+        ]):
+            msg_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{member_id}:chat:{i}"))
+            rel_type = "SENT_MESSAGE" if msg["from_"] == "member" else "SENT_COACH_MESSAGE"
+            session.run(
+                f"""
+                MERGE (cm:ChatMessage {{id: $id}})
+                SET cm += {{ts: $ts, sender: $sender, text: $text}}
+                WITH cm
+                MATCH (m:Member {{id: $member_id}})
+                MERGE (m)-[:{rel_type}]->(cm)
+                """,
+                id=msg_id,
+                ts=msg["ts"],
+                sender=msg["from_"],
+                text=msg["text"],
+                member_id=member_id,
+            )
+
+        # AssessmentWorkout nodes (recent session history)
+        for wh in [
+            {"date": "2026-06-03", "title": "Lower Body - Bands & DB", "completed": True, "duration_min": 28, "rpe": 6, "exercises": ["Goblet Squat (box-supported)", "Hip Thrust", "Banded Lateral Walk"]},
+            {"date": "2026-06-01", "title": "Upper Body Push", "completed": True, "duration_min": 31, "rpe": 7, "exercises": ["DB Floor Press", "Half-Kneeling DB Press", "Band Pull-Apart"]},
+            {"date": "2026-05-29", "title": "Full Body", "completed": False, "duration_min": 0, "rpe": None, "exercises": []},
+            {"date": "2026-05-27", "title": "Lower Body", "completed": True, "duration_min": 26, "rpe": 6, "exercises": ["Step-Up", "KB Romanian Deadlift", "Wall Sit"]},
+        ]:
+            wh_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{member_id}:workout:{wh['date']}:{wh['title']}"))
+            session.run(
+                """
+                MERGE (w:AssessmentWorkout {id: $id})
+                SET w += {
+                    date: $date, title: $title, completed: $completed,
+                    duration_min: $duration_min, rpe: $rpe, exercises: $exercises
+                }
+                WITH w
+                MATCH (m:Member {id: $member_id})
+                MERGE (m)-[:HAD_WORKOUT]->(w)
+                """,
+                id=wh_id,
+                date=wh["date"],
+                title=wh["title"],
+                completed=wh["completed"],
+                duration_min=wh["duration_min"],
+                rpe=wh.get("rpe"),
+                exercises=wh["exercises"],
+                member_id=member_id,
+            )
+
+        # CoachBrief node — morning tasks and churn risk
+        brief_id = f"{member_id}:coach_brief:2026-06-04"
+        session.run(
+            """
+            MERGE (cb:CoachBrief {id: $id})
+            SET cb += {
+                generated_for: $generated_for,
+                churn_risk_level: $churn_risk_level,
+                churn_risk_reasons: $churn_risk_reasons,
+                morning_task_types: $morning_task_types,
+                morning_task_texts: $morning_task_texts
+            }
+            WITH cb
+            MATCH (m:Member {id: $member_id})
+            MERGE (m)-[:HAS_COACH_BRIEF]->(cb)
+            """,
+            id=brief_id,
+            generated_for="2026-06-04",
+            churn_risk_level="elevated",
+            churn_risk_reasons=[
+                "Weekly adherence fell from 100% to 50% over 2 weeks",
+                "One skipped session with a fatigue/work explanation",
+                "Login frequency down vs. prior month",
+            ],
+            morning_task_types=["celebrate", "review_risk"],
+            morning_task_texts=[
+                "Congratulate Jordan on completing yesterday's lower-body session — first pain-free squat work since the knee flare-up.",
+                "Check churn risk: adherence dropped 100% → 50% over the last two weeks.",
+            ],
+            member_id=member_id,
+        )
+
+    logger.info("Seeded extended assessment member context for %s (id=%s)", email, member_id)
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -773,12 +1277,18 @@ def main() -> None:
         seed_injuries_neo4j(driver, member_map, exercises)
         seed_workout_history_neo4j(driver, member_map, exercises, fake)
 
-        # 3. Feedback needs both connections
+        # 3a. Seed coaching context (adherence, brief, biomarkers, goals) for ALL members
+        seed_coaching_context_all(driver, member_map, fake)
+
+        # 3b. Override with rich assessment-specific data for Jordan Rivera (Demo)
+        seed_assessment_member_context(driver, member_map)
+
+        # 4. Feedback needs both connections
         with Session(engine) as pg_session:
             seed_feedback(pg_session, driver, member_map, exercises, fake)
             pg_session.commit()
 
-    # 4. Re-ingest all feedback from PostgreSQL → Neo4j via ingest_all_feedback
+    # 5. Re-ingest all feedback from PostgreSQL → Neo4j via ingest_all_feedback
     #    (idempotent; uses the async driver)
     from neo4j import AsyncGraphDatabase
     from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession as _AsyncSession
