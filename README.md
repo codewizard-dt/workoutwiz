@@ -1,6 +1,6 @@
 # Workout Wiz
 
-> **Demo video** — coming soon (by noon Sunday 6/7)
+> **Demo slides**: [HTML](.docs/demo/runbook.slides.html) / [MD](.docs/demo/runbook.slides.md)
 
 A fitness coaching API and web app built as an AI engineering take-home assessment. The backend is production-wired (async FastAPI, PostgreSQL, JWT auth, structured logging, resilient error handling); the LangGraph multi-agent routing layer sits between the chat UI and the REST API.
 
@@ -15,7 +15,8 @@ A fitness coaching API and web app built as an AI engineering take-home assessme
                     │ HTTP / JSON
 ┌───────────────────▼─────────────────────────────────────┐
 │  Multi-Agent Layer (LangGraph StateGraph)               │
-│  Hub router → COACH | WORKOUT_GENERATE | WORKOUT_LOG    │
+│  Hub router → COACH | WORKOUT_GENERATE | WORKOUT_LOG     │
+│               KNOWLEDGE_GRAPH | FALLBACK | clarification │
 │  /chat  /audit/{session_id}                             │
 │  localhost:8000                                         │
 └───────────────────┬─────────────────────────────────────┘
@@ -43,6 +44,7 @@ The hub routes natural-language input to the appropriate sub-agent using LLM str
 | `COACH` | "What muscles does a deadlift work?" |
 | `WORKOUT_GENERATE` | "Build me a 30-min upper-body session with dumbbells" |
 | `WORKOUT_LOG` | "I just did 3×10 bench press at 185 lbs" |
+| `KNOWLEDGE_GRAPH` | "Build a workout that avoids aggravating my knee injury" |
 | `FALLBACK` | "What's the capital of France?" |
 
 ## Stack
@@ -102,6 +104,7 @@ Open [http://localhost:8000](http://localhost:8000) in your browser. Each respon
 | COACH | "How many rest days should I take per week for hypertrophy?" |
 | WORKOUT_GENERATE | "Give me a 45-minute full-body strength workout with dumbbells." |
 | WORKOUT_LOG | "I just did 3 sets of 10 bench press at 135 lbs and a 20-minute run." |
+| KNOWLEDGE_GRAPH | "Build a workout that avoids aggravating my knee and shoulder injuries." |
 | FALLBACK | "What's the best recipe for banana bread?" |
 | Clarification | "Maybe I want to do something?" *(low-confidence trigger)* |
 
@@ -150,7 +153,7 @@ cd backend && pytest -m live -v
 ```
 
 Six end-to-end tests invoke the real hub via the `/chat/` endpoint and assert that:
-- Each message routes to the correct sub-agent (`COACH`, `WORKOUT_GENERATE`, `WORKOUT_LOG`, clarification)
+- Each message routes to the correct sub-agent (`COACH`, `WORKOUT_GENERATE`, `WORKOUT_LOG`, `KNOWLEDGE_GRAPH`, clarification)
 - The audit log for every call contains real telemetry (`latency_ms > 0`, `tokens_in > 0`, `tokens_out > 0`)
 - The `GET /chat/audit/{session_id}` endpoint returns populated entries
 - Audit entries accumulate correctly across a multi-turn session
