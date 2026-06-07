@@ -1,32 +1,53 @@
-import { useState } from 'react'
-import { cn } from '@/lib/utils'
+import { type SyntheticEvent, useState } from 'react'
 import { useKGFeedback } from '@/hooks/useKGFeedback'
+import { RatingWidget } from './RatingWidget'
 
 interface FeedbackFormProps {
-  exerciseId: string
+  exerciseId?: string
   memberId: string
+  workoutId?: string
+  workoutSetId?: string
+  contextType?: 'exercise' | 'workout' | 'set'
+  compact?: boolean
   onSuccess?: () => void
 }
 
-export function FeedbackForm({ exerciseId, memberId, onSuccess }: FeedbackFormProps) {
-  const [rating, setRating] = useState<number | null>(null)
-  const [hovered, setHovered] = useState<number | null>(null)
+({ exerciseId, memberId, workoutId, workoutSetId, contextType = 'exercise', compact = false, onSuccess }: FeedbackFormProps) {
+  const [rating, setRating] = useState<1 | 2 | 3 | 4 | 5 | null>(null)
   const [text, setText] = useState('')
   const { mutate, isPending, isSuccess, isError, error } = useKGFeedback()
 
-  function handleSubmit(e: React.SyntheticEvent) {
-    e.preventDefault()
-    if (rating === null) return
+  function submit(v: 1 | 2 | 3 | 4 | 5, extraText?: string) {
     mutate(
-      { member_id: memberId, exercise_id: exerciseId, rating, text: text.trim() || undefined },
       {
-        onSuccess: () => {
-          onSuccess?.()
-        },
+        member_id: memberId,
+        exercise_id: exerciseId,
+        rating: v,
+        text: extraText?.trim() || undefined,
+        workout_id: workoutId,
+        workout_set_id: workoutSetId,
+        context_type: contextType,
       },
+      { onSuccess: () => { onSuccess?.() } },
     )
   }
 
+  // Compact mode: single face button → popover picker, auto-submits on selection
+  if (compact) {
+    return (
+      <RatingWidget
+        value={rating}
+        compact
+        disabled={isPending || isSuccess}
+        onChange={(v) => {
+          setRating(v)
+          submit(v)
+        }}
+      />
+    )
+  }
+
+  // Expanded mode: full form with textarea
   if (isSuccess) {
     return (
       <div
@@ -43,7 +64,11 @@ export function FeedbackForm({ exerciseId, memberId, onSuccess }: FeedbackFormPr
     )
   }
 
-  const displayRating = hovered ?? rating
+  function handleSubmit(e: SyntheticEvent) {
+    e.preventDefault()
+    if (rating === null) return
+    submit(rating, text)
+  }
 
   return (
     <form onSubmit={handleSubmit} className="ww-card" style={{ padding: 'var(--space-3)' }}>
@@ -57,38 +82,10 @@ export function FeedbackForm({ exerciseId, memberId, onSuccess }: FeedbackFormPr
         Rate this exercise
       </div>
 
-      {/* Star rating */}
-      <div
-        role="group"
-        aria-label="Star rating"
-        style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}
-      >
-        {([1, 2, 3, 4, 5] as const).map((n) => (
-          <button
-            key={n}
-            type="button"
-            aria-label={`Rate ${n} out of 5`}
-            aria-pressed={rating === n}
-            disabled={isPending}
-            onClick={() => { setRating(n) }}
-            onMouseEnter={() => { setHovered(n) }}
-            onMouseLeave={() => { setHovered(null) }}
-            className={cn(
-              'ww-btn ww-btn--ghost ww-iconbtn',
-              displayRating !== null && n <= displayRating && 'ww-btn--accent',
-            )}
-            style={{
-              fontSize: '1.5rem',
-              opacity: isPending ? 0.5 : displayRating !== null && n <= displayRating ? 1 : 0.4,
-              transition: 'opacity var(--dur-fast) var(--ease-out)',
-            }}
-          >
-            ★
-          </button>
-        ))}
+      <div style={{ marginBottom: 'var(--space-2)' }}>
+        <RatingWidget value={rating} onChange={setRating} disabled={isPending} />
       </div>
 
-      {/* Optional text */}
       <textarea
         value={text}
         onChange={(e) => { setText(e.target.value) }}
@@ -96,28 +93,15 @@ export function FeedbackForm({ exerciseId, memberId, onSuccess }: FeedbackFormPr
         placeholder="Optional feedback…"
         rows={3}
         className="ww-input"
-        style={{
-          width: '100%',
-          resize: 'vertical',
-          marginBottom: 'var(--space-2)',
-          fontSize: 'var(--text-sm)',
-        }}
+        style={{ width: '100%', resize: 'vertical', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}
       />
 
-      {/* Error */}
       {isError && (
-        <div
-          style={{
-            color: 'var(--destructive)',
-            fontSize: 'var(--text-xs)',
-            marginBottom: 'var(--space-2)',
-          }}
-        >
+        <div style={{ color: 'var(--destructive)', fontSize: 'var(--text-xs)', marginBottom: 'var(--space-2)' }}>
           {error instanceof Error ? error.message : 'Submission failed. Please try again.'}
         </div>
       )}
 
-      {/* Submit */}
       <button
         type="submit"
         disabled={rating === null || isPending}

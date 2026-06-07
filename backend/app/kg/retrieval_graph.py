@@ -25,7 +25,9 @@ from neo4j import AsyncDriver
 
 from app.kg.context_assembler import ContextSlice, assemble_context
 from app.knowledge_graph.traversal import (
+    get_avoided_exercises,
     get_contraindicated_exercise_ids,
+    get_contraindicated_provenance,
     get_member_profile,
     get_performed_exercises,
     get_preferred_exercises,
@@ -51,10 +53,12 @@ class RetrievalState(TypedDict, total=False):
     member_profile: dict[str, Any] | None
     # Populated by run_injury_traversal node
     contraindicated_ids: set[str]
+    contraindicated_provenance: list[dict[str, Any]]
     safe_exercises: list[dict[str, Any]]
     # Populated by run_preference_traversal node
     preferred_exercises: list[dict[str, Any]]
     performed_exercises: list[dict[str, Any]]
+    avoided_exercises: list[dict[str, Any]]
     # Populated by run_vector_search node
     vector_docs: list[Any]
     # Populated by assemble node (final output)
@@ -104,9 +108,10 @@ def _make_nodes(
     async def run_injury_traversal(state: RetrievalState) -> dict[str, Any]:
         member_id = state["member_id"]
         t0 = time.monotonic()
-        contraindicated, safe = await asyncio.gather(
+        contraindicated, safe, provenance = await asyncio.gather(
             get_contraindicated_exercise_ids(member_id, driver),
             get_safe_exercises(member_id, driver),
+            get_contraindicated_provenance(member_id, driver),
         )
         latency_ms = int((time.monotonic() - t0) * 1000)
         audit_entry = {
@@ -115,32 +120,37 @@ def _make_nodes(
             "user_id": state.get("user_id"),
             "result_count": len(safe),
             "constraint_count": len(contraindicated),
+            "snomed_provenance_records": len(provenance),
         }
         return {
             "contraindicated_ids": contraindicated,
+            "contraindicated_provenance": provenance,
             "safe_exercises": safe,
             "audit_log": state.get("audit_log", []) + [audit_entry],
         }
 
     async def run_preference_traversal(state: RetrievalState) -> dict[str, Any]:
-        member_id = state["member_id"]
-        t0 = time.monotonic()
-        preferred, performed = await asyncio.gather(
-            get_preferred_exercises(member_id, driver),
-            get_performed_exercises(member_id, driver),
-        )
-        latency_ms = int((time.monotonic() - t0) * 1000)
-        audit_entry = {
-            "event": "retrieval_preference_traversal",
-            "latency_ms": latency_ms,
-            "user_id": state.get("user_id"),
-            "result_count": len(preferred) + len(performed),
-        }
-        return {
-            "preferred_exercises": preferred,
-            "performed_exercises": performed,
-            "audit_log": state.get("audit_log", []) + [audit_entry],
-        }
+            member_id = state["member_id"]
+            t0 = time.monotonic()
+            preferred, performed, avoided = await asyncio.gather(
+                get_preferred_exercises(member_id, driver),
+                get_performed_exercises(member_id, driver),
+                get_avoided_exercises(member_id, driver),
+            )
+            latency_ms = int((time.monotonic() - t0) * 1000)
+            audit_entry = {
+                "event": "retrieval_preference_traversal",
+                "latency_ms": latency_ms,
+                "user_id": state.get("user_id"),
+                "result_count": len(preferred) + len(performed),
+                "avoided_count": len(avoided),
+            }
+            return {
+                "preferred_exercises": preferred,
+                "performed_exercises": performed,
+                "avoided_exercises": avoided,
+                "audit_log": state.get("audit_log", []) + [audit_entry],
+            }
 
     async def run_vector_search(state: RetrievalState) -> dict[str, Any]:
         query = state.get("query", "")
@@ -202,6 +212,11 @@ def _make_nodes(
             "input_count": input_count,
             "output_count": output_count,
         }
+        # Stitch SNOMED provenance from injury traversal into the assembled context
+        if context is not None:
+            context["contraindicated_provenance"] = state.get(
+                "contraindicated_provenance", []
+            )
         return {
             "context": context,
             "audit_log": state.get("audit_log", []) + [audit_entry],

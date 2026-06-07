@@ -50,6 +50,7 @@ class RecommendedExercise(BaseModel):
     reasoning: str
     source_type: Literal["SAFE_SET", "PREFERRED", "VECTOR_SEARCH", "FALLBACK"]
     source_id: str | None = None
+    provenance: dict | None = None
 
 
 class WorkoutRecommendation(BaseModel):
@@ -159,6 +160,31 @@ Please design a personalized workout for this member using only the exercises in
 
 
 
+
+def _build_provenance(rec: dict, decision: str) -> dict:
+    """Build a PROV-O-aligned provenance trace from a contraindicated_provenance record."""
+    return {
+        "prov_type": "prov:wasDerivedFrom",
+        "injury_name": rec.get("injury_name"),
+        "disorder_snomed": rec.get("disorder_code"),
+        "disorder_name": rec.get("disorder_name"),
+        "finding_site_snomed": rec.get("finding_site_code"),
+        "finding_site_name": rec.get("finding_site_name"),
+        "matched_joint": rec.get("matched_joint"),
+        "joint_snomed_code": rec.get("joint_snomed_code"),
+        "skos_mapping": {
+            "catalog_term": rec.get("matched_joint"),
+            "snomed_code": rec.get("joint_snomed_code"),
+            "relation": rec.get("skos_relation"),
+        },
+        "traversal_path": (
+            "Member→HAS_INJURY→Injury→MAPS_TO_DISORDER→Disorder"
+            "→FINDING_SITE→BodyStructure→PART_OF*→BodyStructure←MAPS_TO←Exercise"
+        ),
+        "decision": decision,
+    }
+
+
 def _enrich_recommendation_with_sources(
     recommendation: WorkoutRecommendation,
     context: ContextSlice,
@@ -178,12 +204,18 @@ def _enrich_recommendation_with_sources(
     # Build ID→index maps for quick lookup
     preferred_ids = {e.get("id"): i for i, e in enumerate(context.get("preferred_exercises", []))}
     vector_ids = {e.get("id"): i for i, e in enumerate(context.get("vector_hits", []))}
-    
+
+    # Index SNOMED provenance by exercise_id for O(1) lookup
+    prov_records = context.get("contraindicated_provenance") or []
+    prov_by_exercise: dict[str, list[dict]] = {}
+    for rec in prov_records:
+        prov_by_exercise.setdefault(rec["exercise_id"], []).append(rec)
+
     # Enrich each exercise
     enriched_exercises = []
     for exercise in recommendation.exercises:
         ex_id = exercise.exercise_id
-        
+
         # Determine source based on which context list the exercise appears in
         if ex_id in preferred_ids:
             source_type = "PREFERRED"
@@ -192,11 +224,27 @@ def _enrich_recommendation_with_sources(
             source_type = "VECTOR_SEARCH"
             source_id = f"vector_{vector_ids[ex_id]}"
         else:
-            # Default to SAFE_SET for all other cases
             source_type = "SAFE_SET"
             source_id = f"safe_{ex_id}"
-        
-        # Create a new RecommendedExercise with source fields
+
+        # Build PROV-O-aligned provenance trace for this recommended exercise
+        prov: dict | None = None
+        if ex_id in prov_by_exercise:
+            # Exercise appears in contraindicated set — shouldn't reach here after safety gate,
+            # but record the path defensively
+            rec = prov_by_exercise[ex_id][0]
+            prov = _build_provenance(rec, decision="CONTRAINDICATED — passed safety gate unexpectedly")
+        else:
+            # Recommended exercise — record the positive path
+            prov = {
+                "prov_type": "prov:wasGeneratedBy",
+                "source_type": source_type,
+                "traversal_path": "Member→HAS_INJURY→Injury→MAPS_TO_DISORDER→Disorder"
+                                  "→FINDING_SITE→BodyStructure→PART_OF*→BodyStructure←MAPS_TO←Exercise",
+                "decision": "SAFE — not contraindicated via SNOMED traversal",
+            }
+
+        # Create a new RecommendedExercise with source + provenance fields
         enriched = RecommendedExercise(
             exercise_id=exercise.exercise_id,
             name=exercise.name,
@@ -207,6 +255,7 @@ def _enrich_recommendation_with_sources(
             reasoning=exercise.reasoning,
             source_type=source_type,
             source_id=source_id,
+            provenance=prov,
         )
         enriched_exercises.append(enriched)
     

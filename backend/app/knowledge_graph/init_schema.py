@@ -55,6 +55,14 @@ CONSTRAINTS: list[str] = [
     CREATE CONSTRAINT set_id IF NOT EXISTS
     FOR (s:Set) REQUIRE s.id IS UNIQUE
     """,
+    """
+    CREATE CONSTRAINT body_structure_snomed_code IF NOT EXISTS
+    FOR (b:BodyStructure) REQUIRE b.snomed_code IS UNIQUE
+    """,
+    """
+    CREATE CONSTRAINT disorder_snomed_code IF NOT EXISTS
+    FOR (d:Disorder) REQUIRE d.snomed_code IS UNIQUE
+    """,
 ]
 
 # ---------------------------------------------------------------------------

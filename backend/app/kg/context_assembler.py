@@ -17,10 +17,12 @@ from collections.abc import Callable
 from neo4j import AsyncDriver
 
 from app.knowledge_graph.traversal import (
+    get_avoided_exercises,
     get_member_profile,
-    get_safe_exercises,
-    get_preferred_exercises,
     get_performed_exercises,
+    get_preferred_exercises,
+    get_safe_exercises,
+    get_workout_feedback,
 )
 from app.kg.embeddings import get_exercise_vector_store
 
@@ -49,8 +51,11 @@ class ContextSlice(TypedDict):
     member_profile: dict[str, Any] | None
     safe_exercises: list[dict[str, Any]]
     preferred_exercises: list[dict[str, Any]]
+    avoided_exercises: list[dict[str, Any]]
+    recent_workout_feedback: list[dict[str, Any]]
     vector_hits: list[dict[str, Any]]
     token_counts: SectionTokenCounts
+    contraindicated_provenance: list[dict[str, Any]]
 
 
 def _estimate_tokens(obj: Any) -> int:
@@ -176,6 +181,7 @@ async def assemble_context(
             safe_exercises=vector_truncated,  # treated as safe for generation purposes
             preferred_exercises=[],
             vector_hits=vector_truncated,
+            contraindicated_provenance=[],
             token_counts=SectionTokenCounts(
                 member_profile=0,
                 safe_exercises=vector_tokens,
@@ -241,6 +247,7 @@ async def assemble_context(
         safe_exercises=safe_truncated,
         preferred_exercises=preferred_truncated,
         vector_hits=vector_truncated,
+        contraindicated_provenance=[],  # populated by retrieval_graph from RetrievalState
         token_counts=SectionTokenCounts(
             member_profile=profile_tokens,
             safe_exercises=safe_tokens,

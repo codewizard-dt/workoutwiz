@@ -6,19 +6,32 @@ from pydantic import BaseModel, Field
 
 
 class FeedbackPayload(BaseModel):
-    """Payload for submitting post-workout exercise feedback."""
+    """Payload for submitting post-workout feedback.
+
+    Supports three context types:
+      - exercise: feedback on a single exercise (exercise_id required)
+      - workout:  feedback on an entire workout session (workout_id required)
+      - set:      feedback on a specific set (workout_set_id + exercise_id required)
+    """
 
     member_id: str = Field(description="UUID of the member submitting feedback")
-    exercise_id: str = Field(description="UUID of the exercise being rated")
+    exercise_id: str | None = Field(
+        default=None,
+        description="UUID of the exercise being rated (required for exercise/set contexts)",
+    )
     rating: int = Field(ge=1, le=5, description="Rating from 1 (poor) to 5 (excellent)")
     text: str | None = Field(default=None, description="Optional free-text feedback")
-    workout_session_id: str | None = Field(
+    workout_id: str | None = Field(
         default=None,
-        description="UUID of the associated workout session, if any",
+        description="UUID of the associated workout (required for workout context)",
+    )
+    workout_set_id: str | None = Field(
+        default=None,
+        description="UUID of the specific set (required for set context)",
     )
     context_type: str = Field(
-        default="post_workout",
-        description="Context in which the feedback was given (e.g. 'post_workout')",
+        default="exercise",
+        description="Context type: 'exercise', 'workout', or 'set'",
     )
 
 

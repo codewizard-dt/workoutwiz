@@ -51,7 +51,10 @@ def _merge_injury_node(tx: neo4j.ManagedTransaction, record: dict[str, Any]) -> 
             i.affected_joints = $affected_joints,
             i.severity        = $severity,
             i.onset_date      = $onset_date,
-            i.status          = $status
+            i.status          = $status,
+            i.region          = $region,
+            i.notes           = $notes,
+            i.snomedct_hint   = $snomedct_hint
         """,
         id=record["id"],
         name=record["name"],
@@ -59,6 +62,9 @@ def _merge_injury_node(tx: neo4j.ManagedTransaction, record: dict[str, Any]) -> 
         severity=record["severity"],
         onset_date=record.get("onset_date"),
         status=record["status"],
+        region=record.get("region"),
+        notes=record.get("notes"),
+        snomedct_hint=record.get("snomedct_hint"),
     )
 
 
@@ -177,6 +183,9 @@ def build_injury_records(
                     "severity": injury["severity"],
                     "onset_date": injury.get("onset_date"),
                     "status": injury["status"],
+                    "region": injury.get("region"),
+                    "notes": injury.get("notes"),
+                    "snomedct_hint": injury.get("snomedct_hint"),
                 }
             )
     return records

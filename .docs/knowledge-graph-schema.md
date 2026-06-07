@@ -54,11 +54,45 @@ A member's active or historical injury/condition.
 | Property | Type | Description |
 |----------|------|-------------|
 | `id` | `string` (UUID) | Unique identifier |
-| `name` | `string` | Condition name, e.g. `"Knee Tendinopathy"` |
+| `name` | `string` | Condition name, e.g. `"Left knee tendinopathy"` |
 | `affected_joints` | `string[]` | Joints affected, e.g. `["knee"]` |
 | `severity` | `string` | One of `mild`, `moderate`, `severe` |
 | `onset_date` | `date\|null` | When the condition started |
 | `status` | `string` | `active` or `resolved` |
+| `region` | `string\|null` | Explicit laterality + body part, e.g. `"left knee"` |
+| `notes` | `string\|null` | Clinical guidance: restrictions and tolerated movements |
+| `snomedct_hint` | `string\|null` | Label used to resolve this injury to a SNOMED CT `Disorder` node |
+
+---
+
+### `BodyStructure`
+
+A SNOMED CT anatomical concept — catalog joint roots and their sub-structures.
+Seeded from `backend/data/snomed_subset.json` by `ingest_snomed.py`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `snomed_code` | `string` (unique) | SNOMED CT concept code |
+| `snomed_name` | `string` | SNOMED preferred term |
+| `catalog_term` | `string\|null` | Matching `joints_loaded` value from the exercise catalog (e.g. `"knee"`); null for sub-structures |
+| `skos_relation` | `string\|null` | `exactMatch` or `closeMatch` — how the catalog term relates to the SNOMED concept |
+
+---
+
+### `Disorder`
+
+A SNOMED CT clinical disorder mapped from an injury label.
+Seeded from `backend/data/snomed_subset.json` by `ingest_snomed.py`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `snomed_code` | `string` (unique) | SNOMED CT concept code |
+| `snomed_name` | `string` | SNOMED preferred term |
+| `label` | `string` | Human-readable resolver label (matches `Injury.snomedct_hint`) |
+| `expected_joint` | `string` | Catalog joint this disorder is associated with |
+| `finding_site_code` | `string\|null` | SNOMED code of the anatomical finding site |
+| `finding_site_name` | `string\|null` | Name of the finding site |
+| `validated` | `boolean` | Whether the finding site was confirmed via graph traversal or keyword match |
 
 ---
 
@@ -130,71 +164,121 @@ This exercise was performed in the session.
 
 ### `(Member)-[:RATED {rating, feedback_text, created_at}]->(Exercise)`
 
-A member rated this exercise directly. Derived from `FeedbackEvent` nodes where `context_type = "exercise"`. Also stored as a direct relationship for fast traversal.
+**Denormalized fast-path.** A member rated this exercise directly. This is a single cheap hop for preference retrieval — one edge per (member, exercise) pair, carrying the *latest* rating. The edge is written (and updated) at the same time as the `FeedbackEvent` audit-trail node, so the two are always in sync.
+
+For longitudinal trend analysis (e.g. "how has her opinion of squats changed over time?") query `FeedbackEvent` nodes via the `ABOUT` edge instead — see the FeedbackEvent audit-trail traversal pattern below.
 
 - **Cardinality**: many-to-many (a member rates many exercises; an exercise is rated by many members)
 - **Properties**:
-  - `rating` (`integer`, 1–5)
+  - `rating` (`integer`, 1–5) — most recent rating; prior values are preserved in `FeedbackEvent` history
   - `feedback_text` (`string\|null`)
   - `created_at` (`datetime`)
 
 ---
 
-### `(Injury)-[:AFFECTS_JOINT]->(string)`
+### `(FeedbackEvent)-[:ABOUT]->(Exercise | WorkoutSession | Set)`
 
-Conceptual relationship — encoded as the `affected_joints` property array on `Injury` nodes, not as separate string nodes. Resolved at query time via `ANY(j IN i.affected_joints WHERE j IN e.joints_loaded)`.
+**Audit-trail edge.** Links every discrete feedback signal to the entity it describes. This is the append-only event log counterpart to the denormalized `RATED` fast-path — each `FeedbackEvent` node grows exactly one `ABOUT` edge (two edges when `context_type = "set"` and an `exercise_id` is present).
 
----
-
-### `(Exercise)-[:LOADS_JOINT]->(string)`
-
-Conceptual relationship — encoded as the `joints_loaded` property array on `Exercise` nodes. Resolved at query time.
+- **Cardinality**: one FeedbackEvent → one target node (many-to-one); each Exercise/WorkoutSession/Set can be the target of many FeedbackEvents
+- **Properties**: none
+- **Target by context type:**
+  - `context_type = "exercise"` → `(FeedbackEvent)-[:ABOUT]->(Exercise)`
+  - `context_type = "workout"` → `(FeedbackEvent)-[:ABOUT]->(WorkoutSession)`
+  - `context_type = "set"` → `(FeedbackEvent)-[:ABOUT]->(Set)` and optionally `(FeedbackEvent)-[:ABOUT]->(Exercise)` when `exercise_id` is present
 
 ---
 
 ### `(Exercise)-[:CONTRAINDICATED_BY]->(Injury)`
 
-Derived edge: this exercise is contraindicated by this injury because the exercise loads at least one joint affected by the injury. Written during injury ingestion and updated when new exercises are added.
+Legacy derived edge: written during injury ingestion when `Exercise.joints_loaded` overlaps `Injury.affected_joints`. Retained as a fallback for Injury nodes that predate SNOMED ingestion (i.e. nodes with no `MAPS_TO_DISORDER` edge). New code should prefer the SNOMED traversal path.
 
 - **Cardinality**: many-to-many
-- **Properties**: none (the overlap rationale is recoverable via `joints_loaded` and `affected_joints`)
+- **Properties**: none
+
+---
+
+### `(Exercise)-[:MAPS_TO]->(BodyStructure)`
+
+SNOMED-grounded mapping from an exercise's `joints_loaded` catalog term to the corresponding `BodyStructure` node. Written by `ingest_snomed.py`.
+
+- **Cardinality**: many-to-many (one exercise may load several joints; one BodyStructure is shared by many exercises)
+- **Properties**: `catalog_term` (string) — the `joints_loaded` value that triggered this edge
+
+---
+
+### `(Disorder)-[:FINDING_SITE]->(BodyStructure)`
+
+SNOMED role edge: this disorder's anatomical finding site. Written by `ingest_snomed.py` from the `Has finding site` relationship in the SNOMED CT concept record.
+
+- **Cardinality**: many-to-one (a disorder has one finding site; many disorders may point to the same structure)
+- **Properties**: none
+
+---
+
+### `(BodyStructure)-[:PART_OF]->(BodyStructure)`
+
+Hierarchical containment: a body sub-structure is part of a parent joint. Two varieties:
+- **Ontology edges** — direct children of the 9 catalog joint roots from SNOMED `/children` API
+- **Bridge edges** — finding-site nodes matched via keyword that sit in a parallel SNOMED hierarchy; bridged directly to the catalog joint root to close the safety traversal loop
+
+- **Cardinality**: many-to-one per edge; a structure may be part of multiple parents in practice
+- **Properties**: none
+
+---
+
+### `(Injury)-[:MAPS_TO_DISORDER]->(Disorder)`
+
+Links an `Injury` node to its SNOMED CT `Disorder` by matching `Injury.snomedct_hint` to `Disorder.label`. Written by `ingest_snomed.py`.
+
+- **Cardinality**: many-to-one (multiple lateralized injuries collapse to one non-lateralized Disorder)
+- **Properties**: none
 
 ---
 
 ## Key Traversal Patterns
 
-### Injury-Aware Exercise Filtering
+### SNOMED-Grounded Safety Traversal (primary)
 
-Return all exercises that are safe for a given member (no contraindicated joints):
+Deterministic injury-aware filtering using the full SNOMED path:
 
 ```cypher
-// Find exercises a member CAN perform given their active injuries
-MATCH (m:Member {id: $member_id})
-OPTIONAL MATCH (m)-[:HAS_INJURY]->(i:Injury {status: 'active'})
-WITH m, collect(i.affected_joints) AS injured_joint_lists
-WITH m, [j IN apoc.coll.flatten(injured_joint_lists) | j] AS all_injured_joints
-
-MATCH (e:Exercise)
-WHERE NONE(j IN e.joints_loaded WHERE j IN all_injured_joints)
-RETURN e.id, e.name, e.muscle_groups, e.priority_tier
-ORDER BY e.priority_tier ASC
-LIMIT 20
+// Contraindicated exercise IDs via SNOMED graph
+MATCH (m:Member {id: $member_id})-[:HAS_INJURY]->(inj:Injury {status: 'active'})
+      -[:MAPS_TO_DISORDER]->(d:Disorder)
+      -[:FINDING_SITE]->(bs:BodyStructure)
+      -[:PART_OF*0..]->(joint:BodyStructure)
+      <-[:MAPS_TO]-(ex:Exercise)
+RETURN DISTINCT ex.id AS exercise_id,
+       inj.name        AS injury_name,
+       d.snomed_code   AS disorder_code,
+       bs.snomed_name  AS finding_site_name,
+       joint.catalog_term AS matched_joint
 ```
 
-Alternative using the derived `CONTRAINDICATED_BY` edge (faster when edge is pre-computed):
+```cypher
+// Safe exercises: NOT reachable via the SNOMED path
+MATCH (m:Member {id: $member_id})
+MATCH (e:Exercise)
+WHERE NOT EXISTS {
+    MATCH (m)-[:HAS_INJURY]->(inj:Injury {status: 'active'})
+          -[:MAPS_TO_DISORDER]->(d:Disorder)
+          -[:FINDING_SITE]->(bs:BodyStructure)
+          -[:PART_OF*0..]->(joint:BodyStructure)
+          <-[:MAPS_TO]-(e)
+}
+RETURN e.id, e.name, e.priority_tier
+ORDER BY e.priority_tier ASC
+```
+
+### Legacy Safety Filter (fallback)
+
+Used when an `Injury` node has no `MAPS_TO_DISORDER` edge (pre-SNOMED data):
 
 ```cypher
 MATCH (m:Member {id: $member_id})-[:HAS_INJURY]->(i:Injury {status: 'active'})
-WITH m, collect(i) AS injuries
-
-MATCH (e:Exercise)
-WHERE NOT EXISTS {
-    MATCH (e)-[:CONTRAINDICATED_BY]->(bad_i:Injury)
-    WHERE bad_i IN injuries
-}
-RETURN e.id, e.name, e.muscle_groups, e.priority_tier
-ORDER BY e.priority_tier ASC
-LIMIT 20
+                                 <-[:CONTRAINDICATED_BY]-(e:Exercise)
+RETURN DISTINCT e.id AS exercise_id
 ```
 
 ---
@@ -218,6 +302,42 @@ MATCH (m:Member {id: $member_id})-[r:RATED]->(e:Exercise)
 WHERE r.rating <= 2
 RETURN e.id, e.name, r.rating, r.feedback_text
 ORDER BY r.rating ASC
+```
+
+---
+
+### Rating History — FeedbackEvent Audit Trail
+
+Full per-exercise rating history for a member, including timestamp of each signal. Use this for trend analysis rather than the denormalized `RATED` edge (which only holds the latest rating).
+
+```cypher
+// Full rating history for a member across all exercises
+MATCH (m:Member {id: $member_id})-[:GAVE]->(f:FeedbackEvent)-[:ABOUT]->(e:Exercise)
+RETURN e.id, e.name, f.rating, f.feedback_text, f.created_at
+ORDER BY e.name ASC, f.created_at DESC
+```
+
+```cypher
+// Rating trend for a specific exercise — has the member's opinion improved or declined?
+MATCH (m:Member {id: $member_id})-[:GAVE]->(f:FeedbackEvent)-[:ABOUT]->(e:Exercise {id: $exercise_id})
+RETURN f.rating, f.feedback_text, f.created_at
+ORDER BY f.created_at ASC
+```
+
+---
+
+### Avoided Exercises
+
+Exercises a member has rated 1–2★ — surfaced by `get_avoided_exercises` and injected into the generation prompt as "EXERCISES TO AVOID" to prevent the LLM from recommending them.
+
+```cypher
+// Exercises flagged as avoided (rating ≤ 2 via denormalized RATED edge — fast path)
+MATCH (m:Member {id: $member_id})-[r:RATED]->(e:Exercise)
+WHERE r.rating <= 2
+RETURN e.id, e.name, e.muscle_groups, e.movement_patterns,
+       e.equipment_required, e.priority_tier,
+       r.rating, r.feedback_text
+ORDER BY r.rating ASC, e.name ASC
 ```
 
 ---
@@ -269,10 +389,12 @@ ORDER BY score DESC
 
 ## Design Notes
 
-1. **Joint overlap is the contraindication signal.** The `CONTRAINDICATED_BY` edge is pre-computed at ingestion time by comparing `Injury.affected_joints` with `Exercise.joints_loaded`. This avoids expensive set-intersection at query time when generating recommendations.
+1. **SNOMED graph traversal is the primary safety mechanism.** The path `Injury → MAPS_TO_DISORDER → Disorder → FINDING_SITE → BodyStructure → PART_OF*0.. → BodyStructure ← MAPS_TO ← Exercise` enforces contraindication deterministically through graph structure, not string comparison or prompt instructions. The `CONTRAINDICATED_BY` edge is retained as a fallback for legacy Injury nodes that predate SNOMED ingestion.
 
-2. **`RATED` is both a node and a relationship.** `FeedbackEvent` nodes preserve the full audit trail; the `[:RATED]` relationship on the `(Member)->(Exercise)` edge is a denormalized copy for fast traversal. Both are written during feedback ingestion.
+2. **SNOMED codes are frozen at build time.** `backend/scripts/build_snomed_subset.py` fetches from the public NCI EVS REST API once and writes `backend/data/snomed_subset.json`. The running application never calls SNOMED CT. Re-run the script to pick up ontology updates.
 
-3. **`joints_loaded` on Exercise is the bridge field.** It must be populated during exercise ingestion from `exercises.json`. The `exercises.json` dataset does not include `joints_loaded` directly — it must be derived from `muscle_groups` + `movement_patterns` during Phase 3 ingestion (see ROADMAP-004 Phase 3).
+3. **PART_OF edges come in two kinds.** Ontology edges connect SNOMED sub-structures to their parent joint roots (from the SNOMED `/children` API). Bridge edges connect finding-site structures that are anatomically at a joint but in a parallel SNOMED hierarchy (matched via keyword during build); these are added during `ingest_snomed.py` to close the traversal loop.
 
-4. **PostgreSQL remains the system of record for auth and workout sets.** Neo4j holds the coaching graph only. The `Member.id` and `WorkoutSession.id` in Neo4j match their PostgreSQL counterparts to enable cross-store joins when needed.
+4. **`RATED` duality — denormalized edge vs. `FeedbackEvent` audit trail.** The same exercise rating is stored two ways simultaneously. `(Member)-[:RATED]->(Exercise)` is a single mutable edge per (member, exercise) pair that always reflects the *latest* rating — it exists so the preference traversal in `get_preferred_exercises` and `get_avoided_exercises` is a cheap single hop on the hot path. `FeedbackEvent` nodes (linked via `(FeedbackEvent)-[:ABOUT]->(Exercise)`) are immutable, append-style records — one node per rating event, full history, every timestamp preserved. Use `FeedbackEvent` for trend analysis and longitudinal queries; use `RATED` for current-preference retrieval. Both are written in the same transaction in `write_feedback` and `_upsert_feedback_batch`; `RATED` uses `ON MATCH SET` to overwrite, while `FeedbackEvent` accumulates.
+
+5. **PostgreSQL remains the system of record for auth and workout sets.** Neo4j holds the coaching graph only. The `Member.id` and `WorkoutSession.id` in Neo4j match their PostgreSQL counterparts to enable cross-store joins when needed.

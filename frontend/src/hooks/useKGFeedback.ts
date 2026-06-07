@@ -3,13 +3,17 @@ import { useAuth } from '@/context/AuthContext'
 
 interface FeedbackPayload {
   member_id: string
-  exercise_id: string
+  exercise_id?: string
   rating: number
   text?: string
+  workout_id?: string
+  workout_set_id?: string
+  context_type: 'exercise' | 'workout' | 'set'
 }
 
 interface FeedbackResponse {
-  status: string
+  feedback_id: string
+  message?: string
 }
 
 export function useKGFeedback() {

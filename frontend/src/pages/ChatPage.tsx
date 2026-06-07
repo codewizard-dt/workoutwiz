@@ -296,6 +296,7 @@ export default function ChatPage() {
                           )}
                           {user?.id != null && (
                             <FeedbackForm
+                              compact
                               exerciseId={ex.exercise_id}
                               memberId={user.id}
                             />

@@ -3,8 +3,9 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useWorkout, useUpdateWorkout, useCreateWorkout } from '../hooks/useWorkouts'
 import { useDraftWorkout } from '@/hooks/useDraftWorkout'
 import { useExercises } from '../hooks/useExercises'
-import { EnjoymentScale } from '@/components/EnjoymentScale'
+import { RatingWidget } from '@/components/RatingWidget'
 import { PhaseTable } from '@/components/PhaseTable'
+import { useMe } from '@/hooks'
 
 export default function WorkoutDetailPage() {
   const { workoutId } = useParams<{ workoutId: string }>()
@@ -21,6 +22,7 @@ export default function WorkoutDetailPage() {
   const updateWorkout = useUpdateWorkout()
   const createWorkout = useCreateWorkout()
   const { addExercise: addToDraft } = useDraftWorkout()
+  const { data: user } = useMe()
 
   const [enjoyment, setEnjoyment] = useState<1 | 2 | 3 | 4 | 5>(3)
   const [note, setNote] = useState('')
@@ -342,9 +344,9 @@ export default function WorkoutDetailPage() {
           >
             Feels
           </label>
-          <EnjoymentScale
+          <RatingWidget
             value={enjoyment}
-            onChange={(v) => { setEnjoyment(v as 1 | 2 | 3 | 4 | 5) }}
+            onChange={(v) => { setEnjoyment(v) }}
           />
         </div>
 
@@ -390,6 +392,8 @@ export default function WorkoutDetailPage() {
       <PhaseTable
         sequences={workout.sequences}
         exercises={exercises}
+        memberId={user?.id}
+        workoutId={workout.id}
         onAddCurrent={(exerciseId) => {
           const ex = exercises.find((e) => e.id === exerciseId)
           addToDraft(exerciseId, ex?.is_duration === true && ex?.is_reps === false)

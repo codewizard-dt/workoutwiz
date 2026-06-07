@@ -1,9 +1,13 @@
 import { cn } from '@/lib/utils'
 import type { WorkoutSequence, Exercise, WorkoutPhase } from '@/types'
+import { FeedbackForm } from './FeedbackForm'
 
 interface PhaseTableProps {
   sequences: WorkoutSequence[]
   exercises?: Exercise[]
+  /** When provided alongside workoutId, renders a compact rating button per set row */
+  memberId?: string
+  workoutId?: string
   onAddCurrent?: (exerciseId: string) => void
 }
 
@@ -30,8 +34,9 @@ function formatPrescription(set: WorkoutSequence['sets'][number]): string {
   return '—'
 }
 
-export function PhaseTable({ sequences, exercises = [], onAddCurrent }: PhaseTableProps) {
+({ sequences, exercises = [], memberId, workoutId, onAddCurrent }: PhaseTableProps) {
   const exerciseById = new Map(exercises.map((ex) => [ex.id, ex]))
+  const showFeedback = memberId != null && workoutId != null
 
   const ordered = PHASE_ORDER.flatMap((phase) => {
     const seq = sequences.find((s) => s.phase === phase)
@@ -60,6 +65,9 @@ export function PhaseTable({ sequences, exercises = [], onAddCurrent }: PhaseTab
                     <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)', width: '42%' }}>Exercise</th>
                     <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Type</th>
                     <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Prescription</th>
+                    {showFeedback && (
+                      <th style={{ textAlign: 'center', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Feel</th>
+                    )}
                     {onAddCurrent && (
                       <th style={{ textAlign: 'right', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Add to current workout</th>
                     )}
@@ -102,6 +110,18 @@ export function PhaseTable({ sequences, exercises = [], onAddCurrent }: PhaseTab
                         <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
                           <span className="ww-num">{formatPrescription(set)}</span>
                         </td>
+                        {showFeedback && (
+                          <td style={{ padding: 'var(--space-2-5) var(--space-3)', textAlign: 'center' }}>
+                            <FeedbackForm
+                              compact
+                              exerciseId={set.exercise_id}
+                              memberId={memberId!}
+                              workoutId={workoutId}
+                              workoutSetId={set.id}
+                              contextType="exercise"
+                            />
+                          </td>
+                        )}
                         {onAddCurrent && (
                           <td style={{ padding: 'var(--space-2-5) var(--space-3)', textAlign: 'right' }}>
                             <button

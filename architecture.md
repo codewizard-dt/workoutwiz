@@ -27,8 +27,8 @@ Workout Wiz is a fitness coaching system built on a **LangGraph multi-agent hub*
 ┌──────▼──────┐  ┌──────▼──────────────────────────────┐
 │  PostgreSQL │  │  Neo4j                               │
 │  users      │  │  Member · Exercise · Injury          │
-│  exercises  │  │  Joint · FeedbackEvent nodes         │
-│  workouts   │  │  Cypher traversal + vector index     │
+│  exercises  │  │  BodyStructure · Disorder nodes      │
+│  workouts   │  │  SNOMED traversal + vector index     │
 │  sequences  │  │  bolt://localhost:7687               │
 │  sets       │  └─────────────────────────────────────┘
 │  :5433      │
@@ -130,9 +130,10 @@ POST /kg/recommend
 │                                                       │
 │  ┌─────────────────┐  ┌──────────────────────────┐   │
 │  │ member_lookup   │  │ injury_traversal          │   │
-│  │ Neo4j: MATCH    │  │ Neo4j: member→Injury→     │   │
-│  │ (m:Member)      │  │        Joint→Exercise     │   │
-│  │ return profile  │  │ → contraindicated_ids set │   │
+│  │ Neo4j: MATCH    │  │ SNOMED path: Injury→      │   │
+│  │ (m:Member)      │  │  Disorder→BodyStructure   │   │
+│  │ return profile  │  │  →Exercise (graph, not    │   │
+│  │                 │  │  string match)            │   │
 │  └────────┬────────┘  └──────────┬───────────────┘   │
 │           │                      │                    │
 │  ┌────────▼──────────────────────▼───────────────┐   │
@@ -178,11 +179,11 @@ POST /kg/recommend
 
 ### Safety guarantee
 
-The safety gate is a deterministic post-LLM filter: even if the model ignores the instruction to exclude contraindicated exercises, no such exercise can reach the response. This is not a prompt instruction — it is code.
+Contraindication filtering is enforced **deterministically through SNOMED graph traversal**, not by a prompt instruction. The path `Injury → MAPS_TO_DISORDER → Disorder → FINDING_SITE → BodyStructure → PART_OF*0.. → BodyStructure ← MAPS_TO ← Exercise` runs against Neo4j before the LLM call; the resulting set of contraindicated exercise IDs is passed as a hard exclusion list. A post-LLM safety gate then re-verifies the generated plan and strips any exercise that slipped through. No contraindicated exercise can reach the response regardless of what the model produces.
 
 ### Explainability
 
-`POST /kg/explain` accepts `{ member_id, exercise_id }` and traverses the Neo4j graph to explain why an exercise was included or excluded. The explanation traces the actual graph path (member → injury node → joint → exercise), not an LLM rationale.
+`POST /kg/explain` accepts `{ member_id, exercise_id }` and traverses the Neo4j graph to explain why an exercise was included or excluded. The explanation traces the actual SNOMED graph path (`Member → HAS_INJURY → Injury → MAPS_TO_DISORDER → Disorder → FINDING_SITE → BodyStructure → PART_OF* → BodyStructure ← MAPS_TO ← Exercise`), not an LLM rationale.
 
 ---
 
@@ -262,14 +263,33 @@ workout_sequences   ├─ id
                     └─ speed / distance / calories
 ```
 
-### Neo4j (Knowledge Graph)
 
 ```
-(Member)-[:HAS_INJURY]->(Injury)-[:AFFECTS_JOINT]->(Joint)
-(Exercise)-[:LOADS_JOINT]->(Joint)
-(Member)-[:GAVE_FEEDBACK]->(FeedbackEvent)-[:ABOUT]->(Exercise)
-(Exercise)-[*vector index*]->(embedding)
+// SNOMED-grounded safety path
+(Member)-[:HAS_INJURY]->(Injury)-[:MAPS_TO_DISORDER]->(Disorder)
+(Disorder)-[:FINDING_SITE]->(BodyStructure)-[:PART_OF*0..]->(BodyStructure)
+(Exercise)-[:MAPS_TO]->(BodyStructure)
+
+// Legacy fallback (pre-SNOMED data)
+(Exercise)-[:CONTRAINDICATED_BY]->(Injury)
+
+// Preference + history
+(Member)-[:PERFORMED]->(WorkoutSession)-[:INCLUDED]->(Exercise)
+(Member)-[:RATED]->(Exercise)
+(Member)-[:HAS_INJURY]->(Injury)
+
+// Vector similarity
+(Exercise)-[*vector index: exercise_embeddings, 1536-dim cosine*]->(embedding)
 ```
+
+#### SNOMED ontology nodes (seeded from NCI EVS via build script)
+
+| Node | Key property | Purpose |
+|------|-------------|---------|
+| `BodyStructure` | `snomed_code`, `catalog_term` | Anatomical joint roots + sub-structures |
+| `Disorder` | `snomed_code`, `label` | Clinical disorders (mapped from injury labels) |
+
+The SNOMED subset (9 catalog joints + 19 disorders) is frozen to `backend/data/snomed_subset.json` at build time; the running application never calls the SNOMED CT API.
 
 ---
 
@@ -279,7 +299,8 @@ workout_sequences   ├─ id
 |----------|-----------|
 | `with_structured_output` for routing | Enforces typed `RouteDecision`; eliminates regex fragility |
 | Separate sub-graphs per intent | Each intent is a compiled `StateGraph`; hub composes them as nodes |
-| Post-LLM safety gate | Contraindication filtering is deterministic code, not a prompt instruction |
+| SNOMED graph traversal | Contraindication derived from SNOMED `Disorder → FINDING_SITE → BodyStructure → PART_OF* → BodyStructure ← MAPS_TO ← Exercise`; deterministic code, not a prompt instruction |
+| Post-LLM safety gate | Hard filter re-checks every recommended exercise against the contraindicated set; prompt-injection proof |
 | exercises.json → PostgreSQL at boot | Single source of truth; exercises are query-able with SQL filters |
 | In-memory audit log | Fast, no DB writes in the hot path; lost on restart (acceptable for demo) |
 | Token budget cap (2048) | Prevents context overflow on long member histories (ADR-001 D3) |

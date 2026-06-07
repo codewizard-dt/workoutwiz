@@ -26,6 +26,21 @@ def _make_payload(**overrides) -> FeedbackPayload:
     return FeedbackPayload(**defaults)
 
 
+def _build_pg_session_mock() -> AsyncMock:
+    """Return a minimal mock SQLAlchemy AsyncSession for write_feedback tests.
+
+    ``add`` is synchronous in SQLAlchemy, so it must be a plain MagicMock.
+    ``commit`` and ``rollback`` are coroutines, so they use AsyncMock.
+    """
+    from unittest.mock import MagicMock
+
+    session = AsyncMock()
+    session.add = MagicMock()  # synchronous — must NOT be AsyncMock
+    session.commit = AsyncMock()
+    session.rollback = AsyncMock()
+    return session
+
+
 def _build_driver_mock() -> AsyncMock:
     """Return a mock neo4j driver whose session records Cypher calls.
 
@@ -71,9 +86,10 @@ def _build_driver_mock() -> AsyncMock:
 async def test_write_feedback_calls_ingestion():
     """write_feedback should execute_write on the neo4j session and return a UUID."""
     driver = _build_driver_mock()
+    pg_session = _build_pg_session_mock()
     payload = _make_payload(rating=3, text="Felt good")
 
-    result = await write_feedback(payload, driver)
+    result = await write_feedback(payload, driver, pg_session)
 
     # Return value is a valid UUID string
     uuid.UUID(result)  # raises ValueError if not a valid UUID
@@ -87,9 +103,10 @@ async def test_write_feedback_calls_ingestion():
 async def test_write_feedback_writes_correct_cypher_queries():
     """write_feedback should emit MERGE FeedbackEvent, ABOUT->Exercise, and RATED queries."""
     driver = _build_driver_mock()
+    pg_session = _build_pg_session_mock()
     payload = _make_payload()
 
-    await write_feedback(payload, driver)
+    await write_feedback(payload, driver, pg_session)
 
     queries = driver._session_mock._recorded_queries
     assert any("FeedbackEvent" in q for q in queries), (
@@ -107,13 +124,15 @@ async def test_write_feedback_writes_correct_cypher_queries():
 async def test_write_feedback_returns_unique_ids():
     """Two calls should return distinct UUIDs."""
     driver = _build_driver_mock()
+    pg_session = _build_pg_session_mock()
     payload = _make_payload()
 
-    id1 = await write_feedback(payload, driver)
+    id1 = await write_feedback(payload, driver, pg_session)
 
     # Reset session side_effect for second call
     driver2 = _build_driver_mock()
-    id2 = await write_feedback(payload, driver2)
+    pg_session2 = _build_pg_session_mock()
+    id2 = await write_feedback(payload, driver2, pg_session2)
 
     assert id1 != id2
 
@@ -143,8 +162,9 @@ def test_feedback_payload_validates_rating_range():
 
 
 def test_feedback_payload_optional_fields():
-    """text and workout_session_id are optional; context_type defaults to 'post_workout'."""
+    """text, workout_id, and workout_set_id are optional; context_type defaults to 'exercise'."""
     payload = FeedbackPayload(member_id="m1", exercise_id="e1", rating=3)
     assert payload.text is None
-    assert payload.workout_session_id is None
-    assert payload.context_type == "post_workout"
+    assert payload.workout_id is None
+    assert payload.workout_set_id is None
+    assert payload.context_type == "exercise"

@@ -20,22 +20,19 @@ A fitness coaching API and web app built as an AI engineering take-home assessme
 │  Multi-Agent Layer (LangGraph StateGraph)               │
 │  Hub router → COACH | WORKOUT_GENERATE | WORKOUT_LOG     │
 │               KNOWLEDGE_GRAPH | FALLBACK | clarification │
-│  /chat  /audit/{session_id}                             │
+│  /chat  /kg/recommend  /kg/explain  /kg/feedback        │
 │  localhost:8000                                         │
-└───────────────────┬─────────────────────────────────────┘
-                    │ HTTP / JSON
-┌───────────────────▼─────────────────────────────────────┐
-│  Backend (FastAPI + SQLAlchemy async)                   │
-│  /auth  /exercises  /workouts  /healthz                 │
-│  localhost:8000                                         │
-└───────────────────┬─────────────────────────────────────┘
-                    │ asyncpg
-┌───────────────────▼─────────────────────────────────────┐
-│  PostgreSQL 16                                          │
-│  Tables: users, exercises, workouts,                    │
-│          workout_sequences, workout_sets                │
-│  localhost:5433 (mapped from container :5432)           │
-└─────────────────────────────────────────────────────────┘
+└───────────┬───────────────────────────┬─────────────────┘
+            │ asyncpg                   │ Bolt (neo4j)
+┌───────────▼─────────────┐  ┌──────────▼────────────────┐
+│  PostgreSQL 16           │  │  Neo4j 5                  │
+│  users, exercises,       │  │  Member · Exercise        │
+│  workouts, sets          │  │  Injury · BodyStructure   │
+│  localhost:5433          │  │  Disorder · FeedbackEvent │
+└─────────────────────────┘  │  SNOMED traversal +       │
+                              │  vector index             │
+                              │  localhost:7687           │
+                              └───────────────────────────┘
 ```
 
 The hub routes natural-language input to the appropriate sub-agent using LLM structured output (`with_structured_output`) — never regex or keyword matching. The REST layer is intentionally standalone so the agents do not disrupt the existing API.
@@ -55,8 +52,11 @@ The hub routes natural-language input to the appropriate sub-agent using LLM str
 | Layer | Technology |
 |-------|-----------|
 | Backend | FastAPI + SQLAlchemy (async) + Alembic |
-| Database | PostgreSQL 16 |
+| Database | PostgreSQL 16 (system of record) |
+| Knowledge Graph | Neo4j 5 — SNOMED-grounded traversal + vector index |
+| Ontology | SNOMED CT via NCI EVS REST API (frozen snapshot at build time) |
 | Auth | fastapi-users (JWT bearer, bcrypt) |
+| Agents | LangGraph `StateGraph` + LangChain + Anthropic |
 | Frontend | Vite + React + TypeScript + Tailwind CSS + shadcn/ui |
 | State | TanStack Query (server state) + React Context (auth/UI) |
 | API client | Axios |
@@ -222,6 +222,12 @@ curl http://localhost:8000/audit/{session_id}
 **5. Hallucinated exercise IDs** — If the generator sub-agent ignores `search_exercises_tool` results and fabricates UUIDs, those IDs land in `invalid_ids_skipped`.
 *Signal*: non-empty `invalid_ids_skipped` in production audit logs.
 
+**6. SNOMED snapshot drift** — `backend/data/snomed_subset.json` is frozen at build time from the NCI EVS API. If SNOMED CT codes change (rare but possible between US edition releases), the SNOMED traversal may not match.
+*Mitigation*: version-pin the SNOMED release in the build script; re-run `python scripts/build_snomed_subset.py` and re-seed Neo4j after each SNOMED edition update. Monitor `snomed_provenance_records` in the audit log — a sudden drop to 0 for members with known injuries is a strong signal.
+
+**7. Missing `MAPS_TO_DISORDER` edges** — Injury nodes seeded before SNOMED ingestion won't have `MAPS_TO_DISORDER` edges. The traversal falls back to `CONTRAINDICATED_BY` for those nodes, which uses string matching rather than graph traversal.
+*Mitigation*: re-run `python app/knowledge_graph/ingest_snomed.py` after adding `snomedct_hint` to any Injury nodes; this is idempotent.
+
 ### Health Signals
 
 When the system misbehaves, check in this order:
@@ -231,7 +237,8 @@ When the system misbehaves, check in this order:
 3. **All requests route to the same intent** → LLM is ignoring the schema (verify `with_structured_output` is wired correctly).
 4. **Latency spikes** → Anthropic API is degraded; check [status.anthropic.com](https://status.anthropic.com).
 5. **`invalid_ids_skipped` non-empty** → grounding failure; re-run the grounding test and inspect `search_exercises_tool` output.
-6. **`GET /audit/{session_id}` returns 404** → session was deleted or the server was restarted (in-memory state is lost on restart).
+6. **`snomed_provenance_records = 0` for a member with active injuries** → SNOMED ingestion not run or `snomedct_hint` missing from Injury nodes; re-run `ingest_snomed.py`.
+7. **`GET /audit/{session_id}` returns 404** → session was deleted or the server was restarted (in-memory state is lost on restart).
 
 ### Sample Demo Transcript
 
@@ -260,7 +267,7 @@ Bot:  I can help with fitness coaching, workout planning, and logging workouts.
 
 ### Injury-Aware Recommendation — Live Trace
 
-This example shows the injury safety pipeline in action: the router sends the request to `KNOWLEDGE_GRAPH`, the retrieval sub-graph traverses injury nodes, and the safety gate hard-filters contraindicated exercises after LLM generation.
+This example shows the SNOMED-grounded safety pipeline: the router sends the request to `KNOWLEDGE_GRAPH`, the retrieval sub-graph traverses the SNOMED path to produce a hard exclusion list, and the safety gate verifies the LLM output against that list.
 
 **Prompt:** `"I have a bad knee and a bad shoulder. Build me a workout that avoids aggravating either injury."`
 
@@ -268,31 +275,39 @@ This example shows the injury safety pipeline in action: the router sends the re
 Route: KNOWLEDGE_GRAPH  Confidence: 0.99
 
 Audit trail:
-  router                  1 259 ms  tokens_in=1376  tokens_out=113
-  retrieval_lookup_member     3 ms  result_count=0
-  retrieval_injury_traversal  2 ms  result_count=0  constraint_count=0
-  retrieval_vector_search   506 ms  result_count=10  (embedding: 506 ms)
-  retrieval_assemble        288 ms  input_count=10  output_count=10
-  kg_generation_llm       8 497 ms  tokens_in=1748  tokens_out=992  exercise_count=5
-  kg_generation_safety_gate   0 ms  exercise_in=5  exercise_out=5  violations_filtered=0
-  kg_hub (total)          9 318 ms
+  router                      1 259 ms  tokens_in=1376  tokens_out=113
+  retrieval_lookup_member         3 ms  result_count=1
+  retrieval_injury_traversal      8 ms  result_count=29  constraint_count=21
+                                        snomed_provenance_records=21
+  retrieval_vector_search       506 ms  result_count=10
+  retrieval_assemble            288 ms  input_count=10  output_count=10
+  kg_generation_llm           8 497 ms  tokens_in=1748  tokens_out=992  exercise_count=5
+  kg_generation_safety_gate       0 ms  exercise_in=5  exercise_out=5  violations_filtered=0
+  kg_hub (total)              9 318 ms
+
+SNOMED traversal path (sample, per contraindicated exercise):
+  Injury("Left knee tendinopathy")
+    → MAPS_TO_DISORDER → Disorder("Patellar tendinopathy", 15637231000119107)
+    → FINDING_SITE → BodyStructure("Structure of left patellar tendon", 764781002)
+    → PART_OF → BodyStructure("Knee joint structure", 49076000) [catalog_term=knee, skos:exactMatch]
+    ← MAPS_TO ← Exercise("Barbell Back Squat")  ← CONTRAINDICATED
 
 Reply (excerpt):
   1. Single-Arm Dumbbell Preacher Curl — 3×10
-     Why: Preacher curl isolates the bicep while supporting the arm on a pad,
-     minimizing shoulder joint stress.
+     provenance: { prov_type: "prov:wasGeneratedBy", source_type: "SAFE_SET",
+                   decision: "SAFE — not contraindicated via SNOMED traversal" }
   2. Med Ball Split Squat — 3×10
-     Why: Split squat stance distributes load more evenly across both legs
-     and reduces single-leg knee stress compared to barbell lunges.
+     provenance: { prov_type: "prov:wasGeneratedBy", source_type: "PREFERRED", ... }
   ...
-  Note: 5 exercise(s) excluded due to injury constraints.
+  Note: 21 exercise(s) excluded via SNOMED graph traversal.
 ```
 
 Key behaviours demonstrated:
-- Router correctly identifies the injury context and routes to `KNOWLEDGE_GRAPH` (not `WORKOUT_GENERATE`)
-- `retrieval_injury_traversal` runs — 0 constraints found because this is a new user with no graph profile; the system falls back to LLM instruction-following for exclusion
-- `kg_generation_safety_gate` runs after LLM generation — 0 violations filtered (model followed instructions)
-- The response explicitly states how many exercises were excluded
+- Router correctly identifies the injury context and routes to `KNOWLEDGE_GRAPH`
+- `retrieval_injury_traversal` fetches 21 contraindicated IDs via the SNOMED path (`Injury → MAPS_TO_DISORDER → Disorder → FINDING_SITE → BodyStructure → PART_OF*0.. → BodyStructure ← MAPS_TO ← Exercise`) — deterministic graph traversal, not string matching
+- Each contraindicated decision carries a full SNOMED-grounded provenance trace (disorder code, finding site, matched joint, SKOS relation)
+- `kg_generation_safety_gate` verifies the LLM output against the pre-computed exclusion list — violations filtered to 0
+- Every recommended exercise carries a `provenance` object aligned to PROV-O semantics
 
 ### Equipment-Constrained Workout — Live Trace
 

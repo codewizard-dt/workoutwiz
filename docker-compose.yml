@@ -36,9 +36,7 @@ services:
       start_period: 60s
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.dev
+    image: ghcr.io/codewizard-dt/workoutwiz-backend:latest
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
@@ -51,8 +49,6 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-password}
       EMBEDDING_PROVIDER: openai
       EMBEDDING_MODEL_NAME: text-embedding-3-small
-    volumes:
-      - ./backend:/app
     depends_on:
       db:
         condition: service_healthy
@@ -60,17 +56,11 @@ services:
         condition: service_healthy
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
+    image: ghcr.io/codewizard-dt/workoutwiz-frontend:latest
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_PORT:-3000}:80"
     environment:
-      PROXY_TARGET: http://backend:8000
-      PORT: 3000
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      BACKEND_URL: http://backend:8000
     depends_on:
       - backend
 

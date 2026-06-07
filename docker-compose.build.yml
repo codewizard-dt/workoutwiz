@@ -11,13 +11,18 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./backend:/app
-      - /app/.venv # shields the container's venv from the host mount
+      - /app/.venv # shields the container's venv from the host bind mount
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    command: ["/bin/sh", "./docker-entrypoint.sh"]
+    environment:
+      # Vite dev server must listen on port 80 to match the base compose port
+      # mapping (${FRONTEND_PORT:-3000}:80). PROXY_TARGET is server-side in
+      # Vite's Node process so it must use the compose service name, not localhost.
+      PORT: 80
+      PROXY_TARGET: http://backend:8000
     volumes:
       - ./frontend:/app
-      - /app/node_modules # shields the container's node_modules from the host mount
+      - /app/node_modules # shields the container's node_modules from the host bind mount

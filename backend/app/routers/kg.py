@@ -183,14 +183,19 @@ async def kg_explain(
 async def kg_feedback(
     payload: FeedbackPayload,
     user: User = Depends(current_active_user),
+    pg_session: AsyncSession = Depends(get_async_session),
 ) -> KGFeedbackResponse:
-    """Persist feedback event to Neo4j and return the created feedback_id."""
+    """Persist feedback event to Neo4j + PostgreSQL and return the created feedback_id."""
     driver = neo4j.AsyncGraphDatabase.driver(
         settings.neo4j_uri,
         auth=(settings.neo4j_user, settings.neo4j_password),
     )
     try:
-        feedback_id = await write_feedback(payload=payload, driver=driver)
+        feedback_id = await write_feedback(
+            payload=payload,
+            driver=driver,
+            pg_session=pg_session,
+        )
         return KGFeedbackResponse(
             feedback_id=feedback_id,
             message="Feedback recorded successfully",
