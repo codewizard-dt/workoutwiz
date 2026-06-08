@@ -37,7 +37,7 @@ def _chat_node(state: AgentState) -> dict[str, Any]:
         usage = getattr(response, "response_metadata", {})
         tokens_in = usage.get("usage", {}).get("input_tokens", 0)
         tokens_out = usage.get("usage", {}).get("output_tokens", 0)
-    except Exception as exc:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         latency_ms = int((time.monotonic() - t0) * 1000)
         response = AIMessage(content="I'm temporarily unavailable. Please try again in a moment.")
         tokens_in = 0

@@ -12,6 +12,7 @@ from app.agents.exercises import get_all_exercises
 from app.agents.exercises import search_exercises as _search_exercises
 from app.agents.state import AgentState
 from app.config import settings
+from app.models.exercise import Exercise as ExerciseModel
 
 
 class SearchExercisesInput(BaseModel):
@@ -84,7 +85,7 @@ def search_exercises_tool(
 _COOLDOWN_PATTERNS = ["regen", "mobility - static", "mobility - dynamic"]
 
 
-def _select_cooldown_exercises(exclude_ids: set[str], count: int = 2) -> list:
+def _select_cooldown_exercises(exclude_ids: set[str], count: int = 2) -> list[ExerciseModel]:
     """Select low-intensity recovery exercises for the cooldown phase.
 
     Filters the exercise cache for movement patterns that signal recovery
@@ -192,7 +193,7 @@ def _generate_node(state: AgentState) -> dict[str, Any]:
         usage = getattr(response, "response_metadata", {})
         tokens_in = usage.get("usage", {}).get("input_tokens", 0)
         tokens_out = usage.get("usage", {}).get("output_tokens", 0)
-    except Exception as exc:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         latency_ms = int((time.monotonic() - t0) * 1000)
         response = AIMessage(content="I'm temporarily unavailable to generate a workout. Please try again.")
         tokens_in = 0

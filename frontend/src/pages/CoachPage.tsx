@@ -302,7 +302,7 @@ export default function CoachPage() {
                   <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', marginBottom: 'var(--space-2)' }}>
                     Injuries
                   </div>
-                  {brief.injuries.map((inj: { region: string; status: string; notes: string }, i: number) => (
+                  {brief.injuries.map((inj, i) => (
                     <div key={i} style={{ fontSize: '0.85rem', marginBottom: 'var(--space-2)' }}>
                       <div style={{ fontWeight: 600 }}>{inj.region} — <span style={{ textTransform: 'capitalize' }}>{inj.status}</span></div>
                       <div style={{ color: 'var(--muted-foreground)', fontSize: '0.8rem' }}>{inj.notes}</div>

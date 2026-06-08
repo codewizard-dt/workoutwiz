@@ -101,7 +101,7 @@ export interface WorkoutSequence extends WorkoutSequenceCreate {
   sets: WorkoutSet[]
 }
 
-// ── Coach copilot types ──────────────────────────────────────────────────────
+// ── Coach copilot types ─────────────────────────────────────────────────────
 
 export interface MorningTask {
   type: string
@@ -167,58 +167,4 @@ export interface Workout {
   sequences: WorkoutSequence[]
   enjoyment?: number | null
   note?: string | null
-}
-
-export interface CoachChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  grounded_facts?: string[]
-}
-
-export interface CoachChatResponse {
-  session_id: string
-  reply: string
-  grounded_facts: string[]
-}
-
-export interface GoalItem {
-  id: string
-  text: string
-  priority: number
-  target_date: string | null
-}
-
-export interface MorningTask {
-  type: string
-  text: string
-}
-
-export interface ChurnRisk {
-  level: string
-  reasons: string[]
-}
-
-export interface AdherenceWeek {
-  week_of: string
-  pct: number
-}
-
-export interface InjuryItem {
-  region: string
-  status: string
-  notes: string
-}
-
-export interface CoachBriefResponse {
-  member_id: string
-  member_name: string
-  member_age: number | null
-  tier: string | null
-  goals: GoalItem[]
-  injuries: InjuryItem[]
-  morning_tasks: MorningTask[]
-  churn_risk: ChurnRisk
-  adherence_weeks: AdherenceWeek[]
-  equipment: string[]
 }

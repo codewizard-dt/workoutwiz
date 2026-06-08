@@ -1,0 +1,23 @@
+{
+  // The authoritative Python type checker for this project is mypy (strict),
+  // configured in backend/pyproject.toml and run via `make typecheck`.
+  // Pyright runs in the IDE for fast feedback only. This config points it at
+  // the project venv and silences the diagnostics that mypy already handles
+  // via its plugins/overrides (pydantic plugin, follow_imports=skip for
+  // langchain/langgraph), so the IDE matches the mypy-clean codebase.
+  "venvPath": "backend",
+  "venv": ".venv",
+  "pythonVersion": "3.14",
+  "include": ["backend/app"],
+  "extraPaths": ["backend"],
+  "typeCheckingMode": "basic",
+
+  // Third-party stub gaps / mypy-handled cases — false positives here:
+  "reportCallIssue": "none",                 // langchain ChatAnthropic(model=...) stub lag
+  "reportAssignmentType": "none",            // with_structured_output() union return
+  "reportArgumentType": "none",              // neo4j LiteralString query typing
+  "reportTypedDictNotRequiredAccess": "none",// member_id on total=False TypedDict
+  "reportGeneralTypeIssues": "none",         // fastapi-users field override defaults (pydantic plugin)
+  "reportAttributeAccessIssue": "none",      // LangChain Document vs dict duck-typing
+  "reportInvalidTypeVarUse": "none"          // fastapi-users override signatures reuse base-class TypeVars
+}

@@ -508,7 +508,7 @@ def seed_coaching_context_all(
                 pct = round(pct / 25) * 25
                 pcts.append(pct)
 
-            for week_of, pct in zip(ref_weeks, pcts):
+            for week_of, pct in zip(ref_weeks, pcts, strict=True):
                 week_id = f"{member_id}:adherence:{week_of}"
                 session.run(
                     """

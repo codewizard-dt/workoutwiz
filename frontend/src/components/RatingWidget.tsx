@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, createPortal } from 'react'
-import type React from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 
 const EMOJI: Record<number, string> = {
@@ -27,12 +27,6 @@ interface RatingWidgetProps {
   label?: string
   /** Alignment of the compact popover relative to the trigger button. Defaults to 'left'. */
   popoverAlign?: 'left' | 'center' | 'right'
-}
-
-const POPOVER_ALIGN_STYLE: Record<'left' | 'center' | 'right', React.CSSProperties> = {
-  left:   { left: 0 },
-  center: { left: '50%', transform: 'translateX(-50%)' },
-  right:  { right: 0 },
 }
 
 export function RatingWidget({
