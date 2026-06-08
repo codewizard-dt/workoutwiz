@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useMe } from '@/hooks'
+import logoUrl from '@/assets/logo/workout-wiz-logo-smile.png'
 
 interface AppShellProps {
   children: React.ReactNode
@@ -99,7 +100,7 @@ export function AppShell({ children }: AppShellProps) {
           }}
         >
           <img
-            src="/src/assets/logo/workout-wiz-logo-smile.png"
+            src={logoUrl}
             alt="Workout Wiz"
             style={{ height: '2rem' }}
           />

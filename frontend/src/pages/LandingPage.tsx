@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import logoUrl from '@/assets/logo/workout-wiz-logo-smile.png'
+import heroUrl from '@/assets/hero/workout-wiz-hero-selected.png'
 
 export default function LandingPage() {
   const { token } = useAuth()
@@ -29,7 +31,7 @@ export default function LandingPage() {
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: 'url(/src/assets/hero/workout-wiz-hero-selected.png)',
+            backgroundImage: `url(${heroUrl})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center top',
             filter: 'brightness(0.5)',
@@ -54,7 +56,7 @@ export default function LandingPage() {
           }}
         >
           <img
-            src="/src/assets/logo/workout-wiz-logo-smile.png"
+            src={logoUrl}
             alt="Workout Wiz"
             style={{ width: 80, height: 'auto', marginBottom: 'var(--space-5)', filter: 'drop-shadow(0 4px 12px oklch(0 0 0 / 0.4))' }}
           />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useLogin } from '@/hooks/useAuthMutations'
+import logoUrl from '@/assets/logo/workout-wiz-logo-smile.png'
 
 
 export default function LoginPage() {
@@ -51,7 +52,7 @@ export default function LoginPage() {
       <div style={{ width: '100%', maxWidth: 400 }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-6)' }}>
           <img
-            src="/src/assets/logo/workout-wiz-logo-smile.png"
+            src={logoUrl}
             alt="Workout Wiz"
             style={{ height: '3.5rem', width: 'auto' }}
           />
