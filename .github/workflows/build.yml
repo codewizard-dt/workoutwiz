@@ -26,6 +26,9 @@ jobs:
           - image: workoutwiz-frontend
             context: ./frontend
             dockerfile: ./frontend/Dockerfile.prod
+          - image: workoutwiz-caddy
+            context: .
+            dockerfile: ./Dockerfile.caddy
 
     steps:
       - uses: actions/checkout@v4

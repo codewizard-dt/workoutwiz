@@ -56,14 +56,28 @@ services:
 
   frontend:
     image: ghcr.io/codewizard-dt/workoutwiz-frontend:latest
-    ports:
-      - "${FRONTEND_PORT:-3000}:80"
     environment:
       BACKEND_URL: http://backend:8000
     depends_on:
       - backend
 
+  caddy:
+    image: ghcr.io/codewizard-dt/workoutwiz-caddy:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
 volumes:
   postgres_data:
   neo4j_data:
   neo4j_logs:
+  caddy_data:
+  caddy_config:
