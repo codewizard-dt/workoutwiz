@@ -104,8 +104,7 @@ export default function LandingPage() {
             <Link to="/register" style={{ textDecoration: 'none' }}>
               <button
                 type="button"
-                className="ww-btn ww-btn--gradient"
-                style={{ fontSize: '1rem', height: '3rem', padding: '0 2rem' }}
+                className="ww-btn ww-btn--gradient ww-btn--xl"
               >
                 Get Started Free
               </button>
@@ -113,15 +112,7 @@ export default function LandingPage() {
             <Link to="/login" style={{ textDecoration: 'none' }}>
               <button
                 type="button"
-                className="ww-btn ww-btn--outline"
-                style={{
-                  fontSize: '1rem',
-                  height: '3rem',
-                  padding: '0 2rem',
-                  color: '#fff',
-                  borderColor: 'oklch(1 0 0 / 0.3)',
-                  background: 'oklch(1 0 0 / 0.08)',
-                }}
+                className="ww-btn ww-btn--outline ww-btn--xl"
               >
                 Sign In
               </button>

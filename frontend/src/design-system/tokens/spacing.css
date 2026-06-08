@@ -28,6 +28,7 @@
   --control-sm: 1.75rem; /* 28 / h-7 */
   --control-md: 2rem;    /* 32 / h-8 — default */
   --control-lg: 2.25rem; /* 36 / h-9 */
+  --control-xl: 2.75rem; /* 44 / h-11 */
 
   /* layout */
   --container-max: 72rem;   /* 1152 */

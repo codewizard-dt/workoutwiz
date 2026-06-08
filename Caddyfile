@@ -1,5 +1,5 @@
 workoutwiz.davidtaylor.codes {
-    handle /api/* {
+    handle_path /api/* {
         reverse_proxy backend:8000
     }
     handle {
