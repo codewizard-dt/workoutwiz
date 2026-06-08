@@ -1,32 +1,46 @@
-flowchart TD
-    User([User / Chat UI]) -->|natural language| HUB
+flowchart LR
+    User([User / Chat UI])
 
     subgraph HUB["Hub StateGraph"]
-        ROUTER["router node\nChatAnthropic.with_structured_output\nRouteDecision → intent + confidence"]
-        ROUTER -->|COACH| COACH["coach sub-graph\nFitness Q&A\ngrounded coaching"]
-        ROUTER -->|WORKOUT_GENERATE| GEN["workout_gen sub-graph\nsearch_exercises_tool\nbuild_workout_tool"]
-        ROUTER -->|WORKOUT_LOG| LOG["workout_log sub-graph\nfuzzy exercise matching\nstructured JSON log"]
-        ROUTER -->|KNOWLEDGE_GRAPH| KG["knowledge_graph node\nNeo4j GraphRAG\ninjury-aware recs"]
-        ROUTER -->|confidence < 0.6| CLARIFY["clarification node\nask user to rephrase"]
-        ROUTER -->|FALLBACK| FB["fallback node\nout-of-scope reply"]
+        direction TB
+        ROUTER{{"router\nwith_structured_output\nintent + confidence"}}
+        COACH["coach\nfitness Q&A"]
+        LOG["workout_log\nfuzzy matching"]
+        KG["knowledge_graph\nNeo4j GraphRAG"]
+        CLARIFY["clarification\nFALLBACK / conf < 0.6"]
+        ROUTER -->|COACH| COACH
+        ROUTER -->|WORKOUT_LOG| LOG
+        ROUTER -->|KNOWLEDGE_GRAPH| KG
+        ROUTER -->|FALLBACK / low conf| CLARIFY
     end
 
-    COACH --> AUDIT
-    GEN --> AUDIT
-    LOG --> AUDIT
-    KG --> AUDIT
-    CLARIFY --> AUDIT
-    FB --> AUDIT
-
-    subgraph OBS["Observability"]
-        AUDIT["audit_log\nper-node: event, model, route\nlatency_ms, tokens_in, tokens_out\nGET /chat/audit/{session_id}"]
+    subgraph KGP["KG Pipeline · Neo4j"]
+        direction TB
+        RETRIEVAL["retrieval\ninjury SNOMED · vector · prefs"]
+        GEN["generation\nwith_structured_output"]
+        SAFETY["safety gate\nhard-filter contraindicated\npost-LLM"]
+        RETRIEVAL -->|ContextSlice| GEN --> SAFETY
     end
 
-    subgraph KGSTACK["Knowledge Graph Stack (Neo4j)"]
-        RETRIEVAL["retrieval sub-graph\nmember profile · injury traversal\nvector similarity · preference feedback"]
-        SAFETY["safety gate node\nhard-filter contraindicated IDs\nnever overrideable by LLM"]
-        EXPLAIN["explainability tool\ngraph-path citation\n'why was X skipped?'"]
-        RETRIEVAL --> SAFETY --> EXPLAIN
-    end
+    AUDIT[["audit_log\nevent · route · latency · tokens\nGET /chat/audit/{session_id}"]]
 
+    User -->|POST /chat/| ROUTER
     KG --> RETRIEVAL
+    HUB -.->|per-node audit| AUDIT
+    KGP -.-> AUDIT
+
+    classDef router fill:#fef9c3,stroke:#ca8a04,color:#111;
+    classDef agent fill:#dbeafe,stroke:#1d4ed8,color:#111;
+    classDef static fill:#f1f5f9,stroke:#64748b,color:#111;
+    classDef kg fill:#f0fdf4,stroke:#16a34a,color:#111;
+    classDef safety fill:#fee2e2,stroke:#b91c1c,color:#111;
+    classDef store fill:#fef3c7,stroke:#b45309,color:#111;
+    classDef actor fill:#f3e8ff,stroke:#7c3aed,color:#111;
+
+    class ROUTER router;
+    class COACH,LOG,KG agent;
+    class CLARIFY static;
+    class RETRIEVAL,GEN kg;
+    class SAFETY safety;
+    class AUDIT store;
+    class User actor;

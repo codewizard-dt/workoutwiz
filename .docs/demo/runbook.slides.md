@@ -23,18 +23,26 @@ style: |
   tr:nth-child(odd) td { background: #161b22; }
   .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
   .coach { background: #1f4e2b; color: #3fb950; }
-  .gen { background: #1c3461; color: #58a6ff; }
   .log { background: #4b2a06; color: #e3b341; }
   .kg { background: #3a1c61; color: #bc8cff; }
   .fallback { background: #2d1717; color: #f85149; }
   footer { color: #484f58; font-size: 0.7em; }
+  section.diagram { justify-content: flex-start; }
+  section.diagram img {
+    display: block;
+    margin: 0.4em auto;
+    max-height: 460px;
+    max-width: 100%;
+    width: auto;
+    object-fit: contain;
+  }
 ---
 
 <!-- _class: lead -->
 
 # Workout Wiz
 
-### One conversational interface. Five routing paths. Zero mode-switching.
+### One conversational interface. Four routing paths. Zero mode-switching.
 
 **FastAPI · LangGraph · Neo4j · React**
 
@@ -62,6 +70,8 @@ Routing is done by a language model using `with_structured_output` — not a reg
 
 ---
 
+<!-- _class: diagram -->
+
 ## Architecture
 
 ![Architecture](architecture.svg)
@@ -69,25 +79,38 @@ Routing is done by a language model using `with_structured_output` — not a reg
 Every message flows through a typed `StateGraph` hub. Sub-agents are **separate graphs** composed into the hub — not inlined functions.
 
 <!--
-"The hub is a LangGraph StateGraph with typed state and conditional edges. Each sub-agent — coach, generator, logger, knowledge graph — is a separate compiled graph composed into the hub. That's the assessment spec requirement: not inlined lambdas, actual separate graphs."
+"The hub is a LangGraph StateGraph with typed state and conditional edges. Each sub-agent — coach, logger, knowledge graph — is a separate compiled graph composed into the hub. That's the assessment spec requirement: not inlined lambdas, actual separate graphs. All workout generation routes through the knowledge graph."
 -->
 
 ---
 
-## Five Routing Paths
+<!-- _class: diagram -->
+
+## Knowledge Graph Schema
+
+![KG Schema](kg-schema.svg)
+
+Neo4j holds the coaching graph. `Member`, `Exercise`, `Injury` live alongside SNOMED-grounded `Disorder` and `BodyStructure` nodes — frozen at build time from `snomed_subset.json`, never fetched at runtime.
+
+<!--
+"The knowledge graph has six key node types connected by typed relationships. SNOMED CT disorder and body-structure nodes are frozen at build time — the running app never calls SNOMED CT. That gives us deterministic contraindication traversal without any external API dependency."
+-->
+
+---
+
+## Four Routing Paths
 
 | Route | Example input |
 |-------|---------------|
 | `COACH` | "How many rest days for hypertrophy?" |
-| `WORKOUT_GENERATE` | "30-min upper-body session with dumbbells" |
 | `WORKOUT_LOG` | "I just did 3×10 bench press at 135 lbs" |
-| `KNOWLEDGE_GRAPH` | "Avoid my knee and shoulder injuries" |
+| `KNOWLEDGE_GRAPH` | "30-min dumbbell session — avoid my knee injury" |
 | `FALLBACK` | "What's the capital of France?" |
 
-The router emits a `RouteDecision` (intent + confidence). Confidence < 0.6 → **clarification node** asks the user to rephrase — no silent misroute.
+All workout generation — with or without injuries — routes to `KNOWLEDGE_GRAPH`. The router emits a `RouteDecision` (intent + confidence). Confidence < 0.6 → **clarification node** asks the user to rephrase — no silent misroute.
 
 <!--
-"Five paths. The router node calls the LLM with a structured output schema — RouteDecision with intent and confidence fields. If confidence is below 0.6, a clarification node fires instead of guessing."
+"Four paths. The router node calls the LLM with a structured output schema — RouteDecision with intent and confidence fields. Every build-a-workout request, with or without injuries, goes to the knowledge graph. If confidence is below 0.6, a clarification node fires instead of guessing."
 -->
 
 ---
@@ -111,27 +134,6 @@ The coaching sub-graph generates a grounded answer using only the 50-exercise da
 
 ---
 
-## WORKOUT_GENERATE — Equipment Constraint
-
-**Prompt**: *"I only have resistance bands at home. Build me a 30-minute full-body workout."*
-
-<span class="badge gen">WORKOUT_GENERATE · 0.95</span>
-
-Two tools called in sequence:
-
-1. `search_exercises_tool` → filters the dataset to bands + bodyweight only
-2. `build_workout_tool` → assembles warmup / main / cooldown, validates every ID
-
-`invalid_ids_skipped: []` — zero hallucinated UUIDs.
-
-The equipment constraint is enforced through **data filtering**, not prompt instruction.
-
-<!--
-"Routed to WORKOUT_GENERATE, confidence 0.95. The generator calls two tools: search_exercises_tool filters the 50-exercise Postgres dataset to band and bodyweight exercises only — constraint enforced through data, not prompt instruction. Then build_workout_tool assembles the plan and validates every exercise ID. invalid_ids_skipped is empty — no hallucinated UUIDs."
--->
-
----
-
 ## WORKOUT_LOG — Fuzzy Matching
 
 **Prompt**: *"I just did 3 sets of 10 bench press at 135 lbs and a 20-minute run."*
@@ -150,23 +152,17 @@ The logger sub-agent:
 
 ---
 
+<!-- _class: diagram -->
+
 ## KNOWLEDGE_GRAPH — Injury-Aware
 
 **Prompt**: *"I have a bad knee and a bad shoulder. Build me a workout that avoids aggravating either."*
 
 <span class="badge kg">KNOWLEDGE_GRAPH · 0.99</span>
 
-The retrieval sub-graph traverses Neo4j via SNOMED CT:
+![SNOMED Safety Path](snomed-safety.svg)
 
-```
-Injury("Left knee tendinopathy")
-  → MAPS_TO_DISORDER → Disorder (SNOMED 15637231000119107)
-  → FINDING_SITE → BodyStructure("Structure of left patellar tendon")
-  → PART_OF → BodyStructure("Knee joint structure")
-  ← CONTRAINDICATED ← Exercise("Barbell Back Squat")
-```
-
-21 exercises excluded. Every decision is **graph-traceable**, not an LLM rationale.
+21 exercises excluded. Every decision is **graph-traceable** — SNOMED code, finding site, and joint matched — not an LLM rationale.
 
 <!--
 "Routed to KNOWLEDGE_GRAPH, confidence 0.99. The retrieval sub-graph traverses Neo4j — member profile, then injury nodes through SNOMED CT codes. That produces a hard exclusion list: 21 exercises excluded in this run. Each contraindicated decision carries a full SNOMED-grounded provenance trace."
@@ -192,6 +188,20 @@ This resists prompt-injection bypasses — a deliberate architectural choice.
 
 <!--
 "Two injuries, one message. The safety gate runs after the LLM — hard code, not a prompt. Even if the model ignores an explicit instruction, the gate catches it. The response states how many exercises were excluded."
+-->
+
+---
+
+<!-- _class: diagram -->
+
+## Coach Copilot — A Second, Coach-Facing Surface
+
+![Coach Copilot](coach-copilot.svg)
+
+`/coach` assembles the full member context from Neo4j — churn risk, adherence, goals, injuries, biomarkers — and answers the human coach grounded in **that context only**. Every reply carries graph-cited `grounded_facts` pills.
+
+<!--
+"Switch personas. Beyond the member-facing hub, there's a coach-facing copilot at slash-coach. It pulls the member's entire graph context — churn risk, adherence trend, goals, injuries, even biomarkers — and answers the coach's questions grounded only in that context. The system prompt forbids inventing data, and every answer shows grounded-facts pills pulled straight from the graph. This is PRD-002's coach user story: surface member context the coach can trust and repeat."
 -->
 
 ---
@@ -243,20 +253,21 @@ Golden is the hard gate. Scenarios at 66% is an honest number — failing cases 
 
 ## Summary
 
-One interface. Five LangGraph sub-agents. One hard safety rule.
+One interface. Four routing paths. One hard safety rule.
 
 | What | How |
 |------|-----|
 | Routing | `with_structured_output` — never regex |
 | Grounding | Every exercise ID validated against exercises.json |
 | Safety | Post-LLM hard filter, not a prompt instruction |
+| Two surfaces | Member hub (`/chat`) + coach copilot (`/coach`) |
 | Observability | Per-node audit trail with latency + token counts |
 | Honesty | Eval results, known gaps, productionization plan in README |
 
 > `make dev` — full stack in one command.
 
 <!--
-"One conversational interface, five routing paths — each a separate LangGraph sub-agent. LLM structured output does the routing. The injury safety gate is a hard code filter, not a prompt instruction. Full audit trail available per session. The README covers production scaling, failure modes, and evaluation strategy."
+"One conversational interface, four routing paths — each a separate LangGraph sub-graph. LLM structured output does the routing. The injury safety gate is a hard code filter, not a prompt instruction. A second coach-facing copilot answers grounded only in the member's graph. Full audit trail available per session. The README covers production scaling, failure modes, and evaluation strategy."
 -->
 
 ---

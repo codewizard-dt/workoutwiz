@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 import neo4j
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +18,7 @@ from app.kg.feedback_service import write_feedback
 from app.kg.generation_graph import RecommendedExercise, build_generation_graph
 from app.kg.retrieval_graph import build_retrieval_graph
 from app.models.audit_log import AuditLogEntry
+from app.models.feedback import ExerciseFeedback
 from app.models.user import User
 from app.schemas.errors import ErrorResponse
 from app.schemas.kg import FeedbackPayload, KGExplainRequest, KGRecommendRequest
@@ -49,6 +50,18 @@ class KGExplainResponse(BaseModel):
 class KGFeedbackResponse(BaseModel):
     feedback_id: str
     message: str
+
+
+class KGFeedbackItem(BaseModel):
+    exercise_id: str
+    rating: int
+    workout_set_id: str | None = None
+    context_type: str
+
+
+class KGFeedbackListResponse(BaseModel):
+    workout_id: str
+    items: list[KGFeedbackItem]
 
 
 class KgAuditResponse(BaseModel):
@@ -194,6 +207,49 @@ async def kg_feedback(
             payload.exercise_id,
         )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/feedback",
+    response_model=KGFeedbackListResponse,
+    summary="List a member's saved feedback for a workout",
+    description=(
+        "Return the current member's most recent rating for each workout set in "
+        "the given workout, so the UI can restore previously submitted ratings."
+    ),
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+    },
+)
+async def list_kg_feedback(
+    workout_id: str = Query(..., description="Workout whose saved feedback should be returned"),
+    user: User = Depends(current_active_user),
+    pg_session: AsyncSession = Depends(get_async_session),
+) -> KGFeedbackListResponse:
+    """Return the latest rating per workout set for the current member + workout."""
+    stmt = (
+        select(ExerciseFeedback)
+        .where(
+            ExerciseFeedback.user_id == user.id,
+            ExerciseFeedback.workout_id == workout_id,
+        )
+        .order_by(ExerciseFeedback.created_at)
+    )
+    result = await pg_session.execute(stmt)
+    rows = result.scalars().all()
+
+    # Rows are ordered oldest → newest, so the last write per set wins.
+    latest: dict[str, KGFeedbackItem] = {}
+    for row in rows:
+        key = str(row.workout_set_id) if row.workout_set_id is not None else str(row.exercise_id)
+        latest[key] = KGFeedbackItem(
+            exercise_id=str(row.exercise_id),
+            rating=row.rating,
+            workout_set_id=str(row.workout_set_id) if row.workout_set_id is not None else None,
+            context_type=row.context_type.value,
+        )
+
+    return KGFeedbackListResponse(workout_id=workout_id, items=list(latest.values()))
 
 
 @router.get(

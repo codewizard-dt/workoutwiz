@@ -9,11 +9,16 @@ interface FeedbackFormProps {
   workoutSetId?: string
   contextType?: 'exercise' | 'workout' | 'set'
   compact?: boolean
+  /** Previously-saved rating to restore (e.g. fetched from the server). */
+  initialRating?: 1 | 2 | 3 | 4 | 5 | null
   onSuccess?: () => void
 }
 
-export function FeedbackForm({ exerciseId, memberId, workoutId, workoutSetId, contextType = 'exercise', compact = false, onSuccess }: FeedbackFormProps) {
-  const [rating, setRating] = useState<1 | 2 | 3 | 4 | 5 | null>(null)
+export function FeedbackForm({ exerciseId, memberId, workoutId, workoutSetId, contextType = 'exercise', compact = false, initialRating = null, onSuccess }: FeedbackFormProps) {
+  // `undefined` = the member hasn't picked a rating this session, so fall back to
+  // the saved `initialRating` (which may resolve after mount once the fetch lands).
+  const [picked, setPicked] = useState<1 | 2 | 3 | 4 | 5 | null | undefined>(undefined)
+  const rating = picked === undefined ? initialRating : picked
   const [text, setText] = useState('')
   const { mutate, isPending, isSuccess, isError, error } = useKGFeedback()
 
@@ -40,7 +45,7 @@ export function FeedbackForm({ exerciseId, memberId, workoutId, workoutSetId, co
         compact
         disabled={isPending}
         onChange={(v) => {
-          setRating(v)
+          setPicked(v)
           submit(v)
         }}
       />
@@ -83,7 +88,7 @@ export function FeedbackForm({ exerciseId, memberId, workoutId, workoutSetId, co
       </div>
 
       <div style={{ marginBottom: 'var(--space-2)' }}>
-        <RatingWidget value={rating} onChange={setRating} disabled={isPending} />
+        <RatingWidget value={rating} onChange={setPicked} disabled={isPending} />
       </div>
 
       <textarea

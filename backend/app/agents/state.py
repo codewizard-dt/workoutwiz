@@ -19,7 +19,8 @@ class RouteDecision(BaseModel):
             "The most likely intent of the user message. "
             "COACH for fitness questions, advice, and education (not workout generation). "
             "WORKOUT_LOG to record a completed workout. "
-            "KNOWLEDGE_GRAPH to build, create, plan, or generate a workout — with or without injury context. "
+            "KNOWLEDGE_GRAPH to build, create, plan, generate, OR recommend a personalized, injury-aware list of exercises for this user — "
+            "including questions like 'what exercises suit my injuries?' whose best answer is a tailored exercise list. "
             "FALLBACK when the message is unclear or off-topic."
         )
     )

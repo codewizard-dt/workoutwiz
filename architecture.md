@@ -42,55 +42,59 @@ Workout Wiz is a fitness coaching system built on a **LangGraph multi-agent hub*
 The hub is a LangGraph `StateGraph[HubState]` with typed state and explicit conditional edges. Every incoming chat message passes through the router; the resulting intent determines which branch executes.
 
 ```
-HubState
-  ├─ messages        : list[BaseMessage]
-  ├─ route           : str | None
-  ├─ confidence      : float | None
-  ├─ clarification   : str | None
-  ├─ workout_draft   : WorkoutPlan | None
-  ├─ kg_result       : KGResult | None
-  └─ audit_log       : list[AuditEntry]
+AgentState  (backend/app/agents/state.py)
+  ├─ messages        : list[BaseMessage]   # add_messages reducer
+  ├─ route_decision  : RouteDecision | None # intent + confidence + reasoning
+  ├─ user_id         : str | None
+  ├─ user_email      : str | None
+  ├─ session_id      : str | None
+  ├─ kg_result       : dict | None          # KNOWLEDGE_GRAPH route only
+  └─ audit_log       : list[dict]
 ```
 
 ### Node graph
 
+The compiled hub (`build_hub_graph`) wires exactly five nodes: `router`,
+`clarification`, `coach`, `workout_log`, and `knowledge_graph`. Workout
+generation has no dedicated node — every "build / recommend a workout" request,
+including injury-aware exercise-suitability questions, routes to
+`knowledge_graph`.
+
 ```
                    ┌──────────────────────┐
-  user message ──▶ │    router_node        │
+  user message ──▶ │    router  node       │
                    │  ChatAnthropic        │
                    │  .with_structured_output(RouteDecision)
                    │  → intent + confidence│
                    └──────────┬───────────┘
-                              │
-              ┌───────────────┼────────────────────┐
-              │               │                    │
-    confidence < 0.6    intent == X           FALLBACK
-              │               │                    │
-              ▼       ┌───────┼───────┐            ▼
-      clarification  COACH  WORKOUT  KNOWLEDGE  fallback
-        _node              _GENERATE  _GRAPH     _node
-                           │         │
-                    ┌──────┘    ┌────┘
-                    │           │
-             workout_gen   kg_node
-              _node         │
-                       retrieval_graph
-                       generation_graph
-                       safety_gate
+                              │  _route_selector
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+  conf < 0.6 OR         COACH │ WORKOUT_LOG    KNOWLEDGE_GRAPH
+   FALLBACK                   │                     │
+        │                     │                     │
+        ▼              ┌──────┴──────┐              ▼
+  clarification       coach      workout_log   knowledge_graph
+     node             graph        graph            node
+                                                     │
+                                              retrieval_graph
+                                              generation_graph
+                                              safety_gate
 ```
 
 ### Routing decision
 
-The router calls `ChatAnthropic.with_structured_output(RouteDecision)`, which forces the model to return a Pydantic model with `intent` (enum) and `confidence` (float 0–1). No regex or keyword matching is used.
+The router calls `ChatAnthropic.with_structured_output(RouteDecision)`, which forces the model to return a Pydantic model with `intent` (enum), `confidence` (float 0–1), and `reasoning`. No regex or keyword matching is used. The `Intent` enum has exactly four members.
 
 | Intent | Threshold | Action |
 |--------|-----------|--------|
-| `COACH` | ≥ 0.6 | coach sub-graph |
-| `WORKOUT_GENERATE` | ≥ 0.6 | workout generator sub-graph |
-| `WORKOUT_LOG` | ≥ 0.6 | workout logger sub-graph |
-| `KNOWLEDGE_GRAPH` | ≥ 0.6 | KG retrieval + generation pipeline |
-| `FALLBACK` | any | polite out-of-scope reply |
+| `COACH` | ≥ 0.6 | coach sub-graph — fitness questions whose answer is explanation or advice |
+| `WORKOUT_LOG` | ≥ 0.6 | workout logger sub-graph — record a completed workout |
+| `KNOWLEDGE_GRAPH` | ≥ 0.6 | KG retrieval + generation pipeline — build, plan, **or recommend** a personalized, injury-aware exercise list (e.g. "what exercises suit my injuries?") |
+| `FALLBACK` | any | clarification node — out-of-scope or unclear |
 | any | < 0.6 | clarification node |
+
+> Disambiguation rule (`_ROUTER_SYSTEM_PROMPT`): when a request's best answer is a personalized list of specific exercises for *this* user — even when phrased as a question, and especially for injury-aware suitability questions — the router chooses `KNOWLEDGE_GRAPH`, never `COACH` or `FALLBACK`.
 
 ---
 
@@ -103,6 +107,11 @@ Each sub-agent is a **separate `StateGraph`** compiled into a `CompiledGraph` an
 A single-node graph that invokes `ChatAnthropic` with a system prompt grounding it in exercise science. Returns a coaching answer. No tool calls.
 
 ### Workout Generator sub-graph (`backend/app/agents/workout_generator.py`)
+
+> **Note:** This sub-graph is a self-contained PostgreSQL-tool generator that
+> predates the Neo4j pipeline. It is **not** composed into the current hub —
+> workout generation now routes to `KNOWLEDGE_GRAPH` (see above). The file is
+> retained as a reference/fallback implementation.
 
 A ReAct-style tool-calling loop. Two tools with Pydantic input schemas:
 
@@ -196,7 +205,7 @@ Every node appends a structured entry to `HubState.audit_log`:
   "event": "router",
   "model": "claude-haiku-4-5-20251001",
   "provider": "anthropic",
-  "route": "WORKOUT_GENERATE",
+  "route": "KNOWLEDGE_GRAPH",
   "confidence": 0.95,
   "latency_ms": 1129,
   "tokens_in": 1382,
@@ -211,7 +220,7 @@ The full session audit trail is available at `GET /chat/audit/{session_id}`. The
 
 | Field | Description |
 |-------|-------------|
-| `event` | Node name (router, generator, coach, workout_log, kg_hub, kg_generation_llm, kg_generation_safety_gate, retrieval_*) |
+| `event` | Node name (router, coach, workout_log, kg_hub, kg_generation_llm, kg_generation_safety_gate, retrieval_*) |
 | `model` | LLM model ID or `"n/a"` for non-LLM nodes |
 | `provider` | `"anthropic"` or `"neo4j"` |
 | `latency_ms` | Wall-clock time for this node |

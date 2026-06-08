@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import type { WorkoutSequence, Exercise, WorkoutPhase } from '@/types'
+import { useKGFeedbackList } from '@/hooks/useKGFeedbackList'
 import { FeedbackForm } from './FeedbackForm'
 
 interface PhaseTableProps {
@@ -37,6 +38,7 @@ function formatPrescription(set: WorkoutSequence['sets'][number]): string {
 export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onAddCurrent }: PhaseTableProps) {
   const exerciseById = new Map(exercises.map((ex) => [ex.id, ex]))
   const showFeedback = memberId != null && workoutId != null
+  const { data: savedRatings } = useKGFeedbackList(showFeedback ? workoutId : undefined)
 
   const ordered = PHASE_ORDER.flatMap((phase) => {
     const seq = sequences.find((s) => s.phase === phase)
@@ -119,6 +121,7 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
                               workoutId={workoutId}
                               workoutSetId={set.id}
                               contextType="exercise"
+                              initialRating={savedRatings?.[set.id] ?? null}
                             />
                           </td>
                         )}

@@ -7,11 +7,12 @@
 
 ## Start Here
 
-- [**Eval Suite**](evals/README.md) — Evaluation infrastructure built on the 5-stage framework: golden sets, labeled scenarios, replay harnesses, rubrics, and experiments.
-- [**Feedback Methodology**](backend/app/knowledge_graph/FEEDBACK_METHODOLOGY.md) — How member ratings (`FeedbackEvent`) enter the knowledge graph as the preference layer and weight future recommendations.
-- [**SNOMED CT Grounding Methodology**](backend/app/knowledge_graph/SNOMED_METHODOLOGY.md) — How injury/disorder nodes are grounded in SNOMED CT (via NCI EVS), the SKOS mapping, deterministic safety traversal, and PROV-O provenance.
-- [**Agents ↔ KG Architecture**](backend/app/agents-kg.flowchart.md) — Mermaid flowcharts tracing a request from the hub through sub-agents into the knowledge-graph retrieval/generation pipeline.
+- [**Architecture Overview**](architecture.md) — End-to-end system architecture: the LangGraph hub StateGraph, intent routing, sub-agent graphs, the Neo4j KG retrieval/generation pipeline, REST API, and data schema.
 - [**Knowledge Graph Schema**](.docs/knowledge-graph-schema.md) — Authoritative Neo4j node/relationship schema reference for the coaching graph.
+- [**Agents ↔ KG Architecture**](backend/app/agents-kg.flowchart.md) — Mermaid flowcharts tracing a request from the hub through sub-agents into the knowledge-graph retrieval/generation pipeline.
+- [**SNOMED CT Grounding Methodology**](backend/app/knowledge_graph/SNOMED_METHODOLOGY.md) — How injury/disorder nodes are grounded in SNOMED CT (via NCI EVS), the SKOS mapping, deterministic safety traversal, and PROV-O provenance.
+- [**Feedback Methodology**](backend/app/knowledge_graph/FEEDBACK_METHODOLOGY.md) — How member ratings (`FeedbackEvent`) enter the knowledge graph as the preference layer and weight future recommendations.
+- [**Eval Suite**](evals/README.md) — Evaluation infrastructure built on the 5-stage framework: golden sets, labeled scenarios, replay harnesses, rubrics, and experiments.
 
 ---
 

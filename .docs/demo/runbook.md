@@ -9,21 +9,97 @@
 ## Hub Architecture
 
 ```mermaid
-flowchart TD
-    User([User / Chat UI]) -->|natural language| HUB
+flowchart LR
+    User([User / Chat UI])
 
     subgraph HUB["Hub StateGraph"]
-        ROUTER["router node\nChatAnthropic.with_structured_output\nRouteDecision → intent + confidence"]
-        ROUTER -->|COACH| COACH["coach sub-graph"]
-        ROUTER -->|WORKOUT_GENERATE| GEN["workout_gen sub-graph\nsearch_exercises_tool\nbuild_workout_tool"]
-        ROUTER -->|WORKOUT_LOG| LOG["workout_log sub-graph\nfuzzy exercise matching"]
-        ROUTER -->|KNOWLEDGE_GRAPH| KG["knowledge_graph node\nNeo4j GraphRAG\nSNOMED injury traversal"]
-        ROUTER -->|confidence < 0.6| CLARIFY["clarification node"]
-        ROUTER -->|FALLBACK| FB["fallback node"]
+        direction TB
+        ROUTER{{"router\nwith_structured_output\nintent + confidence"}}
+        COACH["coach\nfitness Q&A"]
+        LOG["workout_log\nfuzzy matching"]
+        KG["knowledge_graph\nNeo4j GraphRAG"]
+        CLARIFY["clarification\nFALLBACK / conf < 0.6"]
+        ROUTER -->|COACH| COACH
+        ROUTER -->|WORKOUT_LOG| LOG
+        ROUTER -->|KNOWLEDGE_GRAPH| KG
+        ROUTER -->|FALLBACK / low conf| CLARIFY
     end
 
-    KG --> SAFETY["safety gate\nhard-filter contraindicated IDs\npost-LLM — not overrideable"]
-    COACH & GEN & LOG & KG & CLARIFY & FB --> AUDIT["audit_log\nlatency_ms · tokens · route\nGET /chat/audit/{session_id}"]
+    subgraph KGP["KG Pipeline · Neo4j"]
+        direction TB
+        RETRIEVAL["retrieval\ninjury SNOMED · vector · prefs"]
+        GEN["generation\nwith_structured_output"]
+        SAFETY["safety gate\nhard-filter contraindicated\npost-LLM"]
+        RETRIEVAL -->|ContextSlice| GEN --> SAFETY
+    end
+
+    AUDIT[["audit_log\nevent · route · latency · tokens\nGET /chat/audit/{session_id}"]]
+
+    User -->|POST /chat/| ROUTER
+    KG --> RETRIEVAL
+    HUB -.->|per-node audit| AUDIT
+    KGP -.-> AUDIT
+```
+
+---
+
+## Knowledge Graph Schema
+
+Node types and relationships in the Neo4j coaching graph. The SNOMED-grounded nodes (`Disorder`, `BodyStructure`) are frozen at build time from `backend/data/snomed_subset.json`.
+
+```mermaid
+flowchart LR
+    Member["Member\nid · goals\nequipment_available"]
+    Injury["Injury\nname · severity\naffected_joints · status"]
+    Disorder["Disorder\nsnomed_code · label"]
+    BS["BodyStructure\nsnomed_code\ncatalog_term"]
+    Exercise["Exercise\nid · joints_loaded\npriority_tier · embedding"]
+    WS["WorkoutSession\nstarted_at · phase"]
+
+    Member -->|HAS_INJURY| Injury
+    Member -->|RATED| Exercise
+    Member -->|PERFORMED| WS
+    Injury -->|MAPS_TO_DISORDER| Disorder
+    Disorder -->|FINDING_SITE| BS
+    BS -->|"PART_OF*0.."| BS
+    Exercise -->|MAPS_TO| BS
+    WS -->|INCLUDED| Exercise
+```
+
+---
+
+## SNOMED Safety Traversal
+
+The contraindication filter follows this path deterministically through graph structure — no string comparison, no prompt instruction. A post-LLM `safety_gate_node` hard-filters any exercise whose ID appears at the end of this traversal.
+
+```mermaid
+flowchart LR
+    M["Member"] -->|HAS_INJURY| I["Injury\nleft knee tendinopathy"]
+    I -->|MAPS_TO_DISORDER| D["Disorder\nSNOMED 15637231000119107"]
+    D -->|FINDING_SITE| BS1["BodyStructure\npatellar tendon"]
+    BS1 -->|PART_OF| BS2["BodyStructure\nknee joint"]
+    E["Exercise\nBarbell Squat"] -->|MAPS_TO| BS2
+    E -.->|excluded by safety gate| GATE(["⛔ filtered from response"])
+```
+
+---
+
+## Coach Copilot Pipeline
+
+A second, **coach-facing** surface at `/coach` (separate from the member hub). It assembles the full member context from Neo4j and answers the human coach's questions grounded in that context only — every answer carries graph-cited `grounded_facts` pills. Endpoints: `/coach/members`, `/coach/brief`, `/coach/chat`.
+
+```mermaid
+flowchart LR
+    UI["Coach View (/coach)\nmember switcher · brief · copilot"]
+    BRIEF["GET /coach/brief\nchurn · adherence · goals · injuries"]
+    CHAT["POST /coach/chat\ngrounded copilot"]
+    NEO["Neo4j member context\ngoals · injuries · adherence\nbiomarkers · labs · workouts · messages"]
+    LLM["ChatAnthropic (Haiku)\nsystem: answer from context ONLY"]
+    OUT["reply + grounded_facts\ngraph-cited pills"]
+
+    UI --> BRIEF --> NEO
+    UI --> CHAT --> NEO
+    NEO --> LLM --> OUT --> UI
 ```
 
 ---
@@ -34,6 +110,7 @@ flowchart TD
 - [ ] `make dev` — frontend :5173, backend :8000, postgres :5433
 - [ ] Neo4j running if demonstrating KG path: `docker compose up -d neo4j`
 - [ ] Browser open at `http://localhost:5173`, chat page visible (log in first)
+- [ ] Coach Copilot needs Neo4j seeded with member context (Jordan Rivera demo member)
 - [ ] Terminal ready for `curl` audit command
 
 **Fallback**: If stack is down, use Swagger at `http://localhost:8000/docs`
@@ -60,19 +137,7 @@ flowchart TD
 
 ---
 
-### Step 2 — WORKOUT_GENERATE with equipment constraint *(~35 s)*
-
-**Prompt**: `I only have resistance bands at home. Build me a 30-minute full-body workout.`
-
-**Action**: Type and submit.
-
-> "Routed to WORKOUT_GENERATE, confidence 0.95. The generator calls two tools: search_exercises_tool filters the dataset to band and bodyweight exercises only — constraint enforced through data, not prompt instruction. Then build_workout_tool assembles warmup, main, and cooldown phases. Notice invalid_ids_skipped is empty in the audit — no hallucinated exercise IDs."
-
-**Expected result**: Structured workout plan in warmup/main/cooldown sections using only resistance band and bodyweight exercises
-
----
-
-### Step 3 — WORKOUT_LOG *(~25 s)*
+### Step 2 — WORKOUT_LOG *(~25 s)*
 
 **Prompt**: `I just did 3 sets of 10 bench press at 135 lbs and a 20-minute run.`
 
@@ -84,19 +149,19 @@ flowchart TD
 
 ---
 
-### Step 4 — KNOWLEDGE_GRAPH injury-aware path *(~40 s)*
+### Step 3 — KNOWLEDGE_GRAPH workout generation + injury safety *(~40 s)*
 
 **Prompt**: `I have a bad knee and a bad shoulder. Build me a workout that avoids aggravating either injury.`
 
 **Action**: Type and submit.
 
-> "Routed to KNOWLEDGE_GRAPH, confidence 0.99 — the router correctly distinguished this from a workout-gen request based on injury context alone. The retrieval sub-graph traverses Neo4j: member profile, then injury nodes via SNOMED CT codes through MAPS_TO_DISORDER → FINDING_SITE → PART_OF → CONTRAINDICATED edges. That produces a hard exclusion list of exercise IDs — 21 exercises in this run. A safety gate node hard-filters the LLM output against that list after generation. The filter is code, not a prompt. Each recommended exercise carries a SNOMED-grounded provenance trace you can read: disorder code, finding site, graph path."
+> "Routed to KNOWLEDGE_GRAPH, confidence 0.99 — every 'build me a workout' request lands here, and the router picks it over COACH on injury context alone. The retrieval sub-graph traverses Neo4j: member profile (including available equipment), then injury nodes via SNOMED CT codes through MAPS_TO_DISORDER → FINDING_SITE → PART_OF edges. That produces a hard exclusion list of exercise IDs — 21 exercises in this run. The generation graph assembles a warmup/main/cooldown plan, then a safety gate node hard-filters the LLM output against that exclusion list after generation. The filter is code, not a prompt. Each recommended exercise carries a SNOMED-grounded provenance trace you can read: disorder code, finding site, graph path."
 
-**Expected result**: Workout with exercises avoiding knee and shoulder loading; provenance objects on each recommendation; N exercises excluded stated in response
+**Expected result**: Warmup/main/cooldown plan avoiding knee and shoulder loading; provenance objects on each recommendation; N exercises excluded stated in response
 
 ---
 
-### Step 5 — FALLBACK *(~15 s)*
+### Step 4 — FALLBACK *(~15 s)*
 
 **Prompt**: `What's the best recipe for banana bread?`
 
@@ -105,6 +170,16 @@ flowchart TD
 > "FALLBACK, confidence 0.99. Out-of-scope, no crash, polite deflection."
 
 **Expected result**: RouteBadge shows `FALLBACK · 0.99`; message says system handles fitness only
+
+---
+
+### Step 5 — Coach Copilot (coach-facing) *(~35 s)*
+
+**Action**: Navigate to `/coach`. Pick a member in the switcher, then click the **"How's adherence trending?"** quick-prompt.
+
+> "Now switch personas. This is the coach-facing copilot — a separate surface from the member chat. The morning brief is built live from Neo4j: churn risk, adherence trend, goals, injuries, message pattern. When I ask about adherence, the copilot answers using *only* this member's graph context — the system prompt forbids inventing data. See the grounded-facts pills under the reply: each one is a fact pulled straight from the graph, so the coach can trust it and repeat it to the member."
+
+**Expected result**: Brief dashboard (churn risk badge, adherence bars, goals, injuries); chat reply citing the member's actual adherence numbers; `grounded_facts` pills rendered beneath the reply
 
 ---
 
@@ -123,7 +198,7 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 
 ### Wrap *(~15 s)*
 
-> "One conversational interface, five routing paths — each a separate LangGraph sub-graph. LLM structured output does the routing. The injury safety gate is code, not a prompt. Full audit trail per session. The README covers production scaling, failure modes, and evaluation strategy."
+> "One conversational interface, four routing paths — each a separate LangGraph sub-graph. LLM structured output does the routing. The injury safety gate is code, not a prompt. A second coach-facing copilot answers grounded only in the member's graph. Full audit trail per session. The README covers production scaling, failure modes, and evaluation strategy."
 
 ---
 
@@ -133,10 +208,10 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 |---------|--------|
 | Hook | 15 s |
 | Step 1 — COACH | 25 s |
-| Step 2 — WORKOUT_GENERATE | 35 s |
-| Step 3 — WORKOUT_LOG | 25 s |
-| Step 4 — KNOWLEDGE_GRAPH | 40 s |
-| Step 5 — FALLBACK | 15 s |
+| Step 2 — WORKOUT_LOG | 25 s |
+| Step 3 — KNOWLEDGE_GRAPH | 40 s |
+| Step 4 — FALLBACK | 15 s |
+| Step 5 — Coach Copilot | 35 s |
 | Step 6 — Audit | 20 s |
 | Wrap | 15 s |
 | **Total** | **~2 min 50 s** |
@@ -146,7 +221,7 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 ## Contingency Notes
 
 - **If LLM is slow**: Use fallback prompts below; the demo transcript in the README shows expected output verbatim
-- **If Neo4j is down**: Skip Step 4; substitute "KNOWLEDGE_GRAPH is also implemented — the README shows a live trace with 21 exercises excluded via SNOMED traversal"
+- **If Neo4j is down**: Skip Step 3; substitute "KNOWLEDGE_GRAPH is also implemented — the README shows a live trace with 21 exercises excluded via SNOMED traversal"
 - **If asked about the 66% scenario-suite pass rate**: Honest answer — those test cases require the full Neo4j stack or exercise the LLM-dependent no-results recovery path; they are documented known gaps, not regressions
 - **If asked about Assessment 2**: GraphRAG pipeline (retrieval sub-graph, vector similarity, SNOMED traversal, safety gate, preference feedback) is implemented; richer member-context ingestion (biomarkers, HRV) is the main gap
 
@@ -157,9 +232,9 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 | Route | Backup prompt |
 |-------|---------------|
 | COACH | "How many sets per muscle group for hypertrophy?" |
-| WORKOUT_GENERATE | "Give me a 45-minute full-body strength workout with dumbbells." |
 | WORKOUT_LOG | "I just did 3 sets of 10 squat at 225 lbs." |
-| KNOWLEDGE_GRAPH | "Build a lower body session that avoids knee stress." |
+| KNOWLEDGE_GRAPH | "Give me a 45-minute full-body strength workout with dumbbells." |
+| KNOWLEDGE_GRAPH (injury) | "Build a lower body session that avoids knee stress." |
 | FALLBACK | "What's the capital of France?" |
 
 ---
@@ -168,12 +243,14 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 
 | Resource | URL |
 |----------|-----|
-| Chat UI | http://localhost:5173 |
+| Chat UI (member hub) | http://localhost:5173/chat |
+| Coach Copilot | http://localhost:5173/coach |
 | Backend Swagger | http://localhost:8000/docs |
 | Health check | http://localhost:8000/healthz |
 | Audit log | http://localhost:8000/chat/audit/{session_id} |
 | KG recommend | POST http://localhost:8000/kg/recommend |
 | KG explain | POST http://localhost:8000/kg/explain |
+| Coach brief / chat | GET /coach/brief · POST /coach/chat |
 
 ---
 
@@ -183,16 +260,18 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 |---|-------------|--------|--------|
 | REQ-01 | Hub routes via `with_structured_output`, not regex | PRD-001 AC-1.1 | **Covered** — `RouteDecision` structured output |
 | REQ-02 | COACH intent → coaching sub-agent, grounded answer | PRD-001 US-1 | **Covered** — Step 1 |
-| REQ-03 | WORKOUT_GENERATE produces warmup/main/cooldown plan | PRD-001 AC-2.2 | **Covered** — Step 2 |
-| REQ-04 | All exercises traceable to exercises.json | PRD-001 AC-2.3 | **Covered** — `invalid_ids_skipped` validated |
-| REQ-05 | Equipment/time constraints reflected in plan | PRD-001 AC-2.4 | **Covered** — Step 2 band constraint |
-| REQ-06 | WORKOUT_LOG → structured JSON with fuzzy-matched ID | PRD-001 AC-3.2–3.3 | **Covered** — Step 3 |
+| REQ-03 | Workout generation produces warmup/main/cooldown plan | PRD-001 AC-2.2 | **Covered** — KNOWLEDGE_GRAPH generation path (Step 3) |
+| REQ-04 | All exercises traceable to exercises.json | PRD-001 AC-2.3 | **Covered** — generation chooses from `safe_exercises` only; safety gate validates IDs |
+| REQ-05 | Equipment/time constraints reflected in plan | PRD-001 AC-2.4 | **Covered** — KG retrieval scopes candidates to `Member.equipment_available` (Step 3) |
+| REQ-06 | WORKOUT_LOG → structured JSON with fuzzy-matched ID | PRD-001 AC-3.2–3.3 | **Covered** — Step 2 |
 | REQ-07 | Low-confidence inputs → clarification, not misroute | PRD-001 AC-4.1 | **Covered** — clarification node at confidence < 0.6 |
-| REQ-08 | Edge cases → user-facing message, no crash | PRD-001 AC-4.2 | **Covered** — Step 5 FALLBACK + global handler |
+| REQ-08 | Edge cases → user-facing message, no crash | PRD-001 AC-4.2 | **Covered** — Step 4 FALLBACK + global handler |
 | REQ-09 | README production evaluation section | PRD-001 AC-4.3 | **Covered** — README "Production Evaluation" |
-| REQ-10 | Injury contraindication hard-filter (not prompt) | PRD-002 AC-1.2 | **Covered** — Step 4 safety gate |
+| REQ-10 | Injury contraindication hard-filter (not prompt) | PRD-002 AC-1.2 | **Covered** — Step 3 safety gate |
 | REQ-11 | Graph-traceable explainability per recommendation | PRD-002 AC-2.1 | **Covered** — SNOMED provenance objects |
 | REQ-12 | Preference feedback writeback | PRD-002 US-4 | **Covered** — FeedbackForm → POST /kg/feedback |
+| REQ-13 | Coach-facing copilot surfaces member context (injuries, adherence, goals) grounded in the graph | PRD-002 US-3 | **Covered** — Step 5 `/coach` brief + grounded chat |
+| REQ-14 | Copilot distinguishes graph-grounded facts from inferred context | PRD-002 US-3 AC-3 | **Covered** — `grounded_facts` pills + "answer from context ONLY" system prompt |
 
 **Gaps**: None against PRD-001 or PRD-002 core acceptance criteria.
 

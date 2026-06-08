@@ -1,0 +1,18 @@
+flowchart LR
+    UI["Coach View (/coach)\nmember switcher · brief · copilot"]
+    BRIEF["GET /coach/brief\nchurn · adherence · goals · injuries"]
+    CHAT["POST /coach/chat\ngrounded copilot"]
+    NEO["Neo4j member context\ngoals · injuries · adherence\nbiomarkers · labs · workouts · messages"]
+    LLM["ChatAnthropic (Haiku)\nsystem: answer from context ONLY"]
+    OUT["reply + grounded_facts\ngraph-cited pills"]
+
+    UI --> BRIEF --> NEO
+    UI --> CHAT --> NEO
+    NEO --> LLM --> OUT --> UI
+
+    style UI fill:#1f6feb,color:#fff,stroke:#388bfd
+    style BRIEF fill:#f0fdf4,stroke:#16a34a,color:#111
+    style CHAT fill:#f0fdf4,stroke:#16a34a,color:#111
+    style NEO fill:#6e40c9,color:#fff,stroke:#bc8cff
+    style LLM fill:#fef9c3,stroke:#ca8a04,color:#111
+    style OUT fill:#238636,color:#fff,stroke:#3fb950

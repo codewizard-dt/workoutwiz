@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
 
 interface FeedbackPayload {
@@ -18,7 +18,13 @@ interface FeedbackResponse {
 
 export function useKGFeedback() {
   const { token } = useAuth()
+  const queryClient = useQueryClient()
   return useMutation<FeedbackResponse, Error, FeedbackPayload>({
+    onSuccess: (_data, payload) => {
+      if (payload.workout_id != null) {
+        void queryClient.invalidateQueries({ queryKey: ['kg-feedback', payload.workout_id] })
+      }
+    },
     mutationFn: async (payload: FeedbackPayload) => {
       const res = await fetch('/api/kg/feedback', {
         method: 'POST',

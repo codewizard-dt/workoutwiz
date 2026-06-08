@@ -1,0 +1,23 @@
+flowchart LR
+    Member["Member\nid · goals\nequipment_available"]
+    Injury["Injury\nname · severity\naffected_joints · status"]
+    Disorder["Disorder\nsnomed_code · label"]
+    BS["BodyStructure\nsnomed_code\ncatalog_term"]
+    Exercise["Exercise\nid · joints_loaded\npriority_tier · embedding"]
+    WS["WorkoutSession\nstarted_at · phase"]
+
+    Member -->|HAS_INJURY| Injury
+    Member -->|RATED| Exercise
+    Member -->|PERFORMED| WS
+    Injury -->|MAPS_TO_DISORDER| Disorder
+    Disorder -->|FINDING_SITE| BS
+    BS -->|"PART_OF*0.."| BS
+    Exercise -->|MAPS_TO| BS
+    WS -->|INCLUDED| Exercise
+
+    style Member fill:#1f6feb,color:#fff,stroke:#388bfd
+    style Exercise fill:#238636,color:#fff,stroke:#3fb950
+    style Injury fill:#b91c1c,color:#fff,stroke:#f85149
+    style Disorder fill:#6e40c9,color:#fff,stroke:#bc8cff
+    style BS fill:#6e40c9,color:#fff,stroke:#bc8cff
+    style WS fill:#484f58,color:#fff,stroke:#8b949e

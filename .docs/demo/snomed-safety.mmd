@@ -1,0 +1,15 @@
+flowchart LR
+    M["Member"] -->|HAS_INJURY| I["Injury\nleft knee tendinopathy"]
+    I -->|MAPS_TO_DISORDER| D["Disorder\nSNOMED 15637231000119107"]
+    D -->|FINDING_SITE| BS1["BodyStructure\npatellar tendon"]
+    BS1 -->|PART_OF| BS2["BodyStructure\nknee joint"]
+    E["Exercise\nBarbell Squat"] -->|MAPS_TO| BS2
+    E -.->|excluded by safety gate| GATE(["⛔ filtered from response"])
+
+    style M fill:#1f6feb,color:#fff,stroke:#388bfd
+    style I fill:#b91c1c,color:#fff,stroke:#f85149
+    style D fill:#6e40c9,color:#fff,stroke:#bc8cff
+    style BS1 fill:#6e40c9,color:#fff,stroke:#bc8cff
+    style BS2 fill:#6e40c9,color:#fff,stroke:#bc8cff
+    style E fill:#238636,color:#fff,stroke:#3fb950
+    style GATE fill:#b91c1c,color:#fff,stroke:#f85149
