@@ -26,7 +26,7 @@ typecheck-py:
 
 ## typecheck-ts — tsc + eslint on frontend/src
 typecheck-ts:
-	cd frontend && npx tsc --noEmit
+	cd frontend && npx tsc -b --noEmit
 	cd frontend && npx eslint src --max-warnings=0
 
 ## typecheck — run both language checks
@@ -84,8 +84,9 @@ export
 GHCR_REPO   = ghcr.io/codewizard-dt/workoutwiz
 DROPLET_IP ?= 167.99.234.128
 PROJECT     = workoutwiz
-GITHUB_USER ?= $(shell gh api user --jq .login 2>/dev/null)
-RUNNER_TOKEN ?= $(shell gh api repos/codewizard-dt/workoutwiz/actions/runners/registration-token --jq .token)
+GITHUB_USER ?= $(shell gh api user --jq .login 2>/dev/null || echo "")
+RUNNER_TOKEN = $(shell gh api repos/codewizard-dt/workoutwiz/actions/runners/registration-token --jq .token 2>/dev/null)
+unexport RUNNER_TOKEN
 REPO_URL ?= https://github.com/codewizard-dt/workoutwiz
 
 .PHONY: ports ps login up dev push deploy deploy-pull ssh-alias down

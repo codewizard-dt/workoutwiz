@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { WorkoutSequence } from '@/types'
+import type { WorkoutSequence, WorkoutSet } from '@/types'
 
 const KEY = 'ww_draft_sequences'
 
@@ -40,11 +40,11 @@ export function useDraftWorkout() {
     setLocal((prev) => {
       const mainIdx = prev.findIndex((s) => s.phase === 'main')
       const existingSets = mainIdx >= 0 ? prev[mainIdx].sets : []
-      const newSet = {
+      const newSet: WorkoutSet = {
         id: `draft-${Date.now()}`,
         sequence_id: 'draft-main',
         exercise_id: exerciseId,
-        set_type: isCardio ? 'CARDIO' : ('STRENGTH' as const),
+        set_type: isCardio ? 'CARDIO' : 'STRENGTH',
         position: existingSets.length * 100,
         reps: isCardio ? undefined : 10,
         weight_kg: undefined,
