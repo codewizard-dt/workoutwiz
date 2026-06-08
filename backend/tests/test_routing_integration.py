@@ -39,7 +39,6 @@ def _run_with_route(intent: Intent, confidence: float) -> list:
     with (
         patch("app.agents.hub._router_node", router_stub),
         patch("app.agents.hub.coach_graph", _stub_sub_agent("coach")),
-        patch("app.agents.hub.workout_generator_graph", _stub_sub_agent("workout_gen")),
         patch("app.agents.hub.workout_logger_graph", _stub_sub_agent("workout_log")),
         patch("app.agents.hub._knowledge_graph_node", _stub_sub_agent("knowledge_graph")),
     ):
@@ -55,9 +54,9 @@ def test_coach_intent_dispatches_to_coach():
 
 
 def test_workout_generate_dispatches_correctly():
-    messages = _run_with_route(Intent.WORKOUT_GENERATE, 0.85)
+    messages = _run_with_route(Intent.KNOWLEDGE_GRAPH, 0.85)
     last = messages[-1].content.lower()
-    assert "workout_gen" in last or "stub" in last
+    assert "knowledge_graph" in last or "stub" in last
 
 
 def test_workout_log_dispatches_correctly():

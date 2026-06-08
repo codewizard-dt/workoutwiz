@@ -44,6 +44,22 @@ export interface AgentStep {
   timestamp?: string
 }
 
+export interface RecommendedExercise {
+  exercise_id: string
+  name: string
+  sets?: number
+  reps?: number
+  duration_seconds?: number
+  weight_kg?: number
+  reasoning: string
+}
+
+export interface KGResult {
+  exercises: RecommendedExercise[]
+  overall_reasoning: string
+  fallback_used: boolean
+}
+
 export interface WorkoutDraftExercise {
   id: string
   name: string
@@ -74,6 +90,7 @@ export interface ChatMessage {
   confidence?: number
   steps?: AgentStep[]
   workout_draft?: WorkoutDraft
+  kg_result?: KGResult | null
 }
 
 export interface WorkoutSequenceCreate {
@@ -133,6 +150,19 @@ export interface InjuryItem {
   notes: string | null
 }
 
+export interface MessagePatternPoint {
+  week_of: string
+  member_count: number
+  coach_count: number
+}
+
+export interface WeeklyComparisonPoint {
+  week_of: string
+  adherence_pct: number
+  workouts_completed: number
+  messages_sent: number
+}
+
 export interface CoachBriefResponse {
   member_id: string
   member_name: string
@@ -144,6 +174,8 @@ export interface CoachBriefResponse {
   churn_risk: ChurnRisk
   adherence_weeks: AdherenceWeek[]
   equipment: string[]
+  message_pattern: MessagePatternPoint[]
+  weekly_comparison: WeeklyComparisonPoint[]
 }
 
 export interface CoachChatMessage {
@@ -151,12 +183,20 @@ export interface CoachChatMessage {
   role: 'user' | 'assistant'
   content: string
   grounded_facts?: string[]
+  image?: string
 }
 
 export interface CoachChatResponse {
   reply: string
   grounded_facts: string[]
   session_id: string
+}
+
+export interface CoachMemberSummary {
+  member_id: string
+  member_name: string
+  tier: string | null
+  member_age: number | null
 }
 
 export interface Workout {

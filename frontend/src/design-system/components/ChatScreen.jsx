@@ -129,7 +129,7 @@ function PreviousWorkouts({ navigate }) {
 
 const CHAT_PROMPTS = [
   { icon: "activity", text: "What muscles does a deadlift work?", route: "COACH" },
-  { icon: "sparkles", text: "Build me a 30-min upper-body dumbbell session", route: "WORKOUT_GENERATE" },
+  { icon: "sparkles", text: "Build me a 30-min upper-body dumbbell session", route: "KNOWLEDGE_GRAPH" },
   { icon: "clipboard-check", text: "I did 3×10 bench at 60 kg and a 20-min run", route: "WORKOUT_LOG" },
   { icon: "dumbbell", text: "Is bench press enough for chest?", route: "COACH" },
 ];
@@ -211,7 +211,7 @@ function ChatScreen({ navigate, units, variant, sessionId }) {
           </div>
         </div>
         <p className="composer-hint">
-          Session <span className="ww-num">{sessionId}</span> · preserved across messages · routes to COACH / WORKOUT_GENERATE / WORKOUT_LOG
+          Session <span className="ww-num">{sessionId}</span> · preserved across messages · routes to COACH / KNOWLEDGE_GRAPH / WORKOUT_LOG
         </p>
       </div>
     </div>

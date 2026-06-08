@@ -82,9 +82,11 @@ migrate-current:
 export
 
 GHCR_REPO   = ghcr.io/codewizard-dt/workoutwiz
-DROPLET_IP ?=
-PROJECT     = $(shell basename $(CURDIR))
+DROPLET_IP ?= 167.99.234.128
+PROJECT     = workoutwiz
 GITHUB_USER ?= $(shell gh api user --jq .login 2>/dev/null)
+RUNNER_TOKEN ?= $(shell gh api repos/codewizard-dt/workoutwiz/actions/runners/registration-token --jq .token)
+REPO_URL ?= https://github.com/codewizard-dt/workoutwiz
 
 .PHONY: ports ps login up dev push deploy deploy-pull ssh-alias down
 
@@ -108,11 +110,18 @@ down:
 
 ## dev — build from source with hot-reload bind mounts (detached)
 dev:
-	docker compose -f docker-compose.yml -f docker-compose.build.yml up --build -d --wait
+	docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --wait
 	@echo "Services are running at the following URLs:"
 	@echo "Backend: http://localhost:$(BACKEND_PORT)"
 	@echo "Frontend: http://localhost:$(FRONTEND_PORT)"
 	@echo "Database: http://localhost:$(DB_PORT)"
+dev-rebuild-backend:
+	docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --wait --build backend frontend
+	@echo "Services are running at the following URLs:"
+	@echo "Backend: http://localhost:$(BACKEND_PORT)"
+	@echo "Frontend: http://localhost:$(FRONTEND_PORT)"
+	@echo "Database: http://localhost:$(DB_PORT)"
+
 
 ## up — pull latest GHCR images and start the production stack (no build)
 up:
@@ -127,15 +136,24 @@ push:
 		-t $(GHCR_REPO)-frontend:latest --push \
 		-f frontend/Dockerfile.prod frontend
 
-## deploy — sync compose file, Makefile, and .env.production to VPS then restart
-deploy:
+deploy: deploy-sync
+	ssh $(PROJECT) "cd /opt/$(PROJECT) && make deploy-pull"
+
+deploy-sync:
 	ssh $(PROJECT) "mkdir -p /opt/$(PROJECT)"
 	scp docker-compose.yml Makefile $(PROJECT):/opt/$(PROJECT)/
 	scp .env.production $(PROJECT):/opt/$(PROJECT)/.env
-	ssh $(PROJECT) "cd /opt/$(PROJECT) && make deploy-pull"
+	scp .scripts/setup-runner.sh $(PROJECT):~/setup-runner.sh
 
-## deploy-pull — alias for `up`; run directly on the VPS after syncing files
+
+
+## deploy-pull — pull new images and restart (run directly on the VPS)
 deploy-pull: up
+
+## setup-runner — upload and run the runner installer on the VPS
+## Usage: make setup-runner RUNNER_TOKEN=<token>
+setup-runner: deploy-sync
+	ssh $(PROJECT) "RUNNER_TOKEN=$(RUNNER_TOKEN) REPO_URL=$(REPO_URL) bash ~/setup-runner.sh"
 
 ## ssh-alias — upsert ~/.ssh/config Host entry for the prod server (idempotent)
 ## Usage: make ssh-alias DROPLET_IP=1.2.3.4

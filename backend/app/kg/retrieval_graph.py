@@ -17,8 +17,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import operator
 import time
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from langgraph.graph import END, StateGraph
 from neo4j import AsyncDriver
@@ -26,11 +27,14 @@ from neo4j import AsyncDriver
 from app.kg.context_assembler import ContextSlice, assemble_context_from_parts
 from app.knowledge_graph.traversal import (
     get_avoided_exercises,
+    get_biomarkers,
     get_contraindicated_exercise_ids,
     get_contraindicated_provenance,
+    get_lab_results,
     get_member_profile,
     get_performed_exercises,
     get_preferred_exercises,
+    get_recent_chat_history,
     get_safe_exercises,
 )
 from app.kg.embeddings import get_exercise_vector_store
@@ -61,13 +65,18 @@ class RetrievalState(TypedDict, total=False):
     avoided_exercises: list[dict[str, Any]]
     # Populated by run_vector_search node
     vector_docs: list[Any]
+    # Populated by run_biomarker_traversal node
+    biomarkers: dict[str, Any] | None
+    lab_results: list[dict[str, Any]]
+    # Populated by run_chat_history_traversal node
+    chat_history: list[dict[str, Any]]
     # Populated by assemble node (final output)
     context: ContextSlice | None
     # Error message if any node fails non-fatally
     error: str | None
     # Observability: optional caller-provided user_id and accumulated audit entries
     user_id: str | None
-    audit_log: list[dict[str, Any]]
+    audit_log: Annotated[list[dict[str, Any]], operator.add]
 
 
 # ---------------------------------------------------------------------------
@@ -82,6 +91,8 @@ def _make_nodes(
     Any,  # run_injury_traversal
     Any,  # run_preference_traversal
     Any,  # run_vector_search
+    Any,  # run_biomarker_traversal
+    Any,  # run_chat_history_traversal
     Any,  # assemble
 ]:
     """Return node functions bound to the given Neo4j driver."""
@@ -102,7 +113,7 @@ def _make_nodes(
         }
         return {
             "member_profile": profile,
-            "audit_log": state.get("audit_log", []) + [audit_entry],
+            "audit_log": [audit_entry],
         }
 
     async def run_injury_traversal(state: RetrievalState) -> dict[str, Any]:
@@ -126,7 +137,7 @@ def _make_nodes(
             "contraindicated_ids": contraindicated,
             "contraindicated_provenance": provenance,
             "safe_exercises": safe,
-            "audit_log": state.get("audit_log", []) + [audit_entry],
+            "audit_log": [audit_entry],
         }
 
     async def run_preference_traversal(state: RetrievalState) -> dict[str, Any]:
@@ -149,7 +160,7 @@ def _make_nodes(
                 "preferred_exercises": preferred,
                 "performed_exercises": performed,
                 "avoided_exercises": avoided,
-                "audit_log": state.get("audit_log", []) + [audit_entry],
+                "audit_log": [audit_entry],
             }
 
     async def run_vector_search(state: RetrievalState) -> dict[str, Any]:
@@ -173,7 +184,7 @@ def _make_nodes(
             }
             return {
                 "vector_docs": docs,
-                "audit_log": state.get("audit_log", []) + [audit_entry],
+                "audit_log": [audit_entry],
             }
         except Exception as exc:
             latency_ms = int((time.monotonic() - t0) * 1000)
@@ -188,8 +199,45 @@ def _make_nodes(
             return {
                 "vector_docs": [],
                 "error": str(exc),
-                "audit_log": state.get("audit_log", []) + [audit_entry],
+                "audit_log": [audit_entry],
             }
+
+    async def run_biomarker_traversal(state: RetrievalState) -> dict[str, Any]:
+        member_id = state["member_id"]
+        t0 = time.monotonic()
+        biomarkers, lab_results = await asyncio.gather(
+            get_biomarkers(member_id, driver),
+            get_lab_results(member_id, driver),
+        )
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        audit_entry = {
+            "event": "retrieval_biomarker_traversal",
+            "latency_ms": latency_ms,
+            "user_id": state.get("user_id"),
+            "has_biomarkers": biomarkers is not None,
+            "lab_result_count": len(lab_results),
+        }
+        return {
+            "biomarkers": biomarkers,
+            "lab_results": lab_results,
+            "audit_log": [audit_entry],
+        }
+
+    async def run_chat_history_traversal(state: RetrievalState) -> dict[str, Any]:
+        member_id = state["member_id"]
+        t0 = time.monotonic()
+        history = await get_recent_chat_history(member_id, driver, limit=10)
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        audit_entry = {
+            "event": "retrieval_chat_history_traversal",
+            "latency_ms": latency_ms,
+            "user_id": state.get("user_id"),
+            "result_count": len(history),
+        }
+        return {
+            "chat_history": history,
+            "audit_log": [audit_entry],
+        }
 
     async def assemble(state: RetrievalState) -> dict[str, Any]:
         member_id = state["member_id"]
@@ -212,6 +260,9 @@ def _make_nodes(
             vector_docs=state.get("vector_docs") or [],
             recent_workout_feedback=[],
             member_id=member_id,
+            biomarkers=state.get("biomarkers"),
+            lab_results=state.get("lab_results") or [],
+            chat_history=state.get("chat_history") or [],
         )
         latency_ms = int((time.monotonic() - t0) * 1000)
         output_count = len((context or {}).get("safe_exercises", [])) if context else 0
@@ -229,10 +280,10 @@ def _make_nodes(
             )
         return {
             "context": context,
-            "audit_log": state.get("audit_log", []) + [audit_entry],
+            "audit_log": [audit_entry],
         }
 
-    return lookup_member, run_injury_traversal, run_preference_traversal, run_vector_search, assemble
+    return lookup_member, run_injury_traversal, run_preference_traversal, run_vector_search, run_biomarker_traversal, run_chat_history_traversal, assemble
 
 
 # ---------------------------------------------------------------------------
@@ -257,6 +308,8 @@ def build_retrieval_graph(driver: AsyncDriver) -> Any:
         run_injury_traversal,
         run_preference_traversal,
         run_vector_search,
+        run_biomarker_traversal,
+        run_chat_history_traversal,
         assemble,
     ) = _make_nodes(driver)
 
@@ -266,13 +319,19 @@ def build_retrieval_graph(driver: AsyncDriver) -> Any:
     builder.add_node("run_injury_traversal", run_injury_traversal)
     builder.add_node("run_preference_traversal", run_preference_traversal)
     builder.add_node("run_vector_search", run_vector_search)
+    builder.add_node("run_biomarker_traversal", run_biomarker_traversal)
+    builder.add_node("run_chat_history_traversal", run_chat_history_traversal)
     builder.add_node("assemble", assemble)
 
     builder.set_entry_point("lookup_member")
     builder.add_edge("lookup_member", "run_injury_traversal")
+    builder.add_edge("lookup_member", "run_biomarker_traversal")
+    builder.add_edge("lookup_member", "run_chat_history_traversal")
     builder.add_edge("run_injury_traversal", "run_preference_traversal")
     builder.add_edge("run_preference_traversal", "run_vector_search")
     builder.add_edge("run_vector_search", "assemble")
+    builder.add_edge("run_biomarker_traversal", "assemble")
+    builder.add_edge("run_chat_history_traversal", "assemble")
     builder.add_edge("assemble", END)
 
     return builder.compile()

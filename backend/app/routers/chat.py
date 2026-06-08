@@ -4,7 +4,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from langchain_core.messages import HumanMessage, ToolMessage
+from langchain_core.messages import HumanMessage
 
 from app.agents.hub import hub
 from app.agents.audit_persist import persist_audit_log
@@ -27,7 +27,7 @@ _sessions: dict[str, dict[str, Any]] = {}
     summary="Send a chat message",
     description=(
         "Send a natural-language message to the fitness coaching multi-agent system. "
-        "The hub router classifies intent (COACH, WORKOUT_GENERATE, WORKOUT_LOG, FALLBACK) "
+        "The hub router classifies intent (COACH, WORKOUT_LOG, KNOWLEDGE_GRAPH, FALLBACK) "
         "using structured LLM output and delegates to the appropriate sub-agent. "
         "Session history is preserved across calls via the returned session_id."
     ),
@@ -83,25 +83,13 @@ async def chat(
     ]
     last_route = router_entries[-1] if router_entries else {}
 
-    workout_draft = None
-    if last_route.get("route") == "WORKOUT_GENERATE":
-        import json as _json
-        for msg in reversed(result["messages"]):
-            if isinstance(msg, ToolMessage) and getattr(msg, "name", "") == "build_workout_tool":
-                try:
-                    content = msg.content
-                    workout_draft = _json.loads(content) if isinstance(content, str) else content
-                except Exception:
-                    pass
-                break
-
     return ChatResponse(
         session_id=session_id,
         reply=reply,
         route=last_route.get("route"),
         confidence=last_route.get("confidence"),
         audit_log=result.get("audit_log", []),
-        workout_draft=workout_draft,
+        workout_draft=None,
         kg_result=result.get("kg_result"),
     )
 

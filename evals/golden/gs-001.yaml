@@ -1,8 +1,8 @@
 - id: "gs-001"
-  description: "WORKOUT_GENERATE intent — workout request with no injury context routes to workout_gen node and returns structured workout"
+  description: "KNOWLEDGE_GRAPH intent — workout request routes to knowledge_graph node and returns structured workout"
   query: "Create a 30-minute upper body workout for me"
   expected_tools:
-    - workout_gen
+    - knowledge_graph
   expected_sources:
     - exercises.json
   must_contain:

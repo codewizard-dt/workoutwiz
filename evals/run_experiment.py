@@ -41,9 +41,7 @@ RESULTS_DIR = EVALS_DIR / "results"
 
 # Map tool names used in YAML → audit_log event names returned by the API
 TOOL_EVENT_MAP = {
-    "workout_gen": "generator",
-    "search_exercises": "generator",
-    "build_workout": "generator",
+    "knowledge_graph": "kg_hub",
     "coach": "coach",
     "workout_log": "logger",
     "knowledge_graph": "kg_hub",

@@ -9,14 +9,14 @@ type Variant = 'amber' | 'soft' | 'success' | 'secondary'
 
 const ROUTE_VARIANT: Record<string, Variant> = {
   COACH: 'amber',
-  WORKOUT_GENERATE: 'soft',
+  KNOWLEDGE_GRAPH: 'soft',
   WORKOUT_LOG: 'success',
   FALLBACK: 'secondary',
 }
 
 const ROUTE_LABEL: Record<string, string> = {
   COACH: 'Coach',
-  WORKOUT_GENERATE: 'Generate',
+  KNOWLEDGE_GRAPH: 'KG Plan',
   WORKOUT_LOG: 'Log',
   FALLBACK: 'Fallback',
 }

@@ -1,6 +1,6 @@
 # UAT: Eliminate Double-Traversal in retrieval_graph.assemble
 
-> **Source task**: [`.docs/tasks/092-fix-retrieval-double-traversal.md`](../tasks/092-fix-retrieval-double-traversal.md)
+> **Source task**: [`.docs/tasks/completed/092-fix-retrieval-double-traversal.md`](../tasks/completed/092-fix-retrieval-double-traversal.md)
 > **Generated**: 2026-06-07
 
 ---
@@ -31,7 +31,7 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/test_retrieval_graph.py backend/tests/kg/test_context_assembler.py -v
   ```
 - **Expected Result**: All tests pass (`17 passed`); zero failures, zero errors. Exit code 0.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -45,7 +45,7 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/ -v
   ```
 - **Expected Result**: At least 73 tests pass; exactly 2 failures allowed, both must be located in `test_tools.py`. Exit code 1 (due to known pre-existing failures) is acceptable provided the failure count and file location match.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -59,7 +59,7 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/test_retrieval_graph.py::test_assemble_node_does_not_re_run_traversals -v
   ```
 - **Expected Result**: `1 passed`. Exit code 0.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -73,7 +73,7 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/test_retrieval_graph.py::test_assemble_node_output_equivalence_and_provenance_stitch -v
   ```
 - **Expected Result**: `1 passed`. Exit code 0. The test asserts `context["contraindicated_provenance"] == [{"snomed_code": "123", "exercise_id": "ex-1"}]`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -87,7 +87,7 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/test_context_assembler.py::test_assemble_context_from_parts_does_not_touch_driver -v
   ```
 - **Expected Result**: `1 passed`. Exit code 0.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -101,7 +101,7 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/test_context_assembler.py::test_assemble_context_returns_vector_only_when_member_not_found -v
   ```
 - **Expected Result**: `1 passed`. Exit code 0. The test asserts `result["member_profile"] == {}`, `result["preferred_exercises"] == []`, `result["token_counts"]["member_profile"] == 0`, `result["token_counts"]["preferred_exercises"] == 0`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -117,7 +117,7 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/test_context_assembler.py::test_deduplication_removes_preferred_from_vector_hits -v
   ```
 - **Expected Result**: `1 passed`. Exit code 0.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -131,7 +131,7 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/test_context_assembler.py::test_deduplication_filters_unsafe_exercises_from_preferred -v
   ```
 - **Expected Result**: `1 passed`. Exit code 0.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -147,7 +147,7 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/test_retrieval_graph.py::test_retrieval_graph_invokes_assemble_context -v
   ```
 - **Expected Result**: `1 passed`. Exit code 0. The test asserts `result["context"]["member_profile"]["id"] == "m1"`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -161,7 +161,7 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/test_retrieval_graph.py::test_retrieval_graph_returns_vector_only_when_member_not_found -v
   ```
 - **Expected Result**: `1 passed`. Exit code 0.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -175,4 +175,4 @@ and `backend/tests/kg/test_context_assembler.py`.
   backend/.venv/bin/pytest backend/tests/kg/test_retrieval_graph.py::test_retrieval_graph_audit_log_contains_all_5_entries -v
   ```
 - **Expected Result**: `1 passed`. Exit code 0.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->

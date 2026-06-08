@@ -22,7 +22,7 @@ from typing import Any
 
 import neo4j
 from faker import Faker
-import bcrypt as _bcrypt_lib
+from fastapi_users.password import PasswordHelper as _PasswordHelper
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
@@ -688,7 +688,7 @@ def seed_postgres_users(session: Session) -> dict[str, uuid.UUID]:
     """
     member_map: dict[str, uuid.UUID] = {}
     for persona in PERSONAS:
-        hashed = _bcrypt_lib.hashpw(persona["password"].encode(), _bcrypt_lib.gensalt()).decode()
+        hashed = _PasswordHelper().hash(persona["password"])
         user_id = uuid.uuid4()
         result = session.execute(
             text(
@@ -964,6 +964,306 @@ def seed_feedback(
                 )
 
     logger.info("Seeded feedback into PostgreSQL and Neo4j.")
+
+
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Rich member context seeding (all personas)
+# ---------------------------------------------------------------------------
+
+_DEMO_MEMBER_EMAIL = "jordan.rivera@workoutwiz.demo"
+
+# Equipment → exercise name mappings for synthetic workout titles
+_EQUIPMENT_EXERCISES: dict[str, list[str]] = {
+    "Barbell": ["Barbell Back Squat", "Barbell Bench Press", "Barbell Row", "Barbell RDL"],
+    "Dumbbell": ["DB Goblet Squat", "DB Bench Press", "DB Row", "DB Romanian Deadlift", "DB Shoulder Press"],
+    "Kettlebell": ["KB Swing", "KB Goblet Squat", "KB Romanian Deadlift", "KB Press"],
+    "Resistance Band - Loop": ["Banded Glute Bridge", "Banded Lateral Walk", "Banded Hip Abduction"],
+    "Resistance Band - With Handles": ["Band Pull-Apart", "Band Overhead Press", "Banded Row"],
+    "Pull-Up Bar": ["Pull-Up", "Chin-Up", "Hanging Knee Raise"],
+    "Cable Resistance Machine": ["Cable Row", "Cable Fly", "Cable Pushdown", "Cable Curl"],
+    "Yoga Mat": ["Dead Bug", "Bird Dog", "Hollow Body Hold", "Plank"],
+    "Jump Rope": ["Jump Rope Intervals"],
+    "Box": ["Box Squat", "Step-Up", "Box Jump"],
+    "Suspension Trainer": ["TRX Row", "TRX Push-Up", "TRX Squat"],
+    "Stability Ball": ["Stability Ball Plank", "Stability Ball Pass"],
+    "Medicine Ball": ["Med Ball Slam", "Med Ball Rotational Throw"],
+}
+
+_WORKOUT_TITLES_BY_GOAL: dict[str, list[str]] = {
+    "strength": ["Lower Body Strength", "Upper Body Push", "Upper Body Pull", "Full Body Strength"],
+    "muscle_gain": ["Hypertrophy Upper", "Hypertrophy Lower", "Push Day", "Pull Day"],
+    "fat_loss": ["Metabolic Circuit", "HIIT Finisher", "Full Body Fat Burn"],
+    "endurance": ["Cardio Intervals", "Aerobic Base", "Tempo Circuit"],
+    "athletic_performance": ["Power Block", "Speed & Agility", "Athletic Conditioning"],
+    "rehabilitation": ["Mobility & Activation", "Corrective Session", "Low-Load Recovery"],
+    "general_fitness": ["Full Body Circuit", "Functional Training", "Active Recovery"],
+    "mobility": ["Flexibility & Mobility", "Joint Prep", "Recovery Yoga"],
+    "posture": ["Postural Correction", "Core & Posture", "Scapular Health"],
+    "hypertrophy": ["Volume Upper", "Volume Lower", "Arm Hypertrophy"],
+    "upper_body_strength": ["Pressing Block", "Pulling Block", "Shoulder Stability"],
+}
+
+_CHAT_TEMPLATES_BY_GOAL: dict[str, list[tuple[str, str]]] = {
+    "strength": [
+        ("member", "Finished today's squat session — hit a small PR on box squats!"),
+        ("coach", "Nice work! How did your joints feel during the heavier sets?"),
+        ("member", "Knees were solid, just a bit tight in the hips at the bottom."),
+    ],
+    "fat_loss": [
+        ("member", "Got through the full circuit today, felt strong."),
+        ("coach", "Great effort — did you track your session time?"),
+        ("member", "About 35 min, felt like a good pace."),
+    ],
+    "rehabilitation": [
+        ("member", "Did the mobility work, but it felt uncomfortable on the affected side."),
+        ("coach", "Stay within a pain-free range — back off if it's above a 3/10."),
+        ("member", "Okay, I'll be conservative. Thanks for the guidance."),
+    ],
+    "endurance": [
+        ("member", "Completed the interval session but had to cut the last set short."),
+        ("coach", "That's totally fine — listen to your body. How's your recovery?"),
+        ("member", "Sleeping okay, just a bit sore in the calves."),
+    ],
+    "general_fitness": [
+        ("member", "Finished the full body session — felt great!"),
+        ("coach", "Excellent! Consistency is key. Same time next week?"),
+        ("member", "Planning on it!"),
+    ],
+    "muscle_gain": [
+        ("member", "Pumps were good today, tried the higher-rep finisher you suggested."),
+        ("coach", "Perfect — that's the stimulus we're after. Protein intake on point?"),
+        ("member", "Working on it, hitting around 140g most days."),
+    ],
+    "mobility": [
+        ("member", "Hip opener felt much better this session."),
+        ("coach", "Progress! Keep doing the daily activation drills."),
+        ("member", "Will do, they only take 10 minutes so easy to stick to."),
+    ],
+}
+
+
+def seed_rich_member_context_all(
+    driver: neo4j.Driver,
+    member_map: dict[str, uuid.UUID],
+    fake: Faker,
+) -> None:
+    """Seed rich Member profile props, LabResult, ChatMessage, and AssessmentWorkout
+    for EVERY persona that is not the demo member (jordan.rivera@workoutwiz.demo).
+
+    Jordan Rivera (Demo) is skipped here because seed_assessment_member_context()
+    runs afterwards and applies hand-authored values from member-context.json.
+
+    Data is synthetic, varied, and deterministic (random/Faker seeded in main()).
+    """
+    with driver.session() as session:
+        for persona in PERSONAS:
+            email = persona["email"]
+
+            # Skip the demo member — seed_assessment_member_context() handles it
+            if email == _DEMO_MEMBER_EMAIL:
+                continue
+
+            if email not in member_map:
+                logger.warning("Persona %s not in member_map; skipping rich context", email)
+                continue
+
+            member_id = str(member_map[email])
+            has_active_injury = any(i["status"] == "active" for i in persona["injuries"])
+            sessions_pw = persona["sessions_per_week"]
+            goals = persona.get("goals", ["general_fitness"])
+            primary_goal = goals[0] if goals else "general_fitness"
+            equipment = persona.get("equipment", ["Dumbbell"])
+
+            # ---- Rich Member profile properties ----------------------------
+            sexes = ["male", "female", "non-binary"]
+            sex = random.choice(sexes)
+            age = random.randint(24, 58)
+            height_cm = random.randint(158, 193)
+            weight_kg = round(random.uniform(58.0, 102.0), 1)
+            tiers = ["Self-Guided", "Group Coaching", "1:1 Coaching"]
+            tier = tiers[min(sessions_pw - 1, 2)]  # more sessions → higher tier
+            session.run(
+                """
+                MATCH (m:Member {id: $id})
+                SET m += {
+                    display_name: $display_name,
+                    age: $age,
+                    sex: $sex,
+                    height_cm: $height_cm,
+                    weight_kg: $weight_kg,
+                    timezone: $timezone,
+                    member_since: $member_since,
+                    tier: $tier,
+                    coach_id: $coach_id
+                }
+                """,
+                id=member_id,
+                display_name=persona["name"],
+                age=age,
+                sex=sex,
+                height_cm=height_cm,
+                weight_kg=weight_kg,
+                timezone=fake.timezone(),
+                member_since=fake.date_between(start_date="-2y", end_date="-3m").isoformat(),
+                tier=tier,
+                coach_id=f"coach_{fake.lexify('??????', letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')}",
+            )
+
+            # ---- LabResult: blood panel ------------------------------------
+            blood_id = f"{member_id}:labs:blood_panel"
+            # Vary ranges by injury/goal state
+            ldl_base = 100 if not has_active_injury else 115
+            session.run(
+                """
+                MERGE (l:LabResult {id: $id})
+                SET l += {
+                    type: 'blood_panel', date: $date,
+                    ldl_mg_dl: $ldl_mg_dl, hdl_mg_dl: $hdl_mg_dl,
+                    triglycerides_mg_dl: $triglycerides_mg_dl, hba1c_pct: $hba1c_pct,
+                    vitamin_d_ng_ml: $vitamin_d_ng_ml, ferritin_ng_ml: $ferritin_ng_ml,
+                    crp_mg_l: $crp_mg_l
+                }
+                WITH l
+                MATCH (m:Member {id: $member_id})
+                MERGE (m)-[:HAS_LAB_RESULT]->(l)
+                """,
+                id=blood_id,
+                date=fake.date_between(start_date="-6m", end_date="-1m").isoformat(),
+                ldl_mg_dl=ldl_base + random.randint(-15, 25),
+                hdl_mg_dl=random.randint(45, 75),
+                triglycerides_mg_dl=random.randint(80, 160),
+                hba1c_pct=round(random.uniform(4.8, 5.8), 1),
+                vitamin_d_ng_ml=random.randint(18, 45),
+                ferritin_ng_ml=random.randint(20, 80),
+                crp_mg_l=round(random.uniform(0.4, 3.5), 1) if has_active_injury else round(random.uniform(0.2, 1.5), 1),
+                member_id=member_id,
+            )
+
+            # ---- LabResult: DEXA scan --------------------------------------
+            dexa_id = f"{member_id}:labs:dexa_scan"
+            body_fat = round(random.uniform(14.0, 36.0), 1)
+            lean_mass = round(weight_kg * (1 - body_fat / 100), 1)
+            fat_mass = round(weight_kg * body_fat / 100, 1)
+            session.run(
+                """
+                MERGE (l:LabResult {id: $id})
+                SET l += {
+                    type: 'dexa_scan', date: $date,
+                    body_fat_pct: $body_fat_pct, lean_mass_kg: $lean_mass_kg,
+                    fat_mass_kg: $fat_mass_kg, bone_density_z_score: $bone_density_z_score,
+                    visceral_fat_cm2: $visceral_fat_cm2
+                }
+                WITH l
+                MATCH (m:Member {id: $member_id})
+                MERGE (m)-[:HAS_LAB_RESULT]->(l)
+                """,
+                id=dexa_id,
+                date=fake.date_between(start_date="-8m", end_date="-2m").isoformat(),
+                body_fat_pct=body_fat,
+                lean_mass_kg=lean_mass,
+                fat_mass_kg=fat_mass,
+                bone_density_z_score=round(random.uniform(-0.5, 1.5), 1),
+                visceral_fat_cm2=random.randint(55, 130),
+                member_id=member_id,
+            )
+
+            # ---- ChatMessage nodes -----------------------------------------
+            templates = _CHAT_TEMPLATES_BY_GOAL.get(
+                primary_goal, _CHAT_TEMPLATES_BY_GOAL["general_fitness"]
+            )
+            if has_active_injury:
+                templates = _CHAT_TEMPLATES_BY_GOAL.get(
+                    "rehabilitation", _CHAT_TEMPLATES_BY_GOAL["general_fitness"]
+                )
+            # Add an injury-aware extra message for injured personas
+            msgs: list[dict[str, str]] = []
+            for sender, text in templates:
+                msgs.append({"sender": sender, "text": text})
+            if has_active_injury:
+                injury_name = persona["injuries"][0]["name"]
+                msgs.append({
+                    "sender": "member",
+                    "text": f"Still managing the {injury_name} — keeping loads conservative this week.",
+                })
+            elif sessions_pw >= 5:
+                msgs.append({
+                    "sender": "member",
+                    "text": f"Hit all {sessions_pw} sessions this week, feeling strong!",
+                })
+
+            base_ts = "2026-06-03T18:00:00+00:00"
+            for i, msg in enumerate(msgs):
+                msg_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{member_id}:chat:{i}"))
+                rel_type = "SENT_MESSAGE" if msg["sender"] == "member" else "SENT_COACH_MESSAGE"
+                session.run(
+                    f"""
+                    MERGE (cm:ChatMessage {{id: $id}})
+                    SET cm += {{ts: $ts, sender: $sender, text: $text}}
+                    WITH cm
+                    MATCH (m:Member {{id: $member_id}})
+                    MERGE (m)-[:{rel_type}]->(cm)
+                    """,
+                    id=msg_id,
+                    ts=base_ts,
+                    sender=msg["sender"],
+                    text=msg["text"],
+                    member_id=member_id,
+                )
+
+            # ---- AssessmentWorkout nodes -----------------------------------
+            # Number of workouts scales with sessions_per_week; injured personas
+            # may have fewer completed workouts
+            num_workouts = min(sessions_pw + 1, 5)
+            title_pool = _WORKOUT_TITLES_BY_GOAL.get(
+                primary_goal, _WORKOUT_TITLES_BY_GOAL["general_fitness"]
+            )
+            # Gather equipment-based exercise names
+            exercise_pool: list[str] = []
+            for eq in equipment[:4]:
+                exercise_pool.extend(_EQUIPMENT_EXERCISES.get(eq, []))
+            if not exercise_pool:
+                exercise_pool = ["Bodyweight Squat", "Push-Up", "Plank"]
+
+            # Reference dates for recent workouts
+            workout_dates = [
+                "2026-06-03", "2026-06-01", "2026-05-29", "2026-05-27", "2026-05-25"
+            ][:num_workouts]
+
+            for j, wdate in enumerate(workout_dates):
+                title = title_pool[j % len(title_pool)]
+                # Injured personas have lower completion rates
+                completed = not (has_active_injury and j == num_workouts - 1)
+                duration = 0 if not completed else random.randint(22, 45)
+                rpe = None if not completed else random.randint(5, 8)
+                exercises = random.sample(exercise_pool, min(3, len(exercise_pool))) if completed else []
+
+                wh_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{member_id}:workout:{wdate}:{title}"))
+                session.run(
+                    """
+                    MERGE (w:AssessmentWorkout {id: $id})
+                    SET w += {
+                        date: $date, title: $title, completed: $completed,
+                        duration_min: $duration_min, rpe: $rpe, exercises: $exercises
+                    }
+                    WITH w
+                    MATCH (m:Member {id: $member_id})
+                    MERGE (m)-[:HAD_WORKOUT]->(w)
+                    """,
+                    id=wh_id,
+                    date=wdate,
+                    title=title,
+                    completed=completed,
+                    duration_min=duration,
+                    rpe=rpe,
+                    exercises=exercises,
+                    member_id=member_id,
+                )
+
+    logger.info(
+        "Seeded rich member context (profile, labs, chat, workouts) for %d non-demo personas.",
+        sum(1 for p in PERSONAS if p["email"] != _DEMO_MEMBER_EMAIL),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1280,7 +1580,10 @@ def main() -> None:
         # 3a. Seed coaching context (adherence, brief, biomarkers, goals) for ALL members
         seed_coaching_context_all(driver, member_map, fake)
 
-        # 3b. Override with rich assessment-specific data for Jordan Rivera (Demo)
+        # 3b. Seed rich context (profile props, labs, chat, workouts) for all non-demo members
+        seed_rich_member_context_all(driver, member_map, fake)
+
+        # 3c. Override with rich assessment-specific data for Jordan Rivera (Demo)
         seed_assessment_member_context(driver, member_map)
 
         # 4. Feedback needs both connections

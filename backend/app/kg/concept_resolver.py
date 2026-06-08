@@ -163,6 +163,8 @@ async def _exact_match(
 
     row = records[0]
     canonical = _pick_canonical(row)
+    if not canonical or _normalize(canonical) != norm:
+        return None
     return ResolutionResult(
         matched_node=dict(row),
         canonical_name=canonical,

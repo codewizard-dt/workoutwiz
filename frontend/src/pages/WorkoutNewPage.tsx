@@ -48,7 +48,49 @@ export default function WorkoutNewPage() {
   const { messages, sendMessage, isLoading: chatLoading, error: chatError, clearMessages } = useChat()
   const { sequences: draftSequences, setSequences: setDraftSequences, clear: clearDraft } = useDraftWorkout()
   const [inputText, setInputText] = useState('')
+  const [duration, setDuration] = useState(30)
+  const [excludedIds, setExcludedIds] = useState<string[]>([])
+  const [allowedEquipment, setAllowedEquipment] = useState<string[]>([])
   const streamRef = useRef<HTMLDivElement>(null)
+
+  const DURATION_OPTIONS = [15, 30, 45, 60] as const
+
+  const equipmentOptions: string[] = Array.from(
+    new Set((exercises ?? []).flatMap((e) => e.equipment_required))
+  ).sort()
+
+  const buildConstraintPreamble = (): string => {
+    const parts: string[] = []
+    if (excludedIds.length > 0) {
+      const names = excludedIds
+        .map((id) => (exercises ?? []).find((e) => e.id === id)?.name ?? id)
+        .join(', ')
+      parts.push(`Exclude these exercises: ${names}.`)
+    }
+    if (allowedEquipment.length > 0) {
+      parts.push(`Only use equipment: ${allowedEquipment.join(', ')}.`)
+    }
+    return parts.join(' ')
+  }
+
+  const toggleExcluded = (id: string) => {
+    setExcludedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
+
+  const toggleEquipment = (eq: string) => {
+    setAllowedEquipment((prev) =>
+      prev.includes(eq) ? prev.filter((x) => x !== eq) : [...prev, eq]
+    )
+  }
+
+  const dispatchMessage = (text: string) => {
+    const preamble = buildConstraintPreamble()
+    const withDuration = `Time window: ${duration} minutes. ${text}`
+    const full = [preamble, withDuration].filter(Boolean).join(' ')
+    void sendMessage(full)
+  }
 
   useEffect(() => {
     if (streamRef.current) {
@@ -60,7 +102,7 @@ export default function WorkoutNewPage() {
     const text = inputText.trim()
     if (!text) return
     setInputText('')
-    void sendMessage(text)
+    dispatchMessage(text)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -233,6 +275,123 @@ export default function WorkoutNewPage() {
             </div>
           )}
 
+          {/* Constraints panel */}
+          <div
+            style={{
+              padding: 'var(--space-3) var(--space-4)',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-2)',
+            }}
+          >
+            {/* Exclude exercises */}
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 'var(--space-1)',
+                }}
+              >
+                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', color: 'var(--muted-foreground)' }}>
+                  Exclude exercises
+                </span>
+                {excludedIds.length > 0 && (
+                  <button
+                    type="button"
+                    className="ww-btn ww-btn--ghost ww-btn--sm"
+                    style={{ fontSize: 'var(--text-xs)', padding: '0 var(--space-1)' }}
+                    onClick={() => { setExcludedIds([]) }}
+                  >
+                    Clear ({excludedIds.length})
+                  </button>
+                )}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 'var(--space-1)',
+                  maxHeight: '80px',
+                  overflowY: 'auto',
+                }}
+              >
+                {(exercises ?? []).map((ex) => {
+                  const active = excludedIds.includes(ex.id)
+                  return (
+                    <button
+                      key={ex.id}
+                      type="button"
+                      className={`ww-btn ww-btn--outline ww-btn--sm${active ? ' ww-btn--active' : ''}`}
+                      style={{
+                        fontSize: 'var(--text-xs)',
+                        opacity: active ? 1 : 0.7,
+                        fontWeight: active ? 'var(--weight-semibold)' : undefined,
+                        textDecoration: active ? 'line-through' : undefined,
+                        borderColor: active ? 'var(--destructive)' : undefined,
+                        color: active ? 'var(--destructive)' : undefined,
+                      }}
+                      onClick={() => { toggleExcluded(ex.id) }}
+                      title={ex.name}
+                    >
+                      {ex.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Available equipment */}
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 'var(--space-1)',
+                }}
+              >
+                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', color: 'var(--muted-foreground)' }}>
+                  Available equipment {allowedEquipment.length === 0 ? '(all)' : `(${allowedEquipment.length} selected)`}
+                </span>
+                {allowedEquipment.length > 0 && (
+                  <button
+                    type="button"
+                    className="ww-btn ww-btn--ghost ww-btn--sm"
+                    style={{ fontSize: 'var(--text-xs)', padding: '0 var(--space-1)' }}
+                    onClick={() => { setAllowedEquipment([]) }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
+                {equipmentOptions.map((eq) => {
+                  const active = allowedEquipment.includes(eq)
+                  return (
+                    <button
+                      key={eq}
+                      type="button"
+                      className={`ww-btn ww-btn--outline ww-btn--sm${active ? ' ww-btn--active' : ''}`}
+                      style={{
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: active ? 'var(--weight-semibold)' : undefined,
+                        background: active ? 'var(--primary)' : undefined,
+                        color: active ? 'var(--primary-foreground)' : undefined,
+                        borderColor: active ? 'var(--primary)' : undefined,
+                      }}
+                      onClick={() => { toggleEquipment(eq) }}
+                    >
+                      {eq}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* Composer */}
           <div
             style={{
@@ -243,6 +402,36 @@ export default function WorkoutNewPage() {
               gap: 'var(--space-2)',
             }}
           >
+            {/* Session length selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <span
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--muted-foreground)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Session length
+              </span>
+              <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                {DURATION_OPTIONS.map((mins) => (
+                  <button
+                    key={mins}
+                    type="button"
+                    className={`ww-btn ww-btn--outline ww-btn--sm${duration === mins ? ' ww-btn--gradient' : ''}`}
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: duration === mins ? 'var(--weight-semibold)' : undefined,
+                    }}
+                    onClick={() => { setDuration(mins) }}
+                  >
+                    {mins} min
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Quick-action chips */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
               {WORKOUT_CHIPS.map((text) => (
@@ -253,7 +442,7 @@ export default function WorkoutNewPage() {
                   disabled={chatLoading}
                   onClick={() => {
                     setInputText('')
-                    void sendMessage(text)
+                    dispatchMessage(text)
                   }}
                 >
                   {text}
@@ -350,6 +539,8 @@ export default function WorkoutNewPage() {
                 onClick={() => {
                   clearDraft()
                   clearMessages()
+                  setExcludedIds([])
+                  setAllowedEquipment([])
                 }}
               >
                 Clear

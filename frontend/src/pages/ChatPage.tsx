@@ -24,7 +24,6 @@ export default function ChatPage() {
   const [draft, setDraft] = useState('')
   const streamRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll to bottom on new messages or loading state change
   useEffect(() => {
     if (streamRef.current) {
       streamRef.current.scrollTop = streamRef.current.scrollHeight
@@ -51,7 +50,7 @@ export default function ChatPage() {
     setDraft('')
   }
 
-  const recentWorkouts = workouts?.slice(0, 3) ?? []
+  const recentWorkouts = workouts?.slice(0, 10) ?? []
 
   return (
     <div
@@ -93,7 +92,32 @@ export default function ChatPage() {
         </p>
       </div>
 
-      {/* Previous workouts — mobile: horizontal scrollable row above chat */}
+      {/* Prompt chips — pinned below header, always visible */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 'var(--space-2)',
+          padding: 'var(--space-2) var(--space-6)',
+          borderBottom: '1px solid var(--border)',
+          flexShrink: 0,
+          background: 'var(--background)',
+        }}
+      >
+        {PROMPT_CHIPS.map((text) => (
+          <button
+            key={text}
+            type="button"
+            className="ww-btn ww-btn--outline ww-btn--sm"
+            disabled={isLoading}
+            onClick={() => { handleChipClick(text) }}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+
+      {/* Previous workouts — mobile: horizontal scrollable row */}
       <div
         className="chat-workouts-mobile"
         style={{
@@ -163,7 +187,6 @@ export default function ChatPage() {
               gap: 'var(--space-3)',
             }}
           >
-            {/* Welcome empty state */}
             {messages.length === 0 && !error && (
               <ChatBubble
                 role="assistant"
@@ -310,7 +333,6 @@ export default function ChatPage() {
               </div>
             ))}
 
-            {/* API error rendered as system message in the chat list */}
             {error && (
               <div
                 style={{
@@ -326,11 +348,10 @@ export default function ChatPage() {
               </div>
             )}
 
-            {/* Loading indicator bubble */}
             {isLoading && <TypingBubble label="Routing" />}
           </div>
 
-          {/* Composer — sticky to bottom on mobile */}
+          {/* Composer */}
           <div
             className="chat-composer-sticky"
             style={{
@@ -340,28 +361,6 @@ export default function ChatPage() {
               background: 'var(--background)',
             }}
           >
-            {/* Prompt chips — always visible above input */}
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 'var(--space-2)',
-                marginBottom: 'var(--space-3)',
-              }}
-            >
-              {PROMPT_CHIPS.map((text) => (
-                <button
-                  key={text}
-                  type="button"
-                  className="ww-btn ww-btn--outline ww-btn--sm"
-                  disabled={isLoading}
-                  onClick={() => { handleChipClick(text) }}
-                >
-                  {text}
-                </button>
-              ))}
-            </div>
-
             <div
               style={{
                 display: 'flex',
@@ -404,9 +403,7 @@ export default function ChatPage() {
               >
                 <button
                   type="button"
-                  className={cn(
-                    'ww-btn ww-btn--gradient ww-btn--sm',
-                  )}
+                  className={cn('ww-btn ww-btn--gradient ww-btn--sm')}
                   disabled={!draft.trim() || isLoading}
                   onClick={handleSend}
                   aria-label="Send message"
@@ -426,7 +423,6 @@ export default function ChatPage() {
               </div>
             </div>
 
-            {/* Session ID footer */}
             <p
               style={{
                 fontSize: 'var(--text-xs)',
@@ -446,18 +442,20 @@ export default function ChatPage() {
             flex: '0 0 35%',
             maxWidth: '320px',
             borderLeft: '1px solid var(--border)',
-            overflowY: 'auto',
+            overflow: 'hidden',
             padding: 'var(--space-4)',
             display: 'flex',
             flexDirection: 'column',
             gap: 'var(--space-3)',
           }}
         >
+          {/* Pinned header */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              flexShrink: 0,
             }}
           >
             <span
@@ -481,43 +479,41 @@ export default function ChatPage() {
             </Link>
           </div>
 
-          {/* Skeleton loading state */}
-          {workoutsLoading && (
-            <>
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    height: '64px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--muted)',
-                    opacity: 0.6,
-                  }}
-                />
-              ))}
-            </>
-          )}
+          {/* Scrollable cards container */}
+          <div
+            style={{
+              overflowY: 'auto',
+            }}
+          >
+            {workoutsLoading && (
+              <>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    style={{
+                      height: '72px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--muted)',
+                      opacity: 0.6,
+                    }}
+                  />
+                ))}
+              </>
+            )}
 
-          {!workoutsLoading && recentWorkouts.length === 0 && (
-            <p
-              style={{
-                fontSize: 'var(--text-sm)',
-                color: 'var(--muted-foreground)',
-              }}
-            >
-              No workouts yet.{' '}
-              <Link
-                to="/workouts/new"
-                style={{ color: 'var(--foreground)', textDecoration: 'underline' }}
-              >
-                Start one!
-              </Link>
-            </p>
-          )}
+            {!workoutsLoading && recentWorkouts.length === 0 && (
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>
+                No workouts yet.{' '}
+                <Link to="/workouts/new" style={{ color: 'var(--foreground)', textDecoration: 'underline' }}>
+                  Start one!
+                </Link>
+              </p>
+            )}
 
-          {recentWorkouts.map((w) => (
-            <WorkoutCard key={w.id} workout={w} to={`/workouts/${w.id}`} />
-          ))}
+            {recentWorkouts.map((w) => (
+              <WorkoutCard key={w.id} workout={w} to={`/workouts/${w.id}`} />
+            ))}
+          </div>
         </div>
       </div>
 

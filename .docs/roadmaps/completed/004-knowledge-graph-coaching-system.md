@@ -58,7 +58,7 @@ Build a Neo4j knowledge graph coaching layer integrated into the existing FastAP
 
 > Injury-aware, personalized, explainable workout recommendations.
 
-- [x] [TASK-060: Generation agent sub-graph — context slice → structured workout recommendation](../tasks/060-generation-agent-subgraph.md)
+- [x] [TASK-060: Generation agent sub-graph — context slice → structured workout recommendation](../tasks/completed/060-generation-agent-subgraph.md)
 - [x] [TASK-061: Injury safety gate — post-generation validation, no contraindicated exercises in output](../tasks/061-injury-safety-gate.md)
 - [x] [TASK-062: Explainability tool — traverse graph to explain why an exercise was skipped](../tasks/completed/062-explainability-tool.md)
 - [x] [TASK-063: Fallback handler — surface alternatives when safe exercises are too few](../tasks/completed/063-fallback-handler.md)

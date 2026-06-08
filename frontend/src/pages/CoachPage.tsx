@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type ChangeEvent } from 'react'
 import { PartyPopper, AlertTriangle } from 'lucide-react'
 import { useCoachBrief } from '../hooks/useCoachBrief'
 import { useCoachChat } from '../hooks/useCoachChat'
+import { useCoachMembers } from '../hooks/useCoachMembers'
 import { ChatBubble } from '@/components/ChatBubble'
 import { TypingBubble } from '@/components/TypingBubble'
+import { MessagePatternChart } from '@/components/MessagePatternChart'
+import { WeeklyComparisonChart } from '@/components/WeeklyComparisonChart'
 
 const QUICK_PROMPTS = [
   'Show me the brief',
@@ -76,11 +79,24 @@ function AdherenceChart({ weeks }: { weeks: { week_of: string; pct: number }[] }
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function CoachPage() {
-  const { data: brief, isLoading: briefLoading, error: briefQueryError } = useCoachBrief()
+  const { data: members } = useCoachMembers()
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  const [loadedMembersKey, setLoadedMembersKey] = useState<string | null>(null)
+
+  // Default to first member once the list loads — derive in render to avoid useEffect+setState lint error
+  const firstMemberId = members && members.length > 0 ? members[0].member_id : null
+  if (firstMemberId !== null && selectedMemberId === null && loadedMembersKey !== firstMemberId) {
+    setLoadedMembersKey(firstMemberId)
+    setSelectedMemberId(firstMemberId)
+  }
+
+  const { data: brief, isLoading: briefLoading, error: briefQueryError } = useCoachBrief(selectedMemberId)
   const briefError = briefQueryError?.message ?? null
-  const { messages, sendMessage, isLoading: chatLoading, error: chatError } = useCoachChat()
+  const { messages, sendMessage, isLoading: chatLoading, error: chatError } = useCoachChat(selectedMemberId)
 
   const [draft, setDraft] = useState('')
+  const [pendingImage, setPendingImage] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -89,9 +105,21 @@ export default function CoachPage() {
 
   async function handleSend(text?: string) {
     const msg = (text ?? draft).trim()
-    if (!msg || chatLoading) return
+    if ((!msg && !pendingImage) || chatLoading) return
     setDraft('')
-    await sendMessage(msg)
+    const img = pendingImage
+    setPendingImage(null)
+    await sendMessage(msg, img ?? undefined)
+  }
+
+  function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => { setPendingImage(reader.result as string) }
+    reader.readAsDataURL(file)
+    // reset so the same file can be re-selected
+    e.target.value = ''
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -118,11 +146,34 @@ export default function CoachPage() {
       }}
     >
       {/* ── Page header ── */}
-      <div>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Coach View</h1>
-        <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', margin: '0.25rem 0 0' }}>
-          AI copilot for your 1:1 member session
-        </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 'var(--space-3)', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Coach View</h1>
+          <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', margin: '0.25rem 0 0' }}>
+            AI copilot for your 1:1 member session
+          </p>
+        </div>
+
+        {/* ── Member switcher ── */}
+        {members && members.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginRight: 'var(--space-1)' }}>
+              Member:
+            </span>
+            {members.map((m) => (
+              <button
+                key={m.member_id}
+                type="button"
+                className={`ww-btn ww-btn--sm${selectedMemberId === m.member_id ? '' : ' ww-btn--ghost'}`}
+                style={{ fontSize: '0.75rem' }}
+                onClick={() => { setSelectedMemberId(m.member_id) }}
+                aria-pressed={selectedMemberId === m.member_id}
+              >
+                {m.member_name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {briefLoading && (
@@ -287,6 +338,57 @@ export default function CoachPage() {
             </div>
           </div>
 
+          {/* ── Message pattern + 4-week comparison ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }} className="coach-grid">
+            {/* Message pattern chart */}
+            <div
+              style={{
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                borderRadius: '0.75rem',
+                padding: 'var(--space-4)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-3)',
+              }}
+            >
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)' }}>
+                Message Pattern
+              </div>
+              {brief.message_pattern.length > 0 ? (
+                <MessagePatternChart data={brief.message_pattern} />
+              ) : (
+                <div style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', padding: 'var(--space-3) 0' }}>
+                  No message history yet.
+                </div>
+              )}
+            </div>
+
+            {/* 4-week comparison chart */}
+            <div
+              style={{
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                borderRadius: '0.75rem',
+                padding: 'var(--space-4)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-3)',
+              }}
+            >
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)' }}>
+                Last 4 Weeks
+              </div>
+              {brief.weekly_comparison.length >= 1 ? (
+                <WeeklyComparisonChart data={brief.weekly_comparison} />
+              ) : (
+                <div style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', padding: 'var(--space-3) 0' }}>
+                  Not enough weekly data yet.
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* ── Injury + equipment row ── */}
           {(brief.injuries.length > 0 || brief.equipment.length > 0) && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }} className="coach-grid">
@@ -402,6 +504,7 @@ export default function CoachPage() {
               <ChatBubble
                 role={msg.role}
                 content={msg.content}
+                image={msg.image}
               />
               {msg.role === 'assistant' && msg.grounded_facts && msg.grounded_facts.length > 0 && (
                 <div
@@ -440,8 +543,63 @@ export default function CoachPage() {
           <div ref={chatEndRef} />
         </div>
 
+        {/* Pending image preview */}
+        {pendingImage && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              padding: 'var(--space-2)',
+              background: 'var(--muted)',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <img
+              src={pendingImage}
+              alt="Attachment preview"
+              style={{
+                maxHeight: '4rem',
+                maxWidth: '8rem',
+                borderRadius: '0.375rem',
+                objectFit: 'cover',
+              }}
+            />
+            <button
+              type="button"
+              className="ww-btn ww-btn--ghost ww-btn--sm"
+              style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}
+              onClick={() => { setPendingImage(null) }}
+              aria-label="Remove image"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Input row */}
         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleImageChange}
+          />
+          {/* Image attach trigger */}
+          <button
+            type="button"
+            className="ww-btn ww-btn--ghost ww-btn--sm"
+            style={{ flexShrink: 0, padding: '0.4rem 0.6rem' }}
+            disabled={chatLoading}
+            onClick={() => { fileInputRef.current?.click() }}
+            aria-label="Attach image"
+            title="Attach image"
+          >
+            🖼
+          </button>
           <textarea
             className="ww-scroll"
             style={{
@@ -458,7 +616,7 @@ export default function CoachPage() {
               color: 'inherit',
               outline: 'none',
             }}
-            placeholder="Ask about Jordan's adherence, sleep, goals…"
+            placeholder={`Ask about ${brief?.member_name ?? 'your member'}'s adherence, sleep, goals…`}
             value={draft}
             rows={1}
             disabled={chatLoading}
@@ -468,7 +626,7 @@ export default function CoachPage() {
           <button
             type="button"
             className="ww-btn ww-btn--gradient ww-btn--sm"
-            disabled={chatLoading || !draft.trim()}
+            disabled={chatLoading || (!draft.trim() && !pendingImage)}
             onClick={() => { void handleSend() }}
           >
             Send

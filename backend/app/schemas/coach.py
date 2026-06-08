@@ -34,6 +34,19 @@ class InjuryItem(BaseModel):
     notes: str | None
 
 
+class MessagePatternPoint(BaseModel):
+    week_of: str
+    member_count: int
+    coach_count: int
+
+
+class WeeklyComparisonPoint(BaseModel):
+    week_of: str
+    adherence_pct: int
+    workouts_completed: int
+    messages_sent: int
+
+
 class CoachBriefResponse(BaseModel):
     member_id: str
     member_name: str
@@ -45,14 +58,26 @@ class CoachBriefResponse(BaseModel):
     churn_risk: ChurnRisk
     adherence_weeks: list[AdherenceWeek]
     equipment: list[str]
+    message_pattern: list[MessagePatternPoint]
+    weekly_comparison: list[WeeklyComparisonPoint]
 
 
 class CoachChatRequest(BaseModel):
     message: str
     session_id: str | None = None
+    image: str | None = None
+    member_id: str | None = None
+
+
+class CoachMemberSummary(BaseModel):
+    member_id: str
+    member_name: str
+    tier: str | None = None
+    member_age: int | None = None
 
 
 class CoachChatResponse(BaseModel):
     reply: str
     grounded_facts: list[str]
     session_id: str
+    image: str | None = None

@@ -1,12 +1,12 @@
 - id: "gs-009"
-  description: "Ambiguous query — system routes to coach or clarification without crashing and produces a useful fitness response"
+  description: "KNOWLEDGE_GRAPH intent — vague workout request (no injury context) should route to knowledge_graph, not coach"
   query: "What should I do for my workout tomorrow?"
-  expected_tools: []
+  expected_tools:
+    - knowledge_graph
   expected_sources: []
   must_contain:
     - "workout"
   must_not_contain:
     - "I don't know"
     - "I cannot"
-    - "excluded due to injury constraints"
     - "Error"

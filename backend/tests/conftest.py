@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from pathlib import Path
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
@@ -34,7 +35,8 @@ def _run_alembic(direction: str) -> None:
     original_url = settings.database_url
     settings.database_url = TEST_DATABASE_URL
     try:
-        cfg = Config("alembic.ini")
+        cfg = Config(str(Path(__file__).parent.parent / "alembic.ini"))
+        cfg.set_main_option("script_location", str(Path(__file__).parent.parent / "migrations"))
         if direction == "head":
             command.upgrade(cfg, "head")
         else:

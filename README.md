@@ -9,30 +9,52 @@ A fitness coaching API and web app built as an AI engineering take-home assessme
 
 ## Architecture
 
+### System Overview
+
+```mermaid
+flowchart TD
+    Browser["Browser (React)"]
+    FastAPI["FastAPI Backend"]
+    Agents["LangGraph Hub"]
+    Neo4j["Neo4j KG"]
+    Postgres["PostgreSQL"]
+    Auth["Auth (fastapi-users)"]
+
+    Browser -->|REST / WebSocket| FastAPI
+    FastAPI --> Auth
+    FastAPI --> Agents
+    Agents --> Neo4j
+    Agents --> Postgres
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Frontend (Vite + React + TypeScript)                   │
-│  TanStack Query · Tailwind CSS · shadcn/ui              │
-│  localhost:5173                                         │
-└───────────────────┬─────────────────────────────────────┘
-                    │ HTTP / JSON
-┌───────────────────▼─────────────────────────────────────┐
-│  Multi-Agent Layer (LangGraph StateGraph)               │
-│  Hub router → COACH | WORKOUT_GENERATE | WORKOUT_LOG     │
-│               KNOWLEDGE_GRAPH | FALLBACK | clarification │
-│  /chat  /kg/recommend  /kg/explain  /kg/feedback        │
-│  localhost:8000                                         │
-└───────────┬───────────────────────────┬─────────────────┘
-            │ asyncpg                   │ Bolt (neo4j)
-┌───────────▼─────────────┐  ┌──────────▼────────────────┐
-│  PostgreSQL 16           │  │  Neo4j 5                  │
-│  users, exercises,       │  │  Member · Exercise        │
-│  workouts, sets          │  │  Injury · BodyStructure   │
-│  localhost:5433          │  │  Disorder · FeedbackEvent │
-└─────────────────────────┘  │  SNOMED traversal +       │
-                              │  vector index             │
-                              │  localhost:7687           │
-                              └───────────────────────────┘
+
+### Agent Topology
+
+```mermaid
+flowchart TD
+    Hub["Hub StateGraph"]
+    Router["Router Node\n(with_structured_output)"]
+    Coach["Coach Sub-graph"]
+    Gen["Workout-Gen Sub-graph"]
+    Log["Workout-Log Sub-graph"]
+    Fallback["Fallback Node"]
+
+    Hub --> Router
+    Router -->|COACH| Coach
+    Router -->|WORKOUT_GENERATE| Gen
+    Router -->|WORKOUT_LOG| Log
+    Router -->|FALLBACK| Fallback
+```
+
+### Knowledge Graph Schema
+
+```mermaid
+flowchart LR
+    Member -- COMPLETED --> WorkoutLog
+    WorkoutLog -- CONTAINS --> Exercise
+    Exercise -- TARGETS --> MuscleGroup
+    Exercise -- USES --> Equipment
+    Exercise -- FOLLOWS --> MovementPattern
+    Member -- HAS_BIOMARKER --> Biomarker
 ```
 
 The hub routes natural-language input to the appropriate sub-agent using LLM structured output (`with_structured_output`) — never regex or keyword matching. The REST layer is intentionally standalone so the agents do not disrupt the existing API.

@@ -73,21 +73,21 @@ def test_router_classifies_coach_intent():
 
 
 # ---------------------------------------------------------------------------
-# WORKOUT_GENERATE intent
+# KNOWLEDGE_GRAPH intent (workout generation)
 # ---------------------------------------------------------------------------
 
 def test_router_classifies_workout_generate_intent():
-    """Requests to build a workout should route to WORKOUT_GENERATE."""
+    """Requests to build a workout should route to KNOWLEDGE_GRAPH."""
     from app.agents.hub import _router_node
 
     state = _make_state("Give me a full-body strength workout for today.")
-    mock_cls = _mock_anthropic_returning(Intent.WORKOUT_GENERATE, confidence=0.95)
+    mock_cls = _mock_anthropic_returning(Intent.KNOWLEDGE_GRAPH, confidence=0.95)
 
     with patch("app.agents.hub.ChatAnthropic", mock_cls):
         result = _router_node(state)
 
     decision: RouteDecision = result["route_decision"]
-    assert decision.intent == Intent.WORKOUT_GENERATE
+    assert decision.intent == Intent.KNOWLEDGE_GRAPH
     assert decision.confidence >= 0.5
 
 

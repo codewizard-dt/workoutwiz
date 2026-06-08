@@ -1,57 +1,31 @@
 # Project Status
 
-**Last updated:** 2026-06-07 (ROADMAP-006 created: 16 assessment-gap-closure tasks (086–101) authored via /task-add)
+**Last updated:** 2026-06-08 (ROADMAP-006 complete; tasks 086–101, 103–104 all shipped; type-safety patch merged)
 
 ## Current Focus
 
-[ROADMAP-006: Assessment Gap Closure](.docs/roadmaps/006-assessment-gap-closure.md) — close every gap from the 2026-06-07 assessment audit (multi-agent, knowledge-graph, and candidate-assessment-main specs) so the repo is submission-ready.
-
-**Phase 1 — Quick Wins**
-- [TASK-086: README KG production-eval section](.docs/tasks/086-readme-kg-production-eval.md) — add a "How I would evaluate the KG system in production" README section.
-- [TASK-087: Fix stale test_intent_values](.docs/tasks/087-fix-stale-intent-values-test.md) — add KNOWLEDGE_GRAPH to the Intent-enum test assertion.
-- [TASK-088: Cooldown phase in build_workout](.docs/tasks/088-build-workout-cooldown-phase.md) — emit a non-empty cooldown phase of stretch/mobility movements.
-- [TASK-089: Sub-agent LLM error handling](.docs/tasks/089-subagent-llm-error-handling.md) — graceful fallback + audit entry in coach/generator nodes instead of HTTP 500.
-
-**Phase 2 — KG Depth**
-- [TASK-090: 3-pass concept resolver](.docs/tasks/090-concept-resolver-3pass.md) — runtime exact → fuzzy → embedding resolver with confidence thresholds.
-- [TASK-091: Muscle/MovementPattern/Equipment nodes](.docs/tasks/091-kg-muscle-equipment-pattern-nodes.md) — promote array properties to first-class nodes with typed edges.
-- [TASK-092: Fix retrieval double-traversal](.docs/tasks/092-fix-retrieval-double-traversal.md) — thread pre-fetched state into assemble_context.
-- [TASK-093: Neo4j driver singleton](.docs/tasks/093-neo4j-driver-singleton.md) — shared connection-pooled driver via lifespan + dependency.
-
-**Phase 3 — Frontend Completion**
-- [TASK-094: Exclusion/equipment filter UI](.docs/tasks/094-workout-exclusion-filter-ui.md) — interactive adjustment controls on the New Workout page.
-- [TASK-095: Coach chat image support](.docs/tasks/095-coach-chat-image-support.md) — attach and view images in the Coach Copilot chat.
-- [TASK-096: Coach message/comparison charts](.docs/tasks/096-coach-message-charts.md) — message-pattern + 4-week comparison charts (Recharts).
-- [TASK-097: Coach member switcher](.docs/tasks/097-coach-member-switcher.md) — member list/switcher (depends on 099).
-- [TASK-098: Workout duration field](.docs/tasks/098-workout-duration-field.md) — structured session-duration/time-window control.
-
-**Phase 4 — Polish**
-- [TASK-099: Multi-persona context seeding](.docs/tasks/099-seed-multi-persona-context.md) — rich member context for all personas, not just Jordan Rivera.
-- [TASK-100: OPE & COPPER ontology docs](.docs/tasks/100-document-ope-copper-ontologies.md) — document what was used vs omitted, with rationale.
-- [TASK-101: Fix ChatMessage kg_result type](.docs/tasks/101-fix-chatmessage-kg-result-type.md) — add kg_result to the exported TypeScript interface.
+Remaining open tasks: **TASK-071** (feedback submission UI, 5/5 steps done — pending UAT) and **TASK-084** (test-source-type-population, 0/5).
 
 ## Active Tasks
 
 | # | Task | Objective |
 |---|------|-----------|
-| 086 | [readme-kg-production-eval](.docs/tasks/086-readme-kg-production-eval.md) | Add a "How I would evaluate the KG system in production" README section (retrieval quality, injury-safety monitoring, latency, GraphRAG signals). |
-| 087 | [fix-stale-intent-values-test](.docs/tasks/087-fix-stale-intent-values-test.md) | Update test_intent_values to include KNOWLEDGE_GRAPH so the Intent-enum assertion passes. |
-| 088 | [build-workout-cooldown-phase](.docs/tasks/088-build-workout-cooldown-phase.md) | Make build_workout_tool emit a non-empty cooldown phase of low-intensity stretch/mobility movements from the dataset. |
-| 089 | [subagent-llm-error-handling](.docs/tasks/089-subagent-llm-error-handling.md) | Wrap LLM calls in coach/generator nodes to return a graceful fallback + audit entry instead of HTTP 500. |
-| 090 | [concept-resolver-3pass](.docs/tasks/090-concept-resolver-3pass.md) | Implement a runtime 3-pass concept resolver (exact → fuzzy → embedding) with confidence thresholds and graceful degradation. |
-| 091 | [kg-muscle-equipment-pattern-nodes](.docs/tasks/091-kg-muscle-equipment-pattern-nodes.md) | Promote Muscle/MovementPattern/Equipment to first-class Neo4j nodes with typed TARGETS/REQUIRES/HAS_PATTERN edges. |
-| 092 | [fix-retrieval-double-traversal](.docs/tasks/092-fix-retrieval-double-traversal.md) | Eliminate redundant double-traversal in retrieval_graph.assemble by threading pre-fetched state into context assembly. |
-| 093 | [neo4j-driver-singleton](.docs/tasks/093-neo4j-driver-singleton.md) | Replace per-request Neo4j driver instantiation with a shared connection-pooled driver via lifespan + dependency. |
-| 094 | [workout-exclusion-filter-ui](.docs/tasks/094-workout-exclusion-filter-ui.md) | Add interactive exercise-exclusion and equipment-filter controls to the New Workout page. |
-| 095 | [coach-chat-image-support](.docs/tasks/095-coach-chat-image-support.md) | Let a coach attach and view images in the Coach Copilot chat (client-side MVP). |
-| 096 | [coach-message-charts](.docs/tasks/096-coach-message-charts.md) | Add message-pattern and 4-week comparison charts to the Coach dashboard using Recharts. |
-| 097 | [coach-member-switcher](.docs/tasks/097-coach-member-switcher.md) | Add a member list/switcher so the coach dashboard is not hardcoded to one member (depends on 099). |
-| 098 | [workout-duration-field](.docs/tasks/098-workout-duration-field.md) | Add a structured session-duration/time-window control to the New Workout page. |
-| 099 | [seed-multi-persona-context](.docs/tasks/099-seed-multi-persona-context.md) | Seed rich member context (labs, chat, workouts, profile) for all personas, not just Jordan Rivera (blocks 097). |
-| 100 | [document-ope-copper-ontologies](.docs/tasks/100-document-ope-copper-ontologies.md) | Document OPE & COPPER ontology decisions (used vs omitted, with rationale) in the methodology doc. |
-| 101 | [fix-chatmessage-kg-result-type](.docs/tasks/101-fix-chatmessage-kg-result-type.md) | Add the kg_result field (and KGResult type) to the exported ChatMessage TypeScript interface. |
+| 071 | [feedback-submission-ui](.docs/tasks/071-feedback-submission-ui.md) | FeedbackForm component: star rating + text, POST /kg/feedback — implementation done, pending UAT. |
+| 084 | [test-source-type-population](.docs/tasks/084-test-source-type-population.md) | Write tests asserting every exercise in KG recommendation has source_type set to a valid enum value. |
 
 ## Recently Completed
+
+### KG Retrieval Expansion & Type-Safety Patch (2026-06-08)
+- **TASK-103**: Biomarker & lab-result KG nodes wired into retrieval graph — `get_biomarkers()`, `get_lab_results()` in `traversal.py`; `run_biomarker_traversal` node in `retrieval_graph.py`; `ContextSlice` extended; schema constraints + seed coverage for all 15 personas.
+- **TASK-104**: Coach–member chat history KG nodes wired in — `get_recent_chat_history()` in `traversal.py`; `run_chat_history_traversal` node; `ContextSlice` extended; `ChatMessage` schema constraint; all 15 personas seeded.
+- **Type-safety patch**: merge conflict resolution, unused variable removal, type annotations, import fixes across `coach.py`, `workout_generator.py`, `context_assembler.py`, `RatingWidget.tsx`, `CoachPage.tsx`, `WorkoutNewPage.tsx`, `frontend/src/types/index.ts`, `tsconfig.app.json`, `pyrightconfig.json`.
+
+### ROADMAP-006: Assessment Gap Closure (2026-06-07 → 2026-06-08)
+All 19 items shipped — repo is now assessment-submission-ready:
+- **Phase 1 — Quick Wins**: TASK-086 (README KG eval section), TASK-087 (stale intent-values test), TASK-088 (cooldown phase), TASK-089 (sub-agent LLM error handling).
+- **Phase 2 — KG Depth**: TASK-090 (3-pass concept resolver), TASK-091 (Muscle/Equipment/Pattern nodes), TASK-092 (fix retrieval double-traversal), TASK-093 (Neo4j driver singleton).
+- **Phase 3 — Frontend Completion**: TASK-094 (exclusion filter UI), TASK-095 (coach chat image support), TASK-096 (coach message charts), TASK-097 (coach member switcher), TASK-098 (workout duration field).
+- **Phase 4 — Polish**: TASK-099 (multi-persona context seeding), TASK-101 (fix ChatMessage KG result type).
 
 ### UI Polish & Auth Hardening (2026-06-06)
 - **Landing page** — new `LandingPage.tsx` at `/` with full-viewport hero (`workout-wiz-hero-selected.png`), features grid, and footer CTA; authenticated users redirected to `/chat`.
@@ -108,5 +82,7 @@ Run live tests: `cd backend && pytest -m live -v`
 
 ## Upcoming
 
+- Complete TASK-084: write `source_type` population tests for KG exercise recommendations.
+- Complete TASK-071 UAT: walk through feedback submission UI tests and move to `completed/`.
 - ROADMAP-003 Phase 1: Annotate Pydantic schemas (`exercise.py`, `workout.py`, `chat.py`, `user.py`, `errors.py`)
 - ROADMAP-003 Phase 2: Annotate FastAPI route decorators (`exercises.py`, `workouts.py`, `chat.py`, `main.py`)

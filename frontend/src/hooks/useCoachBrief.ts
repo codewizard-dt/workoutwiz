@@ -3,12 +3,15 @@ import { useAuth } from '../context/AuthContext'
 import { apiFetch } from '../lib/apiFetch'
 import type { CoachBriefResponse } from '../types'
 
-export function useCoachBrief() {
+export function useCoachBrief(memberId?: string | null) {
   const { token } = useAuth()
   return useQuery({
-    queryKey: ['coach', 'brief'],
+    queryKey: ['coach', 'brief', memberId ?? null],
     queryFn: async () => {
-      const res = await apiFetch('/api/coach/brief', {
+      const url = memberId
+        ? `/api/coach/brief?member_id=${encodeURIComponent(memberId)}`
+        : '/api/coach/brief'
+      const res = await apiFetch(url, {
         headers: { Authorization: `Bearer ${token ?? ''}` },
       })
       if (!res.ok) {

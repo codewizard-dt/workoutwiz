@@ -41,16 +41,16 @@ function NewWorkout({ draft, setDraft, navigate, units, onSave }) {
     const route = forcedRoute || cls.route;
     const conf = cls.conf;
 
-    if (route === "WORKOUT_GENERATE" && !/(remove|drop|delete|take out|add|include|throw in)/.test(s)) {
+    if (route === "KNOWLEDGE_GRAPH" && !/(remove|drop|delete|take out|add|include|throw in)/.test(s)) {
       const items = genItems();
       setDraft(items);
-      return { from: "coach", route, conf, latency: 1.5, trace: buildTrace("WORKOUT_GENERATE", conf),
+      return { from: "coach", route, conf, latency: 1.5, trace: buildTrace("KNOWLEDGE_GRAPH", conf),
         text: "Done — I added a warmup, a main block of 4 lifts, and a cooldown. Adjust anything, or save when it looks right." };
     }
     if (/(remove|drop|delete|take out)/.test(s)) {
       let removed = null;
       setDraft((d) => { const copy = [...d]; removed = copy.pop(); return copy; });
-      return { from: "coach", route: "WORKOUT_GENERATE", conf: 0.88, latency: 0.7, trace: buildTrace("WORKOUT_GENERATE", 0.88),
+      return { from: "coach", route: "KNOWLEDGE_GRAPH", conf: 0.88, latency: 0.7, trace: buildTrace("KNOWLEDGE_GRAPH", 0.88),
         text: removed ? "Removed the last movement from your sequence." : "Your sequence is already empty." };
     }
     if (/(add|include|throw in|put)/.test(s)) {
@@ -60,7 +60,7 @@ function NewWorkout({ draft, setDraft, navigate, units, onSave }) {
       setDraft((d) => [...d, { key: nextKey(), phase, exId: ex.id,
         reps: isCardio ? null : 10, sets: isCardio ? 1 : 3, weight: isCardio ? null : (ex.equip.includes("bodyweight") ? null : 20),
         duration: isCardio ? 300 : null, type: ex.category }]);
-      return { from: "coach", route: "WORKOUT_GENERATE", conf: 0.9, latency: 0.8, trace: buildTrace("WORKOUT_GENERATE", 0.9),
+      return { from: "coach", route: "KNOWLEDGE_GRAPH", conf: 0.9, latency: 0.8, trace: buildTrace("KNOWLEDGE_GRAPH", 0.9),
         text: `Added ${ex.name} to your ${PHASE_LABEL[phase].toLowerCase()}.` };
     }
     // generic coaching
@@ -81,7 +81,7 @@ function NewWorkout({ draft, setDraft, navigate, units, onSave }) {
   const total = draft.length;
 
   const suggestions = [
-    { text: "Upper body, 30 minutes, dumbbells", route: "WORKOUT_GENERATE" },
+    { text: "Upper body, 30 minutes, dumbbells", route: "KNOWLEDGE_GRAPH" },
     { text: "Add a cooldown walk", route: null },
     { text: "Remove the last movement", route: null },
   ];

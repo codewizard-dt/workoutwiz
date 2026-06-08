@@ -42,7 +42,7 @@ def test_router_appends_audit_log():
 
     with patch.object(hub_module, "ChatAnthropic") as mock_cls:
         mock_cls.return_value.with_structured_output.return_value = _mock_llm(
-            Intent.WORKOUT_GENERATE, 0.88
+            Intent.KNOWLEDGE_GRAPH, 0.88
         )
         from app.agents.hub import _router_node
 

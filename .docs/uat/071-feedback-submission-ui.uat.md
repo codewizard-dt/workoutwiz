@@ -103,7 +103,7 @@
   4. Observe the exercise cards returned in "Recommended Exercises".
   5. Verify that each exercise card contains a section labelled "Rate this exercise" with 5 star buttons and a textarea with placeholder "Optional feedback…".
 - **Expected Result**: Every exercise card in the recommendation list has a "Rate this exercise" section with 5 star (★) buttons and an "Optional feedback…" textarea.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ### UAT-UI-002: Submit button disabled until star is selected
 - **Page**: `http://localhost:5173/knowledge-graph`
@@ -114,7 +114,7 @@
   3. Locate the first `FeedbackForm` in the results — do NOT click any star.
   4. Observe the "Submit Feedback" button.
 - **Expected Result**: The "Submit Feedback" button is visually disabled (has `disabled` attribute) when no rating is selected, even if text is entered in the textarea.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ### UAT-UI-003: Star rating selection highlights selected star and below
 - **Page**: `http://localhost:5173/knowledge-graph`
@@ -125,7 +125,7 @@
   3. Click the star button labelled "Rate 3 out of 5" (third star).
   4. Observe the visual state of all 5 stars.
 - **Expected Result**: Stars 1, 2, and 3 appear accented/highlighted (full opacity, `ww-btn--accent` class applied); stars 4 and 5 appear dimmed (40% opacity).
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ### UAT-UI-004: Successful submission shows "Thank you for your feedback!"
 - **Page**: `http://localhost:5173/knowledge-graph`
@@ -137,7 +137,7 @@
   4. Click "Submit Feedback".
   5. Wait for the request to complete.
 - **Expected Result**: The form is replaced by the text "Thank you for your feedback!" (rendered in the success color). The star buttons and textarea are no longer visible.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ### UAT-UI-005: Submit button shows "Submitting…" during pending state
 - **Page**: `http://localhost:5173/knowledge-graph`
@@ -147,7 +147,7 @@
   2. Select a star rating in the first `FeedbackForm`.
   3. Click "Submit Feedback" and immediately observe the button label before the response arrives (use network throttling if needed).
 - **Expected Result**: While the POST is pending, the button label reads "Submitting…" and is disabled. After the response, it transitions to the success state.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ---
 
@@ -160,7 +160,7 @@
   2. Log in, navigate to `/knowledge-graph`, trigger a recommendation.
   3. Select a star in the first `FeedbackForm` and click "Submit Feedback".
 - **Expected Result**: An inline error message appears below the stars: either the API's error message or "Submission failed. Please try again." The form remains visible (not replaced by the success message). The "Submit Feedback" button is re-enabled after the error.
-- [FAIL: auto-judge: manual test requires human verification] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ### UAT-EDGE-002: `useKGFeedback` hook exported from hooks index
 - **Scenario**: Ensure the hook is importable from the barrel index.
@@ -189,4 +189,4 @@
      curl -sS -X POST 'http://localhost:8000/kg/feedback' -H 'Content-Type: application/json' -H "Authorization: Bearer $UAT_AUTH_TOKEN" -d '{"member_id":"<member-uuid>","exercise_id":"<exercise-uuid>","rating":5,"text":"Excellent recommendation"}' | jq '.feedback_id'
      ```
 - **Expected Result**: UI shows "Thank you for your feedback!". The curl command in step 8 returns a non-null `feedback_id` string, confirming the Neo4j write path works end-to-end.
-- [FAIL: auto-judge: manual test requires human verification] <!-- 2026-06-06 -->
+- [ ] Pass

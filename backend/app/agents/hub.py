@@ -9,7 +9,6 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 
-from app.agents.workout_generator import workout_generator_graph
 from app.agents.workout_logger import workout_logger_graph
 from app.agents.state import AgentState, Intent, RouteDecision
 from app.agents.coach import coach_graph
@@ -19,13 +18,12 @@ from app.config import settings
 _ROUTER_SYSTEM_PROMPT = """You are a routing agent for a fitness coaching system.
 Classify the user's message into exactly one of these intents:
 
-- COACH: General fitness questions, advice, explanation, motivation, or identity questions about the user (e.g. "What muscles does a deadlift work?", "How many rest days do I need?", "who am i", "what's my name", "tell me about myself")
-- WORKOUT_GENERATE: The user wants you to create, plan, or suggest a workout with NO injury or medical constraints mentioned (e.g. "Give me a leg day workout", "Plan a 3-day split for me")
-- WORKOUT_LOG: The user is recording a workout they already completed (e.g. "I just did 3x10 squats at 100kg", "Log my run: 5km in 25 minutes")
-- KNOWLEDGE_GRAPH: The user mentions an injury, pain, medical condition, physical limitation, or asks to avoid exercises that could aggravate a specific body part. This intent uses a knowledge graph to filter out contraindicated exercises and build a safe, personalised plan. Use this intent whenever ANY of the following appear: injury (knee, back, shoulder, wrist, hip, ankle, etc.), pain, soreness, surgery, rehabilitation, "avoid", "bad X" (bad knee, bad back), "hurt", "strain", "sprain", "torn", "post-op", "recovering from". Examples: "I have a bad knee, can you build me a workout?", "My lower back is injured — what can I do?", "Suggest exercises that won't aggravate my shoulder impingement", "I had knee surgery, avoid high-impact moves", "Build me a workout but skip anything that stresses my wrist".
-- FALLBACK: The message is unclear, off-topic, or cannot be mapped to the above intents
+- COACH: The user is asking a fitness *question* or wants advice, education, explanation, or motivation — but is NOT asking to generate a workout. Examples: "What muscles does a deadlift work?", "How many rest days do I need?", "Should I do cardio before or after lifting?", "who am i", "what's my name", "tell me about myself". COACH is for questions, not plans.
+- WORKOUT_LOG: The user is recording a workout they already completed (e.g. "I just did 3x10 squats at 100kg", "Log my run: 5km in 25 minutes", "I finished my chest day").
+- KNOWLEDGE_GRAPH: The user wants to *build*, *create*, *plan*, or *generate* a workout — with OR without injury context. Use this whenever the user is asking for a workout to be produced for them. Examples: "Give me a 30-minute upper body workout", "Build me a push day", "I only have dumbbells, give me a full-body workout", "Create a leg day routine", "What should I do for my workout today?", "I have a bad knee, build me something safe", "Suggest exercises that won't aggravate my shoulder". Any request that would result in a list of exercises belongs here.
+- FALLBACK: The message is unclear, off-topic, or cannot be mapped to the above intents (e.g. "What's the capital of France?", "Tell me a joke").
 
-IMPORTANT: If a workout request mentions an injury, pain, avoidance of certain body-part stress, or any physical limitation, ALWAYS choose KNOWLEDGE_GRAPH — never WORKOUT_GENERATE. WORKOUT_GENERATE has no injury awareness.
+IMPORTANT: When in doubt between COACH and KNOWLEDGE_GRAPH, ask yourself: is the user requesting a workout to be generated, or asking a question? If they want a workout produced, always choose KNOWLEDGE_GRAPH.
 
 Return a confidence score (0.0–1.0). Use < 0.6 only when genuinely ambiguous.
 """
@@ -208,7 +206,6 @@ def _route_selector(state: AgentState) -> str:
         return "clarification"
     intent_to_node = {
         Intent.COACH: "coach",
-        Intent.WORKOUT_GENERATE: "workout_gen",
         Intent.WORKOUT_LOG: "workout_log",
         Intent.FALLBACK: "clarification",
         Intent.KNOWLEDGE_GRAPH: "knowledge_graph",
@@ -222,7 +219,6 @@ def build_hub_graph() -> StateGraph:
     graph.add_node("router", _router_node)
     graph.add_node("clarification", _clarification_node)
     graph.add_node("coach", coach_graph)
-    graph.add_node("workout_gen", workout_generator_graph)
     graph.add_node("workout_log", workout_logger_graph)
     graph.add_node("knowledge_graph", _knowledge_graph_node)
 
@@ -232,14 +228,12 @@ def build_hub_graph() -> StateGraph:
         _route_selector,
         {
             "coach": "coach",
-            "workout_gen": "workout_gen",
             "workout_log": "workout_log",
             "clarification": "clarification",
             "knowledge_graph": "knowledge_graph",
         },
     )
     graph.add_edge("coach", END)
-    graph.add_edge("workout_gen", END)
     graph.add_edge("workout_log", END)
     graph.add_edge("clarification", END)
     graph.add_edge("knowledge_graph", END)

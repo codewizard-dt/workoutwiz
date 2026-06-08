@@ -481,6 +481,57 @@ async def get_performed_exercises(
     return records
 
 
+async def get_biomarkers(
+    member_id: str,
+    driver: AsyncDriver,
+    database: str = "neo4j",
+) -> dict[str, Any] | None:
+    """Return the most recent BiomarkerSnapshot for a member, or None.
+
+    Args:
+        member_id: The Member node's `id` property (UUID string).
+        driver: An open neo4j.AsyncDriver instance.
+        database: Neo4j database name (default: "neo4j").
+
+    Returns:
+        A dict of the BiomarkerSnapshot node properties, or None if not found.
+    """
+    query = """
+    MATCH (m:Member {id: $member_id})-[:HAS_BIOMARKER]->(b:BiomarkerSnapshot)
+    RETURN b ORDER BY b.date DESC LIMIT 1
+    """
+    async with driver.session(database=database) as session:
+        result = await session.run(query, member_id=member_id)
+        record = await result.single()
+        return dict(record["b"]) if record else None
+
+
+async def get_lab_results(
+    member_id: str,
+    driver: AsyncDriver,
+    database: str = "neo4j",
+) -> list[dict[str, Any]]:
+    """Return up to 3 most recent LabResult nodes for a member.
+
+    Args:
+        member_id: The Member node's `id` property (UUID string).
+        driver: An open neo4j.AsyncDriver instance.
+        database: Neo4j database name (default: "neo4j").
+
+    Returns:
+        A list of dicts (LabResult node properties), ordered by date DESC.
+        Returns [] if the member has no lab results.
+    """
+    query = """
+    MATCH (m:Member {id: $member_id})-[:HAS_LAB_RESULT]->(l:LabResult)
+    RETURN l ORDER BY l.date DESC LIMIT 3
+    """
+    async with driver.session(database=database) as session:
+        result = await session.run(query, member_id=member_id)
+        records = await result.fetch(3)
+        return [dict(r["l"]) for r in records]
+
+
 _WORKOUT_FEEDBACK_QUERY = """
 MATCH (m:Member {id: $member_id})-[:PERFORMED]->(ws:WorkoutSession)
 MATCH (f:FeedbackEvent {context_type: 'workout'})-[:ABOUT]->(ws)
@@ -521,6 +572,44 @@ async def get_workout_feedback(
 
     logger.debug(
         "Member %s: %d recent workout-level feedback record(s).",
+        member_id, len(records),
+    )
+    return records
+
+
+async def get_recent_chat_history(
+    member_id: str,
+    driver: AsyncDriver,
+    limit: int = 10,
+    database: str = "neo4j",
+) -> list[dict[str, Any]]:
+    """Return up to `limit` most recent ChatMessage nodes for a member.
+
+    Matches both SENT_MESSAGE (member) and SENT_COACH_MESSAGE (coach) edges
+    so the full conversation thread is surfaced in chronological order.
+
+    Args:
+        member_id: The Member node's `id` property (UUID string).
+        driver: An open neo4j.AsyncDriver instance.
+        limit: Maximum number of messages to return (default: 10, newest first).
+        database: Neo4j database name (default: "neo4j").
+
+    Returns:
+        A list of dicts with keys: id, ts, sender, text.
+        Ordered by ``ts`` descending (newest first). Returns [] if no messages.
+    """
+    query = """
+    MATCH (m:Member {id: $member_id})-[:SENT_MESSAGE|SENT_COACH_MESSAGE]->(msg:ChatMessage)
+    RETURN msg.id AS id, msg.ts AS ts, msg.sender AS sender, msg.text AS text
+    ORDER BY msg.ts DESC
+    LIMIT $limit
+    """
+    async with driver.session(database=database) as session:
+        result = await session.run(query, member_id=member_id, limit=limit)
+        records = await result.data()
+
+    logger.debug(
+        "Member %s: %d recent chat message(s).",
         member_id, len(records),
     )
     return records

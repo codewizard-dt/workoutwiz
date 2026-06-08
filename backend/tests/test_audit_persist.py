@@ -83,7 +83,7 @@ async def test_persist_audit_log_no_extra_when_all_known(db_session):
             "tokens_in": 50,
             "tokens_out": 25,
             "user_id": "u2",
-            "route": "WORKOUT_GENERATE",
+            "route": "KNOWLEDGE_GRAPH",
             "confidence": 0.95,
         }
     ]

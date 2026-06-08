@@ -23,28 +23,28 @@ Add Recharts to the frontend (the existing `AdherenceChart` is a hand-rolled sin
 
 ### 1. Chart library + brief data  <!-- agent: general-purpose -->
 
-- [ ] Add `recharts` to `frontend/package.json` dependencies and install
-- [ ] Extend `_fetch_member_context` in `backend/app/routers/coach.py` to also collect coach-side messages (the seed creates a `SENT_COACH_MESSAGE` relationship that the current query ignores), so message-pattern counts reflect both sides
-- [ ] Add `message_pattern` (per-day or per-week buckets: `date`/`week_of`, `member_count`, `coach_count`) and 4-week comparison metrics (per week: `week_of`, `adherence_pct`, `workouts_completed`, `messages_sent`) to `CoachBriefResponse` in `backend/app/schemas/coach.py`, derived in `get_coach_brief` from the `chat_messages`, `adherence`, and `workouts` context already fetched
-- [ ] Mirror the new fields in the `CoachBriefResponse` interface (plus any new sub-interfaces) in `frontend/src/types/index.ts`
+- [x] Add `recharts` to `frontend/package.json` dependencies and install
+- [x] Extend `_fetch_member_context` in `backend/app/routers/coach.py` to also collect coach-side messages (the seed creates a `SENT_COACH_MESSAGE` relationship that the current query ignores), so message-pattern counts reflect both sides
+- [x] Add `message_pattern` (per-day or per-week buckets: `date`/`week_of`, `member_count`, `coach_count`) and 4-week comparison metrics (per week: `week_of`, `adherence_pct`, `workouts_completed`, `messages_sent`) to `CoachBriefResponse` in `backend/app/schemas/coach.py`, derived in `get_coach_brief` from the `chat_messages`, `adherence`, and `workouts` context already fetched
+- [x] Mirror the new fields in the `CoachBriefResponse` interface (plus any new sub-interfaces) in `frontend/src/types/index.ts`
 
 ### 2. Message-pattern chart  <!-- agent: general-purpose -->
 
-- [ ] Create a `MessagePatternChart` component in `frontend/src/components` that renders the Recharts time-series (bar or area) of member/coach message volume over time from `brief.message_pattern`, returning `null` when there is no data
-- [ ] Style with design tokens: series colors from `var(--chart-1)` / `var(--chart-2)`, axis/grid text in `var(--muted-foreground)`, spacing via `var(--space-*)`; match the existing card chrome used around `AdherenceChart`
-- [ ] Render it in `CoachPage.tsx` in its own titled card (e.g. "Message pattern"), consistent with the existing Adherence card layout
+- [x] Create a `MessagePatternChart` component in `frontend/src/components` that renders the Recharts time-series (bar or area) of member/coach message volume over time from `brief.message_pattern`, returning `null` when there is no data
+- [x] Style with design tokens: series colors from `var(--chart-1)` / `var(--chart-2)`, axis/grid text in `var(--muted-foreground)`, spacing via `var(--space-*)`; match the existing card chrome used around `AdherenceChart`
+- [x] Render it in `CoachPage.tsx` in its own titled card (e.g. "Message pattern"), consistent with the existing Adherence card layout
 
 ### 3. 4-week comparison chart  <!-- agent: general-purpose -->
 
-- [ ] Create a `WeeklyComparisonChart` component in `frontend/src/components` that renders a grouped/multi-series Recharts chart comparing the last 4 weeks (adherence %, workouts completed, messages sent) from the comparison data, returning `null` when fewer than 1 week is present
-- [ ] Style with the `--chart-1`..`--chart-5` ramp and a legend; keep it readable on both light and dark themes (tokens already theme-switch)
-- [ ] Render it in `CoachPage.tsx` in a titled card (e.g. "Last 4 weeks") alongside the existing adherence/message cards
+- [x] Create a `WeeklyComparisonChart` component in `frontend/src/components` that renders a grouped/multi-series Recharts chart comparing the last 4 weeks (adherence %, workouts completed, messages sent) from the comparison data, returning `null` when fewer than 1 week is present
+- [x] Style with the `--chart-1`..`--chart-5` ramp and a legend; keep it readable on both light and dark themes (tokens already theme-switch)
+- [x] Render it in `CoachPage.tsx` in a titled card (e.g. "Last 4 weeks") alongside the existing adherence/message cards
 
 ### 4. Verification  <!-- agent: general-purpose -->
 
-- [ ] `cd frontend && npm run build` passes (tsc + vite) with the new Recharts components and types
-- [ ] Both charts render with real brief data for the demo member, and degrade to an empty/`null` state when their data arrays are empty
-- [ ] `cd backend && python -c "import app.routers.coach"` (or run the app) confirms the brief response serializes the new fields without error
+- [x] `cd frontend && npm run build` passes (tsc + vite) with the new Recharts components and types
+- [x] Both charts render with real brief data for the demo member, and degrade to an empty/`null` state when their data arrays are empty [DEFERRED-TO-UAT]
+- [x] `cd backend && python -c "import app.routers.coach"` (or run the app) confirms the brief response serializes the new fields without error
 
 ## Acceptance Criteria
 
@@ -53,3 +53,6 @@ Add Recharts to the frontend (the existing `AdherenceChart` is a hand-rolled sin
 - [ ] New chart components use Workout Wiz design tokens (`--chart-*`, `--space-*`, `--muted-foreground`, card chrome) with no hardcoded brand colors, and read theme-correctly in dark mode
 - [ ] Charts render without throwing when their underlying data is empty (no message history / no adherence weeks)
 - [ ] `frontend` production build passes
+
+---
+**UAT**: [`.docs/uat/096-coach-message-charts.uat.md`](../uat/096-coach-message-charts.uat.md)

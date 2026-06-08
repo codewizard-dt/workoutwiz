@@ -102,7 +102,7 @@ const PHASE_LABEL = { warmup: "Warmup", main: "Main", cooldown: "Cooldown" };
 /* ---- Multi-agent routing metadata ---- */
 const ROUTE_META = {
   COACH:            { label: "COACH",            icon: "message-circle-question", tone: "info" },
-  WORKOUT_GENERATE: { label: "WORKOUT_GENERATE", icon: "sparkles",                tone: "ember" },
+  KNOWLEDGE_GRAPH: { label: "KNOWLEDGE_GRAPH", icon: "sparkles",                tone: "ember" },
   WORKOUT_LOG:      { label: "WORKOUT_LOG",       icon: "clipboard-check",         tone: "amber" },
   FALLBACK:         { label: "FALLBACK",          icon: "help-circle",             tone: "stone" },
 };
@@ -110,7 +110,7 @@ const ROUTE_META = {
 function classifyIntent(t) {
   const s = (t || "").toLowerCase();
   if (/(did|logged|completed|i just|finished|i ran|\bran\b|@|\bx\s?\d|\d+\s*reps|\d+\s*sets)/.test(s)) return { route: "WORKOUT_LOG", conf: 0.92 };
-  if (/(build|generate|plan|design|program|give me|make me|create|workout for|session|routine|\d+\s*min|dumbbell|barbell|kettlebell|upper body|lower body|full body|push day|pull day|leg day)/.test(s)) return { route: "WORKOUT_GENERATE", conf: 0.95 };
+  if (/(build|generate|plan|design|program|give me|make me|create|workout for|session|routine|\d+\s*min|dumbbell|barbell|kettlebell|upper body|lower body|full body|push day|pull day|leg day)/.test(s)) return { route: "KNOWLEDGE_GRAPH", conf: 0.95 };
   if (/(how|why|what|should|which|many|rest|muscle|work|target|good for)/.test(s)) return { route: "COACH", conf: 0.94 };
   return { route: "FALLBACK", conf: 0.61 };
 }
@@ -118,7 +118,7 @@ function classifyIntent(t) {
 /* Build the expandable agent-trace timeline for a routed turn. */
 function buildTrace(route, conf) {
   const router = { agent: "Router", route, detail: `Classified intent → ${route}`, conf, ms: 78, status: "ok" };
-  if (route === "WORKOUT_GENERATE") {
+  if (route === "KNOWLEDGE_GRAPH") {
     return [
       router,
       { agent: "Exercise DB", detail: "Queried library · matched equipment {dumbbell, barbell}", ms: 142, status: "ok", meta: "18 candidates → 6 selected" },
@@ -170,7 +170,7 @@ const GEN_SESSION = {
 
 function coachReply(route, conf) {
   const trace = buildTrace(route, conf);
-  if (route === "WORKOUT_GENERATE")
+  if (route === "KNOWLEDGE_GRAPH")
     return { from: "coach", route, conf, latency: 1.62, trace,
       text: "Here's a session tuned to your push day and the equipment in your profile. Want me to drop it into a new workout?",
       workout: GEN_SESSION };

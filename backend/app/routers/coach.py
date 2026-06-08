@@ -8,6 +8,8 @@ from __future__ import annotations
 import logging
 import time
 import uuid
+from collections import defaultdict
+from datetime import datetime
 from typing import Any
 
 import neo4j
@@ -25,9 +27,12 @@ from app.schemas.coach import (
     CoachBriefResponse,
     CoachChatRequest,
     CoachChatResponse,
+    CoachMemberSummary,
     GoalItem,
     InjuryItem,
+    MessagePatternPoint,
     MorningTask,
+    WeeklyComparisonPoint,
 )
 from app.schemas.errors import ErrorResponse
 
@@ -44,12 +49,44 @@ router = APIRouter(prefix="/coach", tags=["coach"])
 
 
 
-async def _fetch_member_context(driver: neo4j.AsyncDriver, email: str) -> dict[str, Any]:
-    """Query Neo4j for the full member context by email."""
+async def _fetch_member_context(
+    driver: neo4j.AsyncDriver,
+    email: str,
+    member_id: str | None = None,
+) -> dict[str, Any]:
+    """Query Neo4j for the full member context by email or member_id."""
     async with driver.session() as session:
-        result = await session.run(
-            """
-            MATCH (m:Member {email: $email})
+        if member_id is not None:
+            result = await session.run(
+                """
+                MATCH (m:Member {id: $member_id})
+                OPTIONAL MATCH (m)-[:HAS_GOAL]->(g:Goal)
+                OPTIONAL MATCH (m)-[:HAS_INJURY]->(i:Injury)
+                OPTIONAL MATCH (m)-[:REPORTED_ADHERENCE]->(a:AdherenceWeek)
+                OPTIONAL MATCH (m)-[:HAS_COACH_BRIEF]->(cb:CoachBrief)
+                OPTIONAL MATCH (m)-[:HAS_BIOMARKER]->(b:BiomarkerSnapshot)
+                OPTIONAL MATCH (m)-[:HAS_LAB_RESULT]->(l:LabResult)
+                OPTIONAL MATCH (m)-[:HAD_WORKOUT]->(w:AssessmentWorkout)
+                OPTIONAL MATCH (m)-[:SENT_MESSAGE]->(cm:ChatMessage)
+                OPTIONAL MATCH (m)-[:SENT_COACH_MESSAGE]->(ccm:ChatMessage)
+                RETURN
+                    m,
+                    collect(DISTINCT g) AS goals,
+                    collect(DISTINCT i) AS injuries,
+                    collect(DISTINCT a) AS adherence,
+                    cb,
+                    b AS biomarkers,
+                    collect(DISTINCT l) AS labs,
+                    collect(DISTINCT w) AS workouts,
+                    collect(DISTINCT cm) AS chat_messages,
+                    collect(DISTINCT ccm) AS coach_messages
+                """,
+                member_id=member_id,
+            )
+        else:
+            result = await session.run(
+                """
+                MATCH (m:Member {email: $email})
             OPTIONAL MATCH (m)-[:HAS_GOAL]->(g:Goal)
             OPTIONAL MATCH (m)-[:HAS_INJURY]->(i:Injury)
             OPTIONAL MATCH (m)-[:REPORTED_ADHERENCE]->(a:AdherenceWeek)
@@ -58,6 +95,7 @@ async def _fetch_member_context(driver: neo4j.AsyncDriver, email: str) -> dict[s
             OPTIONAL MATCH (m)-[:HAS_LAB_RESULT]->(l:LabResult)
             OPTIONAL MATCH (m)-[:HAD_WORKOUT]->(w:AssessmentWorkout)
             OPTIONAL MATCH (m)-[:SENT_MESSAGE]->(cm:ChatMessage)
+            OPTIONAL MATCH (m)-[:SENT_COACH_MESSAGE]->(ccm:ChatMessage)
             RETURN
                 m,
                 collect(DISTINCT g) AS goals,
@@ -67,7 +105,8 @@ async def _fetch_member_context(driver: neo4j.AsyncDriver, email: str) -> dict[s
                 b AS biomarkers,
                 collect(DISTINCT l) AS labs,
                 collect(DISTINCT w) AS workouts,
-                collect(DISTINCT cm) AS chat_messages
+                collect(DISTINCT cm) AS chat_messages,
+                collect(DISTINCT ccm) AS coach_messages
             """,
             email=email,
         )
@@ -96,6 +135,11 @@ async def _fetch_member_context(driver: neo4j.AsyncDriver, email: str) -> dict[s
             ),
             "chat_messages": sorted(
                 [node_props(cm) for cm in record["chat_messages"] if cm is not None],
+                key=lambda x: x.get("ts", ""),
+                reverse=True,
+            ),
+            "coach_messages": sorted(
+                [node_props(ccm) for ccm in record["coach_messages"] if ccm is not None],
                 key=lambda x: x.get("ts", ""),
                 reverse=True,
             ),
@@ -177,12 +221,154 @@ def _build_context_prompt(ctx: dict[str, Any]) -> str:
             "  Reasons: " + "; ".join(cb.get("churn_risk_reasons", [])),
         ]
 
+    # Recent Conversations (merged member + coach messages, newest first, up to 10)
+    all_msgs = sorted(
+        ctx.get("chat_messages", []) + ctx.get("coach_messages", []),
+        key=lambda x: x.get("ts", ""),
+        reverse=True,
+    )[:10]
+    if all_msgs:
+        lines += ["", "--- Recent Conversations ---"]
+        for msg in all_msgs:
+            ts = msg.get("ts", "")
+            date_str = ts[:10] if ts else "?"
+            speaker = msg.get("sender", "?")
+            text = msg.get("text", "")
+            lines.append(f"[{date_str} {speaker}]: {text}")
+
     return "\n".join(lines)
+
+
+def _iso_to_week(ts: str) -> str:
+    """Return the ISO week-start date string (Monday) for a timestamp string."""
+    try:
+        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return ""
+    # Subtract to Monday of the week
+    monday = dt.date() - __import__("datetime").timedelta(days=dt.weekday())
+    return str(monday)
+
+
+def _build_message_pattern(
+    chat_messages: list[dict[str, Any]],
+    coach_messages: list[dict[str, Any]],
+) -> list[MessagePatternPoint]:
+    """Bucket member and coach messages by ISO week (last 8 weeks)."""
+    buckets: dict[str, dict[str, int]] = defaultdict(lambda: {"member": 0, "coach": 0})
+    for msg in chat_messages:
+        week = _iso_to_week(msg.get("ts", ""))
+        if week:
+            buckets[week]["member"] += 1
+    for msg in coach_messages:
+        week = _iso_to_week(msg.get("ts", ""))
+        if week:
+            buckets[week]["coach"] += 1
+
+    sorted_weeks = sorted(buckets.keys())[-8:]
+    return [
+        MessagePatternPoint(
+            week_of=w,
+            member_count=buckets[w]["member"],
+            coach_count=buckets[w]["coach"],
+        )
+        for w in sorted_weeks
+    ]
+
+
+def _build_weekly_comparison(
+    adherence: list[dict[str, Any]],
+    workouts: list[dict[str, Any]],
+    chat_messages: list[dict[str, Any]],
+    coach_messages: list[dict[str, Any]],
+) -> list[WeeklyComparisonPoint]:
+    """Build per-week comparison data (last 4 weeks) across adherence, workouts, and messages."""
+    # Build adherence lookup by week_of
+    adherence_by_week: dict[str, int] = {
+        a.get("week_of", ""): int(a.get("pct", 0)) for a in adherence if a.get("week_of")
+    }
+
+    # Count completed workouts by week
+    workout_counts: dict[str, int] = defaultdict(int)
+    for w in workouts:
+        week = w.get("date", "")[:10]  # already a date string
+        if week:
+            # Get Monday of that week
+            try:
+                import datetime as _dt
+                d = _dt.date.fromisoformat(week)
+                monday = str(d - _dt.timedelta(days=d.weekday()))
+            except (ValueError, AttributeError):
+                monday = week
+            if w.get("completed", False):
+                workout_counts[monday] += 1
+
+    # Count messages by week (both sides)
+    message_counts: dict[str, int] = defaultdict(int)
+    for msg in chat_messages + coach_messages:
+        week = _iso_to_week(msg.get("ts", ""))
+        if week:
+            message_counts[week] += 1
+
+    # Collect all known weeks and take last 4
+    all_weeks = sorted(
+        set(list(adherence_by_week.keys()) + list(workout_counts.keys()) + list(message_counts.keys()))
+    )[-4:]
+
+    return [
+        WeeklyComparisonPoint(
+            week_of=w,
+            adherence_pct=adherence_by_week.get(w, 0),
+            workouts_completed=workout_counts.get(w, 0),
+            messages_sent=message_counts.get(w, 0),
+        )
+        for w in all_weeks
+    ]
 
 
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/members",
+    response_model=list[CoachMemberSummary],
+    summary="List all coach members",
+    description="Returns all seeded members (id, name, tier, age) for the member switcher.",
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        500: {"model": ErrorResponse, "description": "Neo4j query error"},
+    },
+)
+async def get_coach_members(
+    user: User = Depends(current_active_user),
+    driver: neo4j.AsyncDriver = Depends(get_neo4j_driver),
+) -> list[CoachMemberSummary]:
+    try:
+        async with driver.session() as session:
+            result = await session.run(
+                """
+                MATCH (m:Member)
+                RETURN m.id AS id, m.display_name AS display_name, m.name AS name,
+                       m.tier AS tier, m.age AS age
+                ORDER BY m.display_name, m.name
+                """
+            )
+            records = await result.data()
+        return [
+            CoachMemberSummary(
+                member_id=r["id"] or "",
+                member_name=r["display_name"] or r["name"] or "",
+                tier=r["tier"],
+                member_age=r["age"],
+            )
+            for r in records
+            if r.get("id")
+        ]
+    except Exception as exc:
+        logger.exception("Error in /coach/members")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.get(
@@ -202,9 +388,10 @@ def _build_context_prompt(ctx: dict[str, Any]) -> str:
 async def get_coach_brief(
     user: User = Depends(current_active_user),
     driver: neo4j.AsyncDriver = Depends(get_neo4j_driver),
+    member_id: str | None = None,
 ) -> CoachBriefResponse:
     try:
-        ctx = await _fetch_member_context(driver, user.email)
+        ctx = await _fetch_member_context(driver, user.email, member_id=member_id)
         if not ctx or not ctx.get("member"):
             raise HTTPException(
                 status_code=404,
@@ -220,6 +407,11 @@ async def get_coach_brief(
             MorningTask(type=t, text=txt)
             for t, txt in zip(task_types, task_texts, strict=False)
         ]
+
+        chat_messages = ctx.get("chat_messages", [])
+        coach_messages = ctx.get("coach_messages", [])
+        adherence = ctx.get("adherence", [])
+        workouts = ctx.get("workouts", [])
 
         return CoachBriefResponse(
             member_id=m.get("id", ""),
@@ -255,9 +447,13 @@ async def get_coach_brief(
                     week_of=a.get("week_of", ""),
                     pct=int(a.get("pct", 0)),
                 )
-                for a in ctx.get("adherence", [])
+                for a in adherence
             ],
             equipment=list(m.get("equipment_available", [])),
+            message_pattern=_build_message_pattern(chat_messages, coach_messages),
+            weekly_comparison=_build_weekly_comparison(
+                adherence, workouts, chat_messages, coach_messages
+            ),
         )
     except HTTPException:
         raise
@@ -287,7 +483,7 @@ async def coach_chat(
     session_id = request.session_id or str(uuid.uuid4())
 
     try:
-        ctx = await _fetch_member_context(driver, user.email)
+        ctx = await _fetch_member_context(driver, user.email, member_id=request.member_id)
         if not ctx or not ctx.get("member"):
             raise HTTPException(
                 status_code=404,

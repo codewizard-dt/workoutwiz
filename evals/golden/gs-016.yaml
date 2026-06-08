@@ -1,0 +1,13 @@
+- id: "gs-016"
+  description: "KNOWLEDGE_GRAPH intent — plain workout generation request with no injury context routes to knowledge_graph"
+  query: "Give me a 30-minute dumbbell workout"
+  expected_tools:
+    - knowledge_graph
+  expected_sources: []
+  must_contain:
+    - "sets"
+    - "reps"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+    - "Error"

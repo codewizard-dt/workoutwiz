@@ -56,6 +56,9 @@ class ContextSlice(TypedDict):
     vector_hits: list[dict[str, Any]]
     token_counts: SectionTokenCounts
     contraindicated_provenance: list[dict[str, Any]]
+    chat_history: list[dict[str, Any]]  # up to 10 recent ChatMessage nodes, newest first
+    biomarkers: dict[str, Any] | None       # latest BiomarkerSnapshot or None
+    lab_results: list[dict[str, Any]]       # up to 3 LabResult nodes
 
 
 def _estimate_tokens(obj: Any) -> int:
@@ -129,6 +132,9 @@ async def assemble_context_from_parts(
     recent_workout_feedback: list[dict[str, Any]],
     member_id: str = "",
     vector_k: int = 10,
+    biomarkers: dict[str, Any] | None = None,
+    lab_results: list[dict[str, Any]] | None = None,
+    chat_history: list[dict[str, Any]] | None = None,
 ) -> ContextSlice:
     """
     Assemble a token-budgeted context slice from already-fetched parts.
@@ -174,6 +180,9 @@ async def assemble_context_from_parts(
             recent_workout_feedback=[],
             vector_hits=vector_truncated,
             contraindicated_provenance=[],
+            biomarkers=None,
+            lab_results=[],
+            chat_history=[],
             token_counts=SectionTokenCounts(
                 member_profile=0,
                 safe_exercises=vector_tokens,
@@ -225,12 +234,92 @@ async def assemble_context_from_parts(
     vector_truncated, vector_tokens = _truncate_to_budget(vector_hits_filtered, VECTOR_HITS_BUDGET)
 
     total_tokens = profile_tokens + safe_tokens + preferred_tokens + vector_tokens
+
+    # --- Health Markers section (lower priority — omit if budget exhausted) --
+    _lab_results: list[dict[str, Any]] = lab_results or []
+    _biomarker_text: str = ""
+    BIOMARKER_BUDGET = max(0, TOTAL_TOKEN_BUDGET - total_tokens)
+    if BIOMARKER_BUDGET > 0 and (biomarkers or _lab_results):
+        lines: list[str] = ["--- Health Markers ---"]
+        if biomarkers:
+            date = biomarkers.get("date", "")
+            rhr = biomarkers.get("resting_hr_bpm")
+            hrv = biomarkers.get("hrv_ms")
+            sleep_7d = biomarkers.get("sleep_hours_last_7_days") or []
+            sleep_avg = round(sum(sleep_7d) / len(sleep_7d), 1) if sleep_7d else None
+            parts: list[str] = []
+            if rhr is not None:
+                parts.append(f"resting_hr={rhr}bpm")
+            if hrv is not None:
+                parts.append(f"hrv={hrv}ms")
+            if sleep_avg is not None:
+                parts.append(f"sleep={sleep_avg}h/night")
+            date_str = f" ({date})" if date else ""
+            lines.append(f"Biomarkers{date_str}: {', '.join(parts)}")
+        if _lab_results:
+            lines.append("Lab Results:")
+            for lab in _lab_results:
+                lab_type = lab.get("type", "unknown")
+                lab_date = lab.get("date", "")
+                if lab_type == "blood_panel":
+                    ldl = lab.get("ldl_mg_dl")
+                    hdl = lab.get("hdl_mg_dl")
+                    hba1c = lab.get("hba1c_pct")
+                    vit_d = lab.get("vitamin_d_ng_ml")
+                    crp = lab.get("crp_mg_l")
+                    fields: list[str] = []
+                    if ldl is not None:
+                        fields.append(f"LDL={ldl}")
+                    if hdl is not None:
+                        fields.append(f"HDL={hdl}")
+                    if hba1c is not None:
+                        fields.append(f"HbA1c={hba1c}%")
+                    if vit_d is not None:
+                        fields.append(f"Vit-D={vit_d}")
+                    if crp is not None:
+                        fields.append(f"CRP={crp}")
+                    lines.append(f"  Blood panel ({lab_date}): {', '.join(fields)}")
+                elif lab_type == "dexa_scan":
+                    bf = lab.get("body_fat_pct")
+                    lm = lab.get("lean_mass_kg")
+                    bd = lab.get("bone_density_z_score")
+                    fields = []
+                    if bf is not None:
+                        fields.append(f"body_fat={bf}%")
+                    if lm is not None:
+                        fields.append(f"lean_mass={lm}kg")
+                    if bd is not None:
+                        fields.append(f"bone_density_z={bd:+.1f}")
+                    lines.append(f"  DEXA ({lab_date}): {', '.join(fields)}")
+                else:
+                    lines.append(f"  {lab_type} ({lab_date}): {json.dumps(lab)}")
+        candidate = "\n".join(lines)
+        candidate_tokens = _estimate_tokens(candidate)
+        if candidate_tokens <= BIOMARKER_BUDGET:
+            _biomarker_text = candidate
+            total_tokens += candidate_tokens
+        # If over budget, omit silently (no raise)
+
+    # --- Chat history: compact transcript, lowest-priority section -----------
+    chat_msgs = list(chat_history or [])
+    remaining_budget = TOTAL_TOKEN_BUDGET - total_tokens
+    if chat_msgs and remaining_budget >= 300:
+        msgs_to_use = chat_msgs[:10]
+    elif chat_msgs and remaining_budget > 0:
+        msgs_to_use = chat_msgs[:5]
+    else:
+        msgs_to_use = []
+
     logger.info(
-        "Context assembled for member %s: profile=%d, safe=%d, preferred=%d, vector=%d, total=%d tokens",
-        member_id, profile_tokens, safe_tokens, preferred_tokens, vector_tokens, total_tokens,
+        "Context assembled for member %s: profile=%d, safe=%d, preferred=%d, vector=%d, "
+        "biomarkers=%s, chat_msgs=%d, total=%d tokens",
+        member_id, profile_tokens, safe_tokens, preferred_tokens, vector_tokens,
+        "yes" if _biomarker_text else "no",
+        len(msgs_to_use),
+        total_tokens,
     )
 
-    return ContextSlice(
+    slice_ = ContextSlice(
         member_profile=member_profile,
         safe_exercises=safe_truncated,
         preferred_exercises=preferred_truncated,
@@ -238,6 +327,9 @@ async def assemble_context_from_parts(
         recent_workout_feedback=recent_workout_feedback,
         vector_hits=vector_truncated,
         contraindicated_provenance=[],  # populated by retrieval_graph from RetrievalState
+        biomarkers=biomarkers,
+        lab_results=_lab_results,
+        chat_history=msgs_to_use,
         token_counts=SectionTokenCounts(
             member_profile=profile_tokens,
             safe_exercises=safe_tokens,
@@ -246,6 +338,7 @@ async def assemble_context_from_parts(
             total=total_tokens,
         ),
     )
+    return slice_
 
 
 async def assemble_context(

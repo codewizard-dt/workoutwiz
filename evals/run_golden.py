@@ -27,9 +27,7 @@ GOLDEN_DIR = Path(__file__).parent / "golden"
 RESULTS_DIR = Path(__file__).parent / "results"
 
 tool_event_map = {
-    "workout_gen": "generator",
-    "search_exercises": "generator",
-    "build_workout": "generator",
+    "knowledge_graph": "kg_hub",
     "coach": "coach",
     "workout_log": "logger",
     "knowledge_graph": "kg_hub",

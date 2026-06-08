@@ -7,8 +7,8 @@
 - id: "sc-wg-001"
   query: "Give me a 45-minute leg workout"
   expected_tools:
-    - workout_gen
-  category: workout_gen
+    - knowledge_graph
+  category: knowledge_graph
   subcategory: muscle_group
   difficulty: straightforward
   must_contain:
@@ -21,8 +21,8 @@
 - id: "sc-wg-002"
   query: "Build me a chest and triceps workout for the gym"
   expected_tools:
-    - workout_gen
-  category: workout_gen
+    - knowledge_graph
+  category: knowledge_graph
   subcategory: muscle_group
   difficulty: straightforward
   must_contain:
@@ -35,8 +35,8 @@
 - id: "sc-wg-003"
   query: "I need a beginner full body routine, 3 days a week"
   expected_tools:
-    - workout_gen
-  category: workout_gen
+    - knowledge_graph
+  category: knowledge_graph
   subcategory: program_design
   difficulty: straightforward
   must_contain:
@@ -51,8 +51,8 @@
 - id: "sc-wg-004"
   query: "Give me something for tomorrow"
   expected_tools:
-    - workout_gen
-  category: workout_gen
+    - knowledge_graph
+  category: knowledge_graph
   subcategory: underspecified
   difficulty: ambiguous
   must_contain:
@@ -65,8 +65,8 @@
 - id: "sc-wg-005"
   query: "I want to get bigger. What should I do?"
   expected_tools:
-    - workout_gen
-  category: workout_gen
+    - knowledge_graph
+  category: knowledge_graph
   subcategory: goal_based
   difficulty: ambiguous
   must_contain:
@@ -79,8 +79,8 @@
 - id: "sc-wg-006"
   query: "Make me a quick workout"
   expected_tools:
-    - workout_gen
-  category: workout_gen
+    - knowledge_graph
+  category: knowledge_graph
   subcategory: underspecified
   difficulty: ambiguous
   must_contain:
@@ -95,8 +95,8 @@
 - id: "sc-wg-007"
   query: "I only have 10 minutes and no equipment"
   expected_tools:
-    - workout_gen
-  category: workout_gen
+    - knowledge_graph
+  category: knowledge_graph
   subcategory: equipment_constraint
   difficulty: edge_case
   must_contain:
@@ -111,8 +111,8 @@
 - id: "sc-wg-008"
   query: "Create a workout for someone who is 300 lbs and just starting out"
   expected_tools:
-    - workout_gen
-  category: workout_gen
+    - knowledge_graph
+  category: knowledge_graph
   subcategory: special_population
   difficulty: edge_case
   must_contain:
@@ -125,8 +125,8 @@
 - id: "sc-wg-009"
   query: "Build me a 2-hour advanced powerlifting session"
   expected_tools:
-    - workout_gen
-  category: workout_gen
+    - knowledge_graph
+  category: knowledge_graph
   subcategory: advanced
   difficulty: edge_case
   must_contain:

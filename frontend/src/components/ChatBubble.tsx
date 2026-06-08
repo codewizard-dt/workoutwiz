@@ -9,9 +9,10 @@ interface ChatBubbleProps {
   route?: string
   confidence?: number
   steps?: AgentStep[]
+  image?: string
 }
 
-export function ChatBubble({ role, content, route, confidence, steps }: ChatBubbleProps) {
+export function ChatBubble({ role, content, route, confidence, steps, image }: ChatBubbleProps) {
   const isUser = role === 'user'
 
   return (
@@ -31,9 +32,27 @@ export function ChatBubble({ role, content, route, confidence, steps }: ChatBubb
               <RouteBadge route={route} confidence={confidence} />
             </div>
           )}
-          <div style={{ lineHeight: 1.55 }} className="markdown-content">
-            {isUser ? content : <ReactMarkdown>{content}</ReactMarkdown>}
-          </div>
+          {image && (
+            <div style={{ marginBottom: content ? 'var(--space-2)' : 0 }}>
+              <img
+                src={image}
+                alt="Attached image"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '16rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border)',
+                  display: 'block',
+                  objectFit: 'contain',
+                }}
+              />
+            </div>
+          )}
+          {content && (
+            <div style={{ lineHeight: 1.55 }} className="markdown-content">
+              {isUser ? content : <ReactMarkdown>{content}</ReactMarkdown>}
+            </div>
+          )}
           {!isUser && steps && steps.length > 0 && (
             <AgentTrace steps={steps} />
           )}

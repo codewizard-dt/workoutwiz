@@ -37,7 +37,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   curl -sS -X POST 'http://localhost:8000/kg/recommend' -H 'Content-Type: application/json' -H "Authorization: Bearer $UAT_AUTH_TOKEN" -d "{\"member_id\": \"$UAT_MEMBER_ID\", \"query\": \"upper body strength workout, 45 minutes\"}" | jq '{member_id, fallback_used, exercise_count: (.exercises | length), first_exercise: .exercises[0]}'
   ```
 - **Expected Result**: `200 OK` with JSON body containing `member_id` (string), `exercises` (non-empty array), `overall_reasoning` (non-empty string), `skipped_exercise_ids` (array), and `fallback_used` (boolean). Each exercise object has `exercise_id`, `name`, `sets` (int), and `reasoning` (string); optionally `reps`, `duration_seconds`, `weight_kg`.
-- [FAIL: auto-judge: prerequisite not satisfied — backend container crashes on startup (ModuleNotFoundError: No module named 'app')] <!-- 2026-06-07 -->
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-API-002: POST /kg/recommend — 401 without auth token
 - **Endpoint**: `POST /kg/recommend`
@@ -50,7 +50,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   curl -sS -X POST 'http://localhost:8000/kg/recommend' -H 'Content-Type: application/json' -d '{"member_id": "00000000-0000-0000-0000-000000000000", "query": "test"}'
   ```
 - **Expected Result**: `401 Unauthorized` response.
-- [FAIL: auto-judge: prerequisite not satisfied — backend container crashes on startup (ModuleNotFoundError: No module named 'app')] <!-- 2026-06-07 -->
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-API-003: POST /kg/recommend — missing required fields returns 422
 - **Endpoint**: `POST /kg/recommend`
@@ -64,7 +64,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   curl -sS -X POST 'http://localhost:8000/kg/recommend' -H 'Content-Type: application/json' -H "Authorization: Bearer $UAT_AUTH_TOKEN" -d "{\"member_id\": \"$UAT_MEMBER_ID\"}"
   ```
 - **Expected Result**: `422 Unprocessable Entity` with a body describing the missing `query` field.
-- [FAIL: auto-judge: prerequisite not satisfied — backend container crashes on startup (ModuleNotFoundError: No module named 'app')] <!-- 2026-06-07 -->
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -78,7 +78,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   2. Navigate to `http://localhost:5173/knowledge-graph`
   3. Observe the page header
 - **Expected Result**: Page loads without error. Heading "AI Coach" is visible. Subtext "Get a personalized workout recommendation powered by your training history and the knowledge graph." is visible.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-UI-002: Nav link "AI Coach" is present and navigates to /knowledge-graph
 - **Page**: Any authenticated page (e.g., `http://localhost:5173/workouts`)
@@ -88,7 +88,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   2. Locate the navigation bar/sidebar
   3. Click the "AI Coach" link
 - **Expected Result**: Navigation link labeled "AI Coach" is visible in the nav. Clicking it navigates to `http://localhost:5173/knowledge-graph`.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-UI-003: Query form is present with correct elements
 - **Page**: `http://localhost:5173/knowledge-graph`
@@ -96,8 +96,8 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
 - **Steps**:
   1. Navigate to `http://localhost:5173/knowledge-graph`
   2. Inspect the form area
-- **Expected Result**: Label "What are your goals or constraints today?" is visible. A multi-line textarea is present. A button labeled "Get Recommendation" is visible and initially enabled.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- **Expected Result**: Label "What are your goals or constraints today?" is visible. A multi-line textarea is present. A button labeled "Get Recommendation" is visible and enabled when text is present.
+- [FIXING: one-tap messages below chat; need 10 recent workouts with more detail and fixed-height cards] <!-- 2026-06-08 -->
 
 ### UAT-UI-004: Submit button is disabled when textarea is empty
 - **Page**: `http://localhost:5173/knowledge-graph`
@@ -107,7 +107,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   2. Ensure the textarea is empty (clear it if needed)
   3. Observe the "Get Recommendation" button state
 - **Expected Result**: The "Get Recommendation" button is disabled (cannot be clicked).
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ### UAT-UI-005: Loading state renders skeleton cards while request is in flight
 - **Page**: `http://localhost:5173/knowledge-graph`
@@ -117,7 +117,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   2. Type a query in the textarea (e.g., "upper body strength")
   3. Click "Get Recommendation" and immediately observe the UI before the response arrives (throttle network in DevTools if needed to extend loading time)
 - **Expected Result**: Button text changes to "Generating…" and button becomes disabled. Three skeleton placeholder cards appear below the form while the request is in flight.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ### UAT-UI-006: Error state displays error banner on API failure
 - **Page**: `http://localhost:5173/knowledge-graph`
@@ -128,7 +128,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   3. Enter a query and click "Get Recommendation"
   4. Observe the UI after the request fails
 - **Expected Result**: An error banner appears containing "Error:" followed by a failure message. No skeleton cards remain. The form is still available to re-submit.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ### UAT-UI-007: Successful response renders exercise cards with name, sets/reps, and reasoning
 - **Page**: `http://localhost:5173/knowledge-graph`
@@ -139,7 +139,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   3. Wait for the response to load
   4. Observe the rendered exercise cards
 - **Expected Result**: A list of exercise cards appears. Each card shows the exercise name (bold), a badge with sets × reps (e.g., "3 × 10 reps") or duration (e.g., "3 × 30s"), and reasoning text below the name. A heading "Recommended Exercises (N)" is shown above the cards.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ### UAT-UI-008: Fallback notice appears when fallback_used is true
 - **Page**: `http://localhost:5173/knowledge-graph`
@@ -149,7 +149,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   2. Submit a query for a member profile that has many injury constraints (use a member_id for a synthetic member with known injuries, or mock the response in DevTools Network tab to include `"fallback_used": true`)
   3. Observe the results area
 - **Expected Result**: A notice reading "Limited options due to injury constraints." appears above the exercise cards when `fallback_used` is `true` in the response.
-- [FAIL: auto-judge: UI test requires human verification — use /uat-walk] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ---
 
@@ -161,7 +161,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   1. Clear all session cookies/tokens (log out or open a private window)
   2. Navigate directly to `http://localhost:5173/knowledge-graph`
 - **Expected Result**: User is redirected to the login page (`/login`) and does not see the KnowledgeGraphPage content.
-- [FAIL: auto-judge: manual test requires human verification] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ### UAT-EDGE-002: Empty recommendation list shows empty state message
 - **Scenario**: API returns `exercises: []` (no recommendations)
@@ -170,7 +170,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   2. Intercept the `/api/kg/recommend` response via DevTools and replace the body with `{"member_id":"<uuid>","exercises":[],"overall_reasoning":"","skipped_exercise_ids":[],"fallback_used":false}`
   3. Submit any query and observe the results
 - **Expected Result**: The message "No recommendations found. Try a different query." appears and no exercise cards are rendered.
-- [FAIL: auto-judge: manual test requires human verification] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ---
 
@@ -189,7 +189,7 @@ curl -sS 'http://localhost:8000/auth/me' -H "Authorization: Bearer $UAT_AUTH_TOK
   7. Wait for the response (may take 5–15 seconds due to LLM generation)
   8. Observe the exercise cards
 - **Expected Result**: Loading skeletons appear immediately after submit. Within ~15 seconds, exercise cards appear showing at least one recommended exercise with name, sets/reps or duration, and reasoning text. No error banner appears.
-- [FAIL: auto-judge: manual test requires human verification] <!-- 2026-06-06 -->
+- [ ] Pass
 
 ---
 

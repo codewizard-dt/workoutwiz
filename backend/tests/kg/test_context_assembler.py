@@ -117,7 +117,7 @@ async def test_deduplication_removes_preferred_from_vector_hits() -> None:
     with (
         patch("app.kg.context_assembler.get_member_profile", new=AsyncMock(return_value=profile)),
         patch("app.kg.context_assembler.get_safe_exercises", new=AsyncMock(return_value=safe)),
-        patch("app.kg.context_assembler._safe_call", side_effect=[preferred, []]),
+        patch("app.kg.context_assembler._safe_call", side_effect=[preferred, [], [], []]),
         patch("app.kg.context_assembler._safe_vector_search", new=AsyncMock(return_value=[doc_ex1, doc_ex2])),
     ):
         from app.kg.context_assembler import assemble_context
@@ -140,7 +140,7 @@ async def test_deduplication_filters_unsafe_exercises_from_preferred() -> None:
     with (
         patch("app.kg.context_assembler.get_member_profile", new=AsyncMock(return_value=profile)),
         patch("app.kg.context_assembler.get_safe_exercises", new=AsyncMock(return_value=safe)),
-        patch("app.kg.context_assembler._safe_call", side_effect=[preferred, []]),
+        patch("app.kg.context_assembler._safe_call", side_effect=[preferred, [], [], []]),
         patch("app.kg.context_assembler._safe_vector_search", new=AsyncMock(return_value=[])),
     ):
         from app.kg.context_assembler import assemble_context

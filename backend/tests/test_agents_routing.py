@@ -138,9 +138,9 @@ def test_coach_intent_dispatches_to_coach():
 
 
 def test_workout_generate_dispatches_correctly():
-    result = _invoke_with_route(Intent.WORKOUT_GENERATE, 0.85, "Give me a push day")
+    result = _invoke_with_route(Intent.KNOWLEDGE_GRAPH, 0.85, "Give me a push day")
     last = result["messages"][-1].content
-    assert "workout_gen" in last.lower() or "stub" in last.lower()
+    assert "knowledge_graph" in last.lower() or "stub" in last.lower()
 
 
 def test_workout_log_dispatches_correctly():

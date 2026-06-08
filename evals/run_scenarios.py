@@ -7,7 +7,7 @@ pass-rates by category × difficulty in a coverage matrix.
 Usage:
     EVAL_AUTH_TOKEN=<jwt> python3 evals/run_scenarios.py
     # Run only specific categories:
-    EVAL_CATEGORIES=coach,workout_gen python3 evals/run_scenarios.py
+    EVAL_CATEGORIES=coach,knowledge_graph python3 evals/run_scenarios.py
 """
 import json
 import os
@@ -84,9 +84,7 @@ def run_case(case: dict, token: str) -> tuple[bool, list[str]]:
     # search_exercises / build_workout are internal generator tool calls (not separate
     # audit events); map them to "generator" so presence of the generator node is enough.
     tool_event_map = {
-        "workout_gen": "generator",
-        "search_exercises": "generator",
-        "build_workout": "generator",
+        "knowledge_graph": "kg_hub",
         "coach": "coach",
         "workout_log": "logger",
         "knowledge_graph": "kg_hub",

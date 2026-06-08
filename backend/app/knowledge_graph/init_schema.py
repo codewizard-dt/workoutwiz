@@ -75,6 +75,18 @@ CONSTRAINTS: list[str] = [
     CREATE CONSTRAINT equipment_name IF NOT EXISTS
     FOR (eq:Equipment) REQUIRE eq.name IS UNIQUE
     """,
+    """
+    CREATE CONSTRAINT chat_message_id IF NOT EXISTS
+    FOR (c:ChatMessage) REQUIRE c.id IS UNIQUE
+    """,
+    """
+    CREATE CONSTRAINT biomarker_snapshot_id IF NOT EXISTS
+    FOR (b:BiomarkerSnapshot) REQUIRE b.id IS UNIQUE
+    """,
+    """
+    CREATE CONSTRAINT lab_result_id IF NOT EXISTS
+    FOR (l:LabResult) REQUIRE l.id IS UNIQUE
+    """,
 ]
 
 # ---------------------------------------------------------------------------

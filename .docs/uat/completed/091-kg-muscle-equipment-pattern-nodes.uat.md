@@ -37,7 +37,7 @@ driver.close()
 "
   ```
 - **Expected Result**: Prints `constraints found: ['equipment_name', 'movement_pattern_name', 'muscle_name']` (all three names present; order may vary but all three must appear).
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-SEED-002: ingest_exercises creates Muscle, Equipment, MovementPattern nodes
 
@@ -61,7 +61,7 @@ driver.close()
 "
   ```
 - **Expected Result**: Prints `Muscle=19, Equipment=32, MovementPattern=36`. All three counts must match the dataset vocabulary exactly.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-SEED-003: TARGETS edges connect Exercise nodes to Muscle nodes
 
@@ -81,7 +81,7 @@ driver.close()
 "
   ```
 - **Expected Result**: Output includes `'Kettlebell Goblet Cyclist Squat'`, `'Med Ball Scoop Toss'`, and `'RNT Split Squat'` in the returned list. The list must be non-empty and contain only exercises whose `muscle_groups` array contains `'quads'`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-SEED-004: REQUIRES edges connect Exercise nodes to Equipment nodes
 
@@ -103,7 +103,7 @@ driver.close()
 "
   ```
 - **Expected Result**: The list includes `'Barbell Decline Bench Press'`. `total_requires` must be greater than 0. The list is non-empty.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-SEED-005: HAS_PATTERN edges connect Exercise nodes to MovementPattern nodes
 
@@ -125,7 +125,7 @@ driver.close()
 "
   ```
 - **Expected Result**: The list includes `'Barbell Decline Bench Press'`. `total_patterns` must be greater than 0.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-SEED-006: Ingest is idempotent — re-running does not duplicate nodes or edges
 
@@ -154,7 +154,7 @@ driver.close()
 "
   ```
 - **Expected Result**: Counts are identical to UAT-SEED-002: `Muscle=19, Equipment=32, MovementPattern=36`. Edge counts remain stable across the two runs (not doubled). All six values must be non-zero.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-SEED-007: Existing array properties are preserved (dual-store, no regression)
 
@@ -176,7 +176,7 @@ driver.close()
 "
   ```
 - **Expected Result**: `muscle_groups` includes `'chest'` and `'triceps'`; `equipment_required` includes `'Barbell'`; `movement_patterns` includes `'upper push - horizontal'`. None of the three properties are `None` or empty.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -205,7 +205,7 @@ print('names:', [r['name'] for r in rows])
 "
   ```
 - **Expected Result**: `count` is greater than 0. `keys in first row` includes `id`, `name`, `priority_tier`. `names` includes `'Med Ball Scoop Toss'`, `'Kettlebell Goblet Cyclist Squat'`, and `'RNT Split Squat'`. Results are ordered by `priority_tier` ascending then name ascending.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-TRAV-002: get_exercises_targeting_muscle returns empty list for unknown muscle
 
@@ -228,7 +228,7 @@ print('result:', rows)
 "
   ```
 - **Expected Result**: Prints `result: []` with no exception raised.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-TRAV-003: get_exercises_by_equipment returns exercises for a known equipment
 
@@ -252,7 +252,7 @@ print('names (first 5):', [r['name'] for r in rows[:5]])
 "
   ```
 - **Expected Result**: `count` is greater than 0. `names` includes `'Alternating Dumbbell Decline Bench Press'`. Each dict has at minimum `id`, `name`, `priority_tier` keys.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-TRAV-004: get_exercises_by_equipment returns empty list for unknown equipment
 
@@ -275,7 +275,7 @@ print('result:', rows)
 "
   ```
 - **Expected Result**: Prints `result: []` with no exception raised.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -295,7 +295,7 @@ print('result:', rows)
   - `test_load_exercises_returns_50 PASSED`
   - At least one test name containing `targeting_muscle` or `by_equipment` PASSED
   - Zero failures, zero errors
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -326,7 +326,7 @@ driver.close()
 "
   ```
 - **Expected Result**: The bodyweight exercise list is non-empty. The `REQUIRES` edge count for a bodyweight exercise is `0`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-EDGE-002: Muscle node names match verbatim dataset values (no normalization)
 
@@ -349,7 +349,7 @@ driver.close()
 "
   ```
 - **Expected Result**: `Muscle names` list contains exactly 19 entries. The list includes `'hip adductors'`, `'lower back'`, `'middle back'`, `'upper back'`, `'hip flexors'`, `'rotator cuff'` (all lowercase, space-separated, verbatim from dataset). No title-case or normalized variants appear.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-EDGE-003: Equipment node names match verbatim dataset values (Title Case)
 
@@ -370,4 +370,4 @@ driver.close()
 "
   ```
 - **Expected Result**: Exactly 32 equipment nodes. The list includes `'Adjustable Bench - Decline'`, `'Barbell'`, `'Dumbbell'` (Title Case, verbatim). No lowercase variants appear.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->

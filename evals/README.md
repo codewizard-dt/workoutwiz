@@ -1,6 +1,6 @@
 # Eval Suite — workout-wiz
 
-Evaluation infrastructure for the workout-wiz fitness coaching multi-agent system. Covers routing correctness, response quality, exercise relevance, injury safety, and source faithfulness across all four routing intents: `WORKOUT_GENERATE`, `COACH`, `WORKOUT_LOG`, and `KNOWLEDGE_GRAPH`.
+Evaluation infrastructure for the workout-wiz fitness coaching multi-agent system. Covers routing correctness, response quality, exercise relevance, injury safety, and source faithfulness across the three routing intents: `COACH`, `WORKOUT_LOG`, and `KNOWLEDGE_GRAPH` (which handles all workout generation).
 
 ---
 
@@ -112,20 +112,20 @@ All 15 cases assert **tool selection** (via `audit_log` events), **content valid
 
 | ID | Query (truncated) | Expected Intent | Expected Tools |
 |----|------------------|-----------------|----------------|
-| gs-001 | "Create a 30-minute upper body workout for me" | `WORKOUT_GENERATE` | `workout_gen`, `search_exercises`, `build_workout` |
+| gs-001 | "Create a 30-minute upper body workout for me" | `KNOWLEDGE_GRAPH` | `knowledge_graph` |
 | gs-002 | "How many rest days should I take between leg workouts?" | `COACH` | `coach` |
 | gs-003 | "I just finished 3 sets of 10 bench press at 135 lbs" | `WORKOUT_LOG` | `workout_log` |
 | gs-004 | "I have a bad knee. Can you build me a workout that avoids aggravating it?" | `KNOWLEDGE_GRAPH` | `knowledge_graph` |
 | gs-005 | "My shoulder has been bothering me lately. What workout can I do without overhead movements?" | `KNOWLEDGE_GRAPH` | `knowledge_graph` |
 | gs-006 | "What's the capital of France?" | `FALLBACK` | `fallback` |
-| gs-007 | "I only have dumbbells at home. Give me a 20-minute full body workout." | `WORKOUT_GENERATE` | `workout_gen`, `search_exercises`, `build_workout` |
+| gs-007 | "I only have dumbbells at home. Give me a 20-minute full body workout." | `KNOWLEDGE_GRAPH` | `knowledge_graph` |
 | gs-008 | "I just did 4 sets of 8 benchpress at 185 pounds" *(misspelling)* | `WORKOUT_LOG` | `workout_log` |
 | gs-009 | "What should I do for my workout tomorrow?" *(ambiguous)* | `COACH` | `coach` |
 | gs-010 | "Recommend exercises for someone with a lower back injury who prefers cardio" | `KNOWLEDGE_GRAPH` | `knowledge_graph` |
 | gs-011 | "I completed 5 sets of 5 squats at 225 lbs today" | `WORKOUT_LOG` | `workout_log` |
 | gs-012 | "Just ran 5K in 28 minutes on the treadmill" | `WORKOUT_LOG` | `workout_log` |
 | gs-013 | "How much protein should I eat to build muscle?" | `COACH` | `coach` |
-| gs-014 | "I want to lose weight. Give me a 3-day-per-week full body workout using only resistance bands." | `WORKOUT_GENERATE` | `workout_gen`, `search_exercises`, `build_workout` |
+| gs-014 | "I want to lose weight. Give me a 3-day-per-week full body workout using only resistance bands." | `KNOWLEDGE_GRAPH` | `knowledge_graph` |
 | gs-015 | "What are the best running shoes for a marathon?" | `FALLBACK` | `fallback` |
 
 **KG cases (gs-004, gs-005, gs-010) additionally assert** `must_contain: ["excluded due to injury constraints"]` to verify the safety gate fired.
@@ -175,9 +175,9 @@ Stage 3 fixtures capture a real API response (including the full `audit_log`) ag
 | `fallback-off-topic.json` | "What is the capital of France?" | `FALLBACK` | 0.95 |
 | `kg-knee-injury.json` | "I have a bad knee. Can you build a workout that avoids aggravating it?" | `KNOWLEDGE_GRAPH` | 0.98 |
 | `coach-rest-days.json` | "How many rest days should I take between leg workouts?" | `COACH` | 0.95 |
-| `workout-gen-upper-body.json` | "Create a 30-minute upper body workout for me" | `WORKOUT_GENERATE` | 0.98 |
+| `workout-gen-upper-body.json` | "Create a 30-minute upper body workout for me" | `KNOWLEDGE_GRAPH` | 0.98 |
 | `coach-progressive-overload.json` | "I've been doing 3×10 squats at 135 lbs for 3 weeks — how should I progress?" | `COACH` | *(stub)* |
-| `workout-gen-lower-body.json` | "Build me a lower body workout focused on glutes and hamstrings using barbells" | `WORKOUT_GENERATE` | *(stub)* |
+| `workout-gen-lower-body.json` | "Build me a lower body workout focused on glutes and hamstrings using barbells" | `KNOWLEDGE_GRAPH` | *(stub)* |
 
 ### Fixture Schema
 

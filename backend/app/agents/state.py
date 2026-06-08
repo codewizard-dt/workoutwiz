@@ -7,11 +7,9 @@ from pydantic import BaseModel, Field
 
 class Intent(StrEnum):
     COACH = "COACH"
-    WORKOUT_GENERATE = "WORKOUT_GENERATE"
     WORKOUT_LOG = "WORKOUT_LOG"
     FALLBACK = "FALLBACK"
     KNOWLEDGE_GRAPH = "KNOWLEDGE_GRAPH"
-
 
 class RouteDecision(BaseModel):
     """Structured output from the router node. Used with with_structured_output()."""
@@ -19,12 +17,10 @@ class RouteDecision(BaseModel):
     intent: Intent = Field(
         description=(
             "The most likely intent of the user message. "
-            "COACH for general fitness questions, "
-            "WORKOUT_GENERATE to create a new workout plan, "
-            "WORKOUT_LOG to record a completed workout, "
-            "FALLBACK when the message is unclear or off-topic. "
-            "KNOWLEDGE_GRAPH for questions about the member's injury history, "
-            "training preferences, or personalised exercise recommendations based on their profile."
+            "COACH for fitness questions, advice, and education (not workout generation). "
+            "WORKOUT_LOG to record a completed workout. "
+            "KNOWLEDGE_GRAPH to build, create, plan, or generate a workout — with or without injury context. "
+            "FALLBACK when the message is unclear or off-topic."
         )
     )
     confidence: float = Field(
@@ -57,5 +53,5 @@ class AgentState(TypedDict):
     session_id: str | None
     audit_log: list[dict[str, Any]]
 
-    # Knowledge graph result — populated by knowledge_graph_node (KNOWLEDGE_GRAPH route only)
+    # Knowledge graph result — populated by GENERATE_KG_node (KNOWLEDGE_GRAPH route only)
     kg_result: dict[str, Any] | None

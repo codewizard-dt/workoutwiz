@@ -28,7 +28,7 @@ class ChatResponse(BaseModel):
     )
     route: str | None = Field(
         default=None,
-        description="Intent the router classified this message as (COACH, WORKOUT_GENERATE, WORKOUT_LOG, FALLBACK)",
+        description="Intent the router classified this message as (COACH, WORKOUT_LOG, KNOWLEDGE_GRAPH, FALLBACK)",
         examples=["COACH"],
     )
     confidence: float | None = Field(
@@ -43,7 +43,7 @@ class ChatResponse(BaseModel):
     )
     workout_draft: dict[str, Any] | None = Field(
         default=None,
-        description="Structured workout plan returned by the workout generator (WORKOUT_GENERATE route only)",
+        description="Structured workout plan (legacy field, always null; use kg_result for workout recommendations)",
     )
     kg_result: dict[str, Any] | None = Field(
         default=None,

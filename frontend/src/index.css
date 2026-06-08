@@ -20,4 +20,31 @@
     color: var(--stone-500);
     opacity: 1;
   }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) var(--surface-sunken);
+  }
+
+  /* Webkit (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--surface-sunken);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+    border-radius: 9999px;
+    border: 2px solid var(--surface-sunken);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--ember-500);
+  }
 }

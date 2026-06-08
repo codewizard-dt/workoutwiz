@@ -26,7 +26,7 @@ def _make_context(contraindicated_ids=None, safe=None) -> ContextSlice:
 def _make_recommendation(exercise_ids: list[str]) -> WorkoutRecommendation:
     return WorkoutRecommendation(
         exercises=[
-            RecommendedExercise(exercise_id=eid, name=eid, sets=3, reps=10, reasoning="test")
+            RecommendedExercise(exercise_id=eid, name=eid, sets=3, reps=10, reasoning="test", source_type="SAFE_SET")
             for eid in exercise_ids
         ],
         overall_reasoning="test",

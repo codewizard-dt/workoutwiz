@@ -25,7 +25,7 @@
   backend/.venv/bin/python -m pytest backend/tests/kg/test_concept_resolver.py -v
   ```
 - **Expected Result**: Exit code `0`. Output shows `11 passed` (or a superset if tests were added). No errors, no failures, no skips.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -43,7 +43,7 @@ These tests use a small inline Python script to verify the public interface of `
   backend/.venv/bin/python -c "from app.kg.concept_resolver import resolve_concept, ResolutionResult, FUZZY_THRESHOLD, EMBEDDING_THRESHOLD; assert callable(resolve_concept); import inspect; assert inspect.iscoroutinefunction(resolve_concept); assert FUZZY_THRESHOLD == 0.82; assert EMBEDDING_THRESHOLD == 0.75; print('OK')"
   ```
 - **Expected Result**: Prints `OK` with exit code `0`. Any `ImportError`, `AssertionError`, or non-zero exit indicates a contract violation.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-SCRIPT-002: `ResolutionResult` dataclass has all required fields
 
@@ -55,7 +55,7 @@ These tests use a small inline Python script to verify the public interface of `
   backend/.venv/bin/python -c "from app.kg.concept_resolver import ResolutionResult; r = ResolutionResult(); assert r.matched_node is None; assert r.canonical_name is None; assert r.confidence == 0.0; assert r.method == 'none'; print('OK')"
   ```
 - **Expected Result**: Prints `OK` with exit code `0`. Any `AssertionError` indicates the dataclass defaults do not match the spec.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-SCRIPT-003: `resolve_concept` returns `method="none"` immediately for empty / whitespace-only input (no Neo4j call)
 
@@ -83,7 +83,7 @@ asyncio.run(main())
 "
   ```
 - **Expected Result**: Prints `OK` with exit code `0`. A `RuntimeError` from the patched driver would indicate the guard is missing.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-SCRIPT-004: `resolve_concept` never raises on infrastructure error — returns `method="none"`
 
@@ -108,7 +108,7 @@ asyncio.run(main())
 "
   ```
 - **Expected Result**: Prints `OK` with exit code `0`. Any unhandled exception means the resilience contract is broken.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -131,7 +131,7 @@ print('OK')
 "
   ```
 - **Expected Result**: Prints `OK` with exit code `0`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-EDGE-002: `FUZZY_THRESHOLD` is tuned to accommodate the canonical `"kettlebel"` misspelling example
 
@@ -150,7 +150,7 @@ print(f'OK (kettlebel score={score:.3f}, threshold={FUZZY_THRESHOLD})')
 "
   ```
 - **Expected Result**: Prints `OK (kettlebel score=0.842, threshold=0.82)` (score may vary slightly). Exit code `0`. Any `AssertionError` means the threshold is wrong or rapidfuzz behaviour has changed.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-EDGE-003: `_normalize` collapses whitespace and lowercases
 
@@ -168,7 +168,7 @@ print('OK')
 "
   ```
 - **Expected Result**: Prints `OK` with exit code `0`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-EDGE-004: Passing `concept_type="equipment"` narrows candidates to Equipment label
 
@@ -209,7 +209,7 @@ asyncio.run(main())
 "
   ```
 - **Expected Result**: Prints `OK` with exit code `0`. If concept_type narrowing is broken, the assertion on `_label` fails.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -261,7 +261,7 @@ asyncio.run(main())
 "
   ```
 - **Expected Result**: Prints `OK` with exit code `0`. If `call_count != 1`, the short-circuit is broken and later passes are being called unnecessarily.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-INT-002: Three-pass fallthrough — exact miss → fuzzy miss → embedding hit
 
@@ -324,7 +324,7 @@ asyncio.run(main())
 "
   ```
 - **Expected Result**: Prints `OK (method=embedding, confidence=...)` (or `fuzzy` if the fuzzy score happens to be above threshold for this candidate). Exit code `0`. Confidence must be `>= 0.75`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-INT-003: All passes miss — `method="none"` with best observed confidence
 
@@ -383,7 +383,7 @@ asyncio.run(main())
 "
   ```
 - **Expected Result**: Prints `OK (confidence=...)` with exit code `0`. The confidence value will be a small number (the best fuzzy score against a completely unrelated word). No exception is raised.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 

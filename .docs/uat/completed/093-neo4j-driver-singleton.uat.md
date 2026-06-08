@@ -1,6 +1,6 @@
 # UAT: Shared Neo4j Driver Singleton
 
-> **Source task**: [`.docs/tasks/093-neo4j-driver-singleton.md`](../tasks/093-neo4j-driver-singleton.md)
+> **Source task**: [`.docs/tasks/completed/093-neo4j-driver-singleton.md`](../tasks/completed/093-neo4j-driver-singleton.md)
 > **Generated**: 2026-06-07
 
 ---
@@ -40,7 +40,7 @@ asyncio.run(run())
 "
   ```
 - **Expected Result**: Output contains `PASS: Neo4j driver has not been initialised.` (substring match sufficient — exact message: `"Neo4j driver has not been initialised. Ensure create_neo4j_driver() is called during lifespan startup."`)
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-EDGE-002: `close_neo4j_driver` is idempotent — safe to call when already None
 - **Scenario**: `close_neo4j_driver()` is called when `_driver` is already `None` (e.g., double-close on shutdown). Must not raise.
@@ -64,7 +64,7 @@ asyncio.run(run())
 "
   ```
 - **Expected Result**: Output is `PASS: no error on double-close`
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-EDGE-003: `create_neo4j_driver` is idempotent — repeated calls return same instance
 - **Scenario**: Calling `create_neo4j_driver()` twice must return the same `AsyncDriver` object and construct it only once (no second `AsyncGraphDatabase.driver(...)` call).
@@ -75,7 +75,7 @@ asyncio.run(run())
   cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz && backend/.venv/bin/python -m pytest backend/tests/test_kg_router.py::test_create_neo4j_driver_returns_singleton -v
   ```
 - **Expected Result**: `1 passed` — the existing singleton-reuse unit test passes without errors
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ---
 
@@ -103,7 +103,7 @@ else:
 "
   ```
 - **Expected Result**: Output is `PASS: no per-request AsyncGraphDatabase.driver() in routers`
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-INT-002: `get_neo4j_driver` dependency does NOT close the driver
 - **Scenario**: The `get_neo4j_driver()` generator must yield the shared driver and then return without calling `driver.close()`. Closing is reserved for `close_neo4j_driver()` in lifespan. This test exhausts the generator and asserts `.close()` was never called.
@@ -140,7 +140,7 @@ asyncio.run(run())
 "
   ```
 - **Expected Result**: Output is `PASS: dependency yields shared driver and does not close it`
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-INT-003: KG router tests pass with injected dependency override
 - **Scenario**: The full KG router test suite (which overrides `get_neo4j_driver` with a mock and asserts `driver.close` is never awaited per request) must pass. This validates that the three refactored handlers (`kg_recommend`, `kg_explain`, `kg_feedback`) correctly consume the injected dependency rather than constructing their own driver.
@@ -151,7 +151,7 @@ asyncio.run(run())
   cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz && backend/.venv/bin/python -m pytest backend/tests/test_kg_router.py -v
   ```
 - **Expected Result**: All tests in `test_kg_router.py` pass (no failures related to driver injection or unexpected `driver.close()` calls). The `test_create_neo4j_driver_returns_singleton`, `test_kg_recommend_returns_200`, `test_kg_explain_returns_explanation`, `test_kg_feedback_writes_and_returns_id` tests all show `PASSED`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-INT-004: `lifespan` wires driver creation and disposal in the correct order
 - **Scenario**: The lifespan function must call `create_neo4j_driver()` before the app begins serving requests (startup) and `close_neo4j_driver()` after the app stops serving (shutdown), mirroring the SQLAlchemy engine pattern. Verify by inspecting the source for the correct call sequence.
@@ -182,7 +182,7 @@ for node in ast.walk(tree):
 "
   ```
 - **Expected Result**: Output is `PASS: lifespan contains both create_neo4j_driver and close_neo4j_driver`
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->
 
 ### UAT-INT-005: Full backend test suite passes without new failures
 - **Scenario**: The refactor must not introduce new test failures. Running the complete backend test suite must show the same passing test count as baseline (the task notes 0 new failures; 33 pre-existing failures unchanged).
@@ -193,4 +193,4 @@ for node in ast.walk(tree):
   cd /Users/davidtaylor/Repositories/gauntlet/workout-wiz && backend/.venv/bin/python -m pytest backend/tests/ -v --tb=no -q 2>&1 | tail -5
   ```
 - **Expected Result**: Summary line shows no regression — the number of failures does not exceed the pre-refactor baseline of 33. The line resembles: `X passed, 33 failed` (or fewer failures if other fixes landed). Zero of the failing tests should mention `get_neo4j_driver`, `create_neo4j_driver`, or `close_neo4j_driver`.
-- [ ] Pass
+- [x] Pass <!-- 2026-06-08 -->

@@ -76,7 +76,7 @@ async def test_coach_route_live(client: AsyncClient, auth_headers: dict):
 async def test_workout_generate_route_live(client: AsyncClient, auth_headers: dict):
     data = await _chat(client, auth_headers, "Create a 30-minute leg day workout for an intermediate lifter")
 
-    assert data["route"] == "WORKOUT_GENERATE"
+    assert data["route"] == "KNOWLEDGE_GRAPH"
     assert data["reply"]
 
     audit = data["audit_log"]
