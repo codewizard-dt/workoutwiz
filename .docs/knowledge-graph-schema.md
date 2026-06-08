@@ -123,6 +123,82 @@ A single training session performed by a member.
 
 ---
 
+### `Muscle`
+
+A first-class muscle-group node, keyed by canonical name from `exercises.json`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | `string` (unique) | Canonical muscle name, e.g. `"quadriceps"`, `"chest"`, `"triceps"` |
+
+---
+
+### `MovementPattern`
+
+A first-class movement-pattern node, keyed by canonical name from `exercises.json`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | `string` (unique) | Movement pattern label, e.g. `"upper push - horizontal"`, `"core - anti-extension"` |
+
+---
+
+### `Equipment`
+
+A first-class equipment node, keyed by canonical name from `exercises.json`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | `string` (unique) | Equipment name, Title-Case, e.g. `"Barbell"`, `"Dumbbell"`, `"Yoga Mat"` |
+
+---
+
+### `BiomarkerSnapshot`
+
+A point-in-time snapshot of wearable and subjective health metrics for a member.
+Seeded by `seed_coaching_context_all()` / `seed_rich_member_context_all()`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` (unique) | Unique identifier |
+| `date` | `date` | Snapshot date |
+| `resting_hr_bpm` | `integer\|null` | Resting heart rate in beats per minute |
+| `hrv_ms` | `integer\|null` | Heart rate variability in milliseconds |
+| `sleep_hours_last_7_days` | `float[]\|null` | Sleep duration per night for the past 7 days |
+| `weight_trend_dates` | `string[]\|null` | ISO date strings for weight trend data points |
+| `weight_trend_kg` | `float[]\|null` | Body weight in kg at each trend date |
+
+---
+
+### `LabResult`
+
+A laboratory or body-composition measurement result.
+Seeded by `seed_coaching_context_all()` / `seed_rich_member_context_all()`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` (unique) | Unique identifier |
+| `type` | `string` | One of `blood_panel`, `dexa_scan` |
+| `date` | `date` | Result date |
+| *Blood panel fields* | | `ldl_mg_dl`, `hdl_mg_dl`, `triglycerides_mg_dl`, `hba1c_pct`, `vitamin_d_ng_ml`, `ferritin_ng_ml`, `crp_mg_l` |
+| *DEXA fields* | | `body_fat_pct`, `lean_mass_kg`, `fat_mass_kg`, `bone_density_z_score`, `visceral_fat_cm2` |
+
+---
+
+### `ChatMessage`
+
+A single message in the coach–member conversation history.
+Seeded per persona by `seed_rich_member_context_all()` / `seed_assessment_member_context()`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` (unique) | Unique identifier |
+| `ts` | `string` | ISO 8601 timestamp |
+| `sender` | `string` | `"member"` or `"coach"` |
+| `text` | `string` | Message content |
+
+---
+
 ### `Preference`
 
 Deprecated in favour of `FeedbackEvent`. Kept as a reserved label — do not use in new code.
@@ -186,6 +262,63 @@ For longitudinal trend analysis (e.g. "how has her opinion of squats changed ove
   - `context_type = "exercise"` → `(FeedbackEvent)-[:ABOUT]->(Exercise)`
   - `context_type = "workout"` → `(FeedbackEvent)-[:ABOUT]->(WorkoutSession)`
   - `context_type = "set"` → `(FeedbackEvent)-[:ABOUT]->(Set)` and optionally `(FeedbackEvent)-[:ABOUT]->(Exercise)` when `exercise_id` is present
+
+---
+
+### `(Exercise)-[:TARGETS]->(Muscle)`
+
+Typed edge from an exercise to each `Muscle` node whose name appears in `Exercise.muscle_groups`. Created during `ingest_exercises` alongside the retained `muscle_groups` array property (dual-store). Enables graph traversal: "which exercises target quadriceps?"
+
+- **Cardinality**: many-to-many
+- **Properties**: none
+- **Written by**: `ingest_exercises.py` UNWIND pass per exercise
+
+---
+
+### `(Exercise)-[:REQUIRES]->(Equipment)`
+
+Typed edge from an exercise to each `Equipment` node matching `Exercise.equipment_required`. Created during `ingest_exercises` (dual-store with retained array property).
+
+- **Cardinality**: many-to-many
+- **Properties**: none
+- **Written by**: `ingest_exercises.py` UNWIND pass per exercise
+
+---
+
+### `(Exercise)-[:HAS_PATTERN]->(MovementPattern)`
+
+Typed edge from an exercise to each `MovementPattern` node matching `Exercise.movement_patterns`. Created during `ingest_exercises` (dual-store with retained array property).
+
+- **Cardinality**: many-to-many
+- **Properties**: none
+- **Written by**: `ingest_exercises.py` UNWIND pass per exercise
+
+---
+
+### `(Member)-[:HAS_BIOMARKER]->(BiomarkerSnapshot)`
+
+Links a member to their health/wearable snapshots.
+
+- **Cardinality**: one Member → many BiomarkerSnapshots (one per date)
+- **Properties**: none
+
+---
+
+### `(Member)-[:HAS_LAB_RESULT]->(LabResult)`
+
+Links a member to their laboratory or body-composition results.
+
+- **Cardinality**: one Member → many LabResults (multiple types and dates)
+- **Properties**: none
+
+---
+
+### `(Member)-[:SENT_MESSAGE]->(ChatMessage)` / `(Member)-[:SENT_COACH_MESSAGE]->(ChatMessage)`
+
+Conversation history edges. `SENT_MESSAGE` is used for member-authored messages; `SENT_COACH_MESSAGE` for coach-authored messages. Both edge types are queried together in `get_recent_chat_history()` via `[:SENT_MESSAGE|SENT_COACH_MESSAGE]`.
+
+- **Cardinality**: one Member → many ChatMessages
+- **Properties**: none
 
 ---
 
@@ -342,6 +475,63 @@ ORDER BY r.rating ASC, e.name ASC
 
 ---
 
+### Exercises by Muscle / Equipment / Movement Pattern
+
+First-class traversal using the typed nodes added in TASK-091:
+
+```cypher
+// All exercises targeting a given muscle
+MATCH (e:Exercise)-[:TARGETS]->(:Muscle {name: $muscle_name})
+RETURN e.id, e.name, e.priority_tier
+ORDER BY e.priority_tier ASC, e.name ASC
+```
+
+```cypher
+// All exercises using a given piece of equipment
+MATCH (e:Exercise)-[:REQUIRES]->(:Equipment {name: $equipment_name})
+RETURN e.id, e.name, e.priority_tier
+ORDER BY e.priority_tier ASC, e.name ASC
+```
+
+```cypher
+// All exercises following a given movement pattern
+MATCH (e:Exercise)-[:HAS_PATTERN]->(:MovementPattern {name: $pattern_name})
+RETURN e.id, e.name, e.priority_tier
+ORDER BY e.priority_tier ASC, e.name ASC
+```
+
+---
+
+### Biomarker and Lab-Result Retrieval
+
+Most recent `BiomarkerSnapshot` and up to 3 `LabResult` nodes per member (used by `run_biomarker_traversal` in the retrieval graph):
+
+```cypher
+// Most recent BiomarkerSnapshot
+MATCH (m:Member {id: $member_id})-[:HAS_BIOMARKER]->(b:BiomarkerSnapshot)
+RETURN b ORDER BY b.date DESC LIMIT 1
+```
+
+```cypher
+// Up to 3 most recent LabResult nodes
+MATCH (m:Member {id: $member_id})-[:HAS_LAB_RESULT]->(l:LabResult)
+RETURN l ORDER BY l.date DESC LIMIT 3
+```
+
+---
+
+### Chat History Retrieval
+
+Up to 10 most recent `ChatMessage` nodes per member, newest first (used by `run_chat_history_traversal` in the retrieval graph):
+
+```cypher
+MATCH (m:Member {id: $member_id})-[:SENT_MESSAGE|SENT_COACH_MESSAGE]->(msg:ChatMessage)
+RETURN msg.id AS id, msg.ts AS ts, msg.sender AS sender, msg.text AS text
+ORDER BY msg.ts DESC LIMIT 10
+```
+
+---
+
 ### Workout History Traversal
 
 Find the most recent exercises a member performed (for variety / frequency tracking):
@@ -389,12 +579,14 @@ ORDER BY score DESC
 
 ## Design Notes
 
-1. **SNOMED graph traversal is the primary safety mechanism.** The path `Injury → MAPS_TO_DISORDER → Disorder → FINDING_SITE → BodyStructure → PART_OF*0.. → BodyStructure ← MAPS_TO ← Exercise` enforces contraindication deterministically through graph structure, not string comparison or prompt instructions. The `CONTRAINDICATED_BY` edge is retained as a fallback for legacy Injury nodes that predate SNOMED ingestion.
+1. **First-class `Muscle`, `MovementPattern`, and `Equipment` nodes (TASK-091).** These are promoted from string-array properties on `Exercise` into typed graph nodes connected by `TARGETS`, `HAS_PATTERN`, and `REQUIRES` edges. The original array properties (`muscle_groups`, `movement_patterns`, `equipment_required`) are retained unchanged on `Exercise` nodes (dual-store) so existing Cypher that reads those arrays still works. The typed nodes exist for graph traversal queries: "find all exercises that target quadriceps," which are not expressible on flat arrays. Both representations are written in the same `ingest_exercises` pass and are always in sync.
 
-2. **SNOMED codes are frozen at build time.** `backend/scripts/build_snomed_subset.py` fetches from the public NCI EVS REST API once and writes `backend/data/snomed_subset.json`. The running application never calls SNOMED CT. Re-run the script to pick up ontology updates.
+2. **SNOMED graph traversal is the primary safety mechanism.** The path `Injury → MAPS_TO_DISORDER → Disorder → FINDING_SITE → BodyStructure → PART_OF*0.. → BodyStructure ← MAPS_TO ← Exercise` enforces contraindication deterministically through graph structure, not string comparison or prompt instructions. The `CONTRAINDICATED_BY` edge is retained as a fallback for legacy Injury nodes that predate SNOMED ingestion.
 
-3. **PART_OF edges come in two kinds.** Ontology edges connect SNOMED sub-structures to their parent joint roots (from the SNOMED `/children` API). Bridge edges connect finding-site structures that are anatomically at a joint but in a parallel SNOMED hierarchy (matched via keyword during build); these are added during `ingest_snomed.py` to close the traversal loop.
+3. **SNOMED codes are frozen at build time.** `backend/scripts/build_snomed_subset.py` fetches from the public NCI EVS REST API once and writes `backend/data/snomed_subset.json`. The running application never calls SNOMED CT. Re-run the script to pick up ontology updates.
 
-4. **`RATED` duality — denormalized edge vs. `FeedbackEvent` audit trail.** The same exercise rating is stored two ways simultaneously. `(Member)-[:RATED]->(Exercise)` is a single mutable edge per (member, exercise) pair that always reflects the *latest* rating — it exists so the preference traversal in `get_preferred_exercises` and `get_avoided_exercises` is a cheap single hop on the hot path. `FeedbackEvent` nodes (linked via `(FeedbackEvent)-[:ABOUT]->(Exercise)`) are immutable, append-style records — one node per rating event, full history, every timestamp preserved. Use `FeedbackEvent` for trend analysis and longitudinal queries; use `RATED` for current-preference retrieval. Both are written in the same transaction in `write_feedback` and `_upsert_feedback_batch`; `RATED` uses `ON MATCH SET` to overwrite, while `FeedbackEvent` accumulates.
+4. **PART_OF edges come in two kinds.** Ontology edges connect SNOMED sub-structures to their parent joint roots (from the SNOMED `/children` API). Bridge edges connect finding-site structures that are anatomically at a joint but in a parallel SNOMED hierarchy (matched via keyword during build); these are added during `ingest_snomed.py` to close the traversal loop.
 
-5. **PostgreSQL remains the system of record for auth and workout sets.** Neo4j holds the coaching graph only. The `Member.id` and `WorkoutSession.id` in Neo4j match their PostgreSQL counterparts to enable cross-store joins when needed.
+5. **`RATED` duality — denormalized edge vs. `FeedbackEvent` audit trail.** The same exercise rating is stored two ways simultaneously. `(Member)-[:RATED]->(Exercise)` is a single mutable edge per (member, exercise) pair that always reflects the *latest* rating — it exists so the preference traversal in `get_preferred_exercises` and `get_avoided_exercises` is a cheap single hop on the hot path. `FeedbackEvent` nodes (linked via `(FeedbackEvent)-[:ABOUT]->(Exercise)`) are immutable, append-style records — one node per rating event, full history, every timestamp preserved. Use `FeedbackEvent` for trend analysis and longitudinal queries; use `RATED` for current-preference retrieval. Both are written in the same transaction in `write_feedback` and `_upsert_feedback_batch`; `RATED` uses `ON MATCH SET` to overwrite, while `FeedbackEvent` accumulates.
+
+6. **PostgreSQL remains the system of record for auth and workout sets.** Neo4j holds the coaching graph only. The `Member.id` and `WorkoutSession.id` in Neo4j match their PostgreSQL counterparts to enable cross-store joins when needed.

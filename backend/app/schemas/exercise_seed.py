@@ -20,3 +20,6 @@ class ExerciseSeedRecord(BaseModel):
     bilateral_pair_id: uuid.UUID | None = None
     priority_tier: int
     description: str | None = None
+    joints_loaded: list[str] = []
+    side: str | None = None
+    estimated_rep_duration: float | None = None

@@ -51,11 +51,13 @@ async def seed():
                     INSERT INTO exercises (
                         id, name, category, muscle_groups, equipment_required,
                         movement_patterns, is_reps, is_duration, supports_weight,
-                        is_bilateral, bilateral_pair_id, priority_tier, description
+                        is_bilateral, bilateral_pair_id, priority_tier, description,
+                        joints_loaded, side, estimated_rep_duration
                     ) VALUES (
                         :id, :name, :category, :muscle_groups, :equipment_required,
-                        CAST(:movement_patterns AS json), :is_reps, :is_duration, :supports_weight,
-                        :is_bilateral, :bilateral_pair_id, :priority_tier, :description
+                        :movement_patterns, :is_reps, :is_duration, :supports_weight,
+                        :is_bilateral, :bilateral_pair_id, :priority_tier, :description,
+                        :joints_loaded, :side, :estimated_rep_duration
                     )
                 """),
                 {
@@ -64,7 +66,7 @@ async def seed():
                     "category": derive_category(r),
                     "muscle_groups": r.muscle_groups,
                     "equipment_required": r.equipment_required,
-                    "movement_patterns": json.dumps(r.movement_patterns),
+                    "movement_patterns": r.movement_patterns,
                     "is_reps": r.is_reps,
                     "is_duration": r.is_duration,
                     "supports_weight": r.supports_weight,
@@ -72,6 +74,9 @@ async def seed():
                     "bilateral_pair_id": str(r.bilateral_pair_id) if r.bilateral_pair_id else None,
                     "priority_tier": r.priority_tier,
                     "description": r.description,
+                    "joints_loaded": r.joints_loaded,
+                    "side": r.side,
+                    "estimated_rep_duration": r.estimated_rep_duration,
                 },
             )
         await session.commit()

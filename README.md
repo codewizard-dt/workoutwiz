@@ -49,12 +49,12 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    Member -- COMPLETED --> WorkoutLog
-    WorkoutLog -- CONTAINS --> Exercise
-    Exercise -- TARGETS --> MuscleGroup
-    Exercise -- USES --> Equipment
-    Exercise -- FOLLOWS --> MovementPattern
-    Member -- HAS_BIOMARKER --> Biomarker
+    Member -- PERFORMED --> WorkoutSession
+    WorkoutSession -- INCLUDED --> Exercise
+    Exercise -- TARGETS --> Muscle
+    Exercise -- REQUIRES --> Equipment
+    Exercise -- HAS_PATTERN --> MovementPattern
+    Member -- HAS_BIOMARKER --> BiomarkerSnapshot
 ```
 
 The hub routes natural-language input to the appropriate sub-agent using LLM structured output (`with_structured_output`) — never regex or keyword matching. The REST layer is intentionally standalone so the agents do not disrupt the existing API.
@@ -82,6 +82,7 @@ The hub routes natural-language input to the appropriate sub-agent using LLM str
 | Frontend | Vite + React + TypeScript + Tailwind CSS + shadcn/ui |
 | State | TanStack Query (server state) + React Context (auth/UI) |
 | API client | Axios |
+| Reverse proxy | Caddy (production TLS termination + routing) |
 
 ## Quick Start
 

@@ -1,6 +1,6 @@
 # ADR-001: GraphRAG Retrieval Strategy
 
-- **Status**: proposed
+- **Status**: accepted
 - **Date**: 2026-06-06
 - **Deciders**: David Taylor
 - **Tags**: graphrag, neo4j, embeddings, retrieval
@@ -19,7 +19,7 @@ Decisions D1–D4 below lock in the traversal depth, embedding model, token budg
 
 ### D1. Traversal Depth
 
-**Decision**: Use **effective 1-hop traversal** from the `Member` node for all retrieval queries, leveraging pre-computed edges (`CONTRAINDICATED_BY`, `RATED`) and property-array intersection for joint matching.
+**Decision**: Use **effective 1-hop traversal** from the `Member` node for all retrieval queries, leveraging pre-computed edges (`CONTRAINDICATED_BY`, `RATED`, `HAS_BIOMARKER`, `HAS_LAB_RESULT`, `SENT_MESSAGE`, `SENT_COACH_MESSAGE`) and property-array intersection for joint matching.
 
 **Rationale**: The schema's `CONTRAINDICATED_BY` edge is pre-computed at ingestion time (Injury ingestion writes `(Exercise)-[:CONTRAINDICATED_BY]->(Injury)` for every joint-overlap pair), so filtering unsafe exercises requires only a 1-hop check from Exercise to Injury — no intermediate node traversal. The `RATED` relationship is a direct `(Member)-[:RATED]->(Exercise)` denormalized edge (copied from `FeedbackEvent` nodes at ingestion), making preference lookup a single hop. Workout history traversal (`Member → WorkoutSession → Exercise`) is technically 2 hops but is expressed as a single Cypher `MATCH` path with two relationship steps — this is a path pattern, not a conceptually deeper traversal. All patterns stay within a single Cypher query and return results in O(log N) time against indexed nodes.
 
@@ -55,10 +55,12 @@ Decisions D1–D4 below lock in the traversal depth, embedding model, token budg
 | Safe exercises (injury-filtered) | 600 |
 | Preferred exercises (feedback + history) | 400 |
 | Vector similarity hits | 400 |
-| Buffer | 448 |
+| Health markers (biomarkers + lab results) | ≤ 200 (from buffer; omitted if budget exhausted) |
+| Recent chat history | ≤ 150 (from buffer; truncated to 5 messages if budget < 300 tokens) |
+| Buffer / headers / boilerplate | ~98 |
 | **Total** | **2 048** |
 
-**Rationale**: A 2 048-token retrieval context slice leaves adequate room for the system prompt (~500 tokens), the member's natural-language coaching request (~100 tokens), and the generation output (~1 000–1 500 tokens) within a standard 4 096-token context window, or comfortably within an 8 192-token window. Per-section allocations are sized to the expected content density: the member profile summary (goals, equipment, availability) is terse structured text (~200 tokens); safe exercises are rendered as `name | muscle_groups | priority_tier` rows at ~60 tokens each, yielding ~10 exercises; preferred exercises include a "why preferred" annotation (rating or recency signal) at ~40 tokens each, yielding ~10 exercises; vector hits include a similarity score and are rendered without annotations at ~40 tokens each, yielding ~10 hits. The 448-token buffer absorbs section headers, deduplication overhead, and prompt template boilerplate.
+**Rationale**: A 2 048-token retrieval context slice leaves adequate room for the system prompt (~500 tokens), the member's natural-language coaching request (~100 tokens), and the generation output (~1 000–1 500 tokens) within a standard 4 096-token context window, or comfortably within an 8 192-token window. Per-section allocations are sized to the expected content density: the member profile summary (goals, equipment, availability) is terse structured text (~200 tokens); safe exercises are rendered as `name | muscle_groups | priority_tier` rows at ~60 tokens each, yielding ~10 exercises; preferred exercises include a "why preferred" annotation (rating or recency signal) at ~40 tokens each, yielding ~10 exercises; vector hits include a similarity score and are rendered without annotations at ~40 tokens each, yielding ~10 hits. The health markers section (BiomarkerSnapshot + LabResult rows) is compact structured text (~150–200 tokens) and is appended after exercise data; the chat history section (up to 10 messages at ~15 tokens each) is appended last. Both lower-priority sections are silently omitted when the token budget is exhausted before they are reached.
 
 **Consequences**:
 - Positive: The context assembler has a deterministic, testable budget — it can truncate or skip lower-priority sections without exceeding the ceiling.
