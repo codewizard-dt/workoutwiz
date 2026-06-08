@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
-import logoUrl from '@/assets/logo/workout-wiz-logo-smile.png'
+import logoUrl from '@/assets/logo/logo-mark.svg'
 import heroUrl from '@/assets/hero/workout-wiz-hero-selected.png'
 
 export default function LandingPage() {

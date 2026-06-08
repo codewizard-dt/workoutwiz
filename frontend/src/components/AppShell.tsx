@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useMe } from '@/hooks'
-import logoUrl from '@/assets/logo/workout-wiz-logo-smile.png'
+import logoUrl from '@/assets/logo/logo-wordmark.svg'
 
 interface AppShellProps {
   children: React.ReactNode

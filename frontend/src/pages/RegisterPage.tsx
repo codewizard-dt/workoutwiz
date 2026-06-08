@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useRegister, useLogin } from '@/hooks/useAuthMutations'
-import logoUrl from '@/assets/logo/workout-wiz-logo-smile.png'
+import logoUrl from '@/assets/logo/logo-wordmark.svg'
 
 
 export default function RegisterPage() {

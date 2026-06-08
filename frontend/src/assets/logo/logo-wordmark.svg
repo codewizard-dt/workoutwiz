@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="56" viewBox="0 0 280 56" role="img" aria-label="Workout Wiz">
+  
+  <svg x="4" y="1" width="56" height="56" viewBox="150 230 460 318">
+    <path d="M 252 436 Q 384 552 508 436" fill="none" stroke="#232524" stroke-width="74" stroke-linecap="round"></path>
+    <path d="M 252 436 Q 384 552 508 436" fill="none" stroke="#fba437" stroke-width="48" stroke-linecap="round"></path>
+    <circle cx="247" cy="384" r="71" fill="#f1523e" stroke="#232524" stroke-width="14"></circle>
+    <circle cx="513" cy="386" r="71" fill="#f5613a" stroke="#232524" stroke-width="14"></circle>
+    <path d="M 213 394 Q 247 354 281 394" fill="none" stroke="#232524" stroke-width="12" stroke-linecap="round"></path>
+    <path d="M 479 396 Q 513 356 547 396" fill="none" stroke="#232524" stroke-width="12" stroke-linecap="round"></path>
+    <path d="M 414 233 Q 421 262 452 269 Q 421 276 414 305 Q 407 276 376 269 Q 407 262 414 233 Z" fill="#f66241"></path>
+  </svg>
+  <text x="63" y="37" font-family="'Fredoka','Nunito',system-ui,sans-serif" font-weight="600" font-size="27" letter-spacing="-0.27" fill="#1C1614">Workout<tspan fill="#EE5A2A"> Wiz</tspan></text>
+</svg>
