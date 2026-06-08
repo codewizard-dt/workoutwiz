@@ -1,11 +1,8 @@
-# Workout Wiz — Demo Run Book
+# Demo Run Book — Workout Wiz
 
 **Audience**: Recruiting engineers / AI engineering assessors  
 **Duration**: 2–3 minutes  
-**Format**: Narrated walkthrough of a running local stack  
-**Stack**: FastAPI + LangGraph + Neo4j + Vite/React  
-
-> **Scope note**: This project covers both assessments. Assessment 1 (multi-agent hub) is fully implemented — typed `StateGraph`, separate sub-graphs, structured-output routing, clarification node, fuzzy logger. Assessment 2 (knowledge graph) is partially implemented — the Neo4j GraphRAG pipeline, injury safety gate, vector similarity search, and preference feedback loop are all wired and running; the richer member-context ingestion (biomarkers, HRV, adherence signals) is the main gap. The demo covers both layers.
+**Last updated**: 2026-06-08
 
 ---
 
@@ -17,155 +14,148 @@ flowchart TD
 
     subgraph HUB["Hub StateGraph"]
         ROUTER["router node\nChatAnthropic.with_structured_output\nRouteDecision → intent + confidence"]
-        ROUTER -->|COACH| COACH["coach sub-graph\nFitness Q&A\ngrounded coaching"]
+        ROUTER -->|COACH| COACH["coach sub-graph"]
         ROUTER -->|WORKOUT_GENERATE| GEN["workout_gen sub-graph\nsearch_exercises_tool\nbuild_workout_tool"]
-        ROUTER -->|WORKOUT_LOG| LOG["workout_log sub-graph\nfuzzy exercise matching\nstructured JSON log"]
-        ROUTER -->|KNOWLEDGE_GRAPH| KG["knowledge_graph node\nNeo4j GraphRAG\ninjury-aware recs"]
-        ROUTER -->|confidence < 0.6| CLARIFY["clarification node\nask user to rephrase"]
-        ROUTER -->|FALLBACK| FB["fallback node\nout-of-scope reply"]
+        ROUTER -->|WORKOUT_LOG| LOG["workout_log sub-graph\nfuzzy exercise matching"]
+        ROUTER -->|KNOWLEDGE_GRAPH| KG["knowledge_graph node\nNeo4j GraphRAG\nSNOMED injury traversal"]
+        ROUTER -->|confidence < 0.6| CLARIFY["clarification node"]
+        ROUTER -->|FALLBACK| FB["fallback node"]
     end
 
-    COACH --> AUDIT
-    GEN --> AUDIT
-    LOG --> AUDIT
-    KG --> AUDIT
-    CLARIFY --> AUDIT
-    FB --> AUDIT
-
-    subgraph OBS["Observability"]
-        AUDIT["audit_log\nper-node: event, model, route\nlatency_ms, tokens_in, tokens_out\nGET /chat/audit/{session_id}"]
-    end
-
-    subgraph KGSTACK["Knowledge Graph Stack (Neo4j)"]
-        RETRIEVAL["retrieval sub-graph\nmember profile · injury traversal\nvector similarity · preference feedback"]
-        SAFETY["safety gate node\nhard-filter contraindicated IDs\nnever overrideable by LLM"]
-        EXPLAIN["explainability tool\ngraph-path citation\n'why was X skipped?'"]
-        RETRIEVAL --> SAFETY --> EXPLAIN
-    end
-
-    KG --> RETRIEVAL
+    KG --> SAFETY["safety gate\nhard-filter contraindicated IDs\npost-LLM — not overrideable"]
+    COACH & GEN & LOG & KG & CLARIFY & FB --> AUDIT["audit_log\nlatency_ms · tokens · route\nGET /chat/audit/{session_id}"]
 ```
 
 ---
 
-## Pre-Flight Checklist
+## Setup (pre-demo, do not narrate)
 
-Before starting the demo, verify the following:
+- [ ] Valid `ANTHROPIC_API_KEY` in root `.env`
+- [ ] `make dev` — frontend :5173, backend :8000, postgres :5433
+- [ ] Neo4j running if demonstrating KG path: `docker compose up -d neo4j`
+- [ ] Browser open at `http://localhost:5173`, chat page visible (log in first)
+- [ ] Terminal ready for `curl` audit command
 
-- [ ] `.env` at repo root contains a valid `ANTHROPIC_API_KEY`
-- [ ] Docker is running
-- [ ] `make dev` has been run; all three services are up (frontend :5173, backend :8000, postgres :5433)
-- [ ] Neo4j is running (if demonstrating the KG path): `docker compose up -d neo4j`
-- [ ] Browser is open at `http://localhost:5173`
-- [ ] The chat page is visible (log in first if needed — any email/password)
-- [ ] Terminal window showing backend logs is ready for showing audit output
-
-**Fallback**: If the full stack is unavailable, the multi-agent demo can be run against the backend alone at `http://localhost:8000` (interactive Swagger UI at `/docs`).
+**Fallback**: If stack is down, use Swagger at `http://localhost:8000/docs`
 
 ---
 
-## Demo Script
+## Script
 
-### Hook
+### Hook *(~15 s)*
 
-> "Most fitness apps force you to pick a mode before you type. Workout Wiz removes that entirely — you send one natural-language message and the system decides what kind of request it is. The routing decision is made by a language model using structured output, not a regex or keyword list."
-
----
-
-### COACH
-
-> "The hub routed this to the COACH sub-agent — COACH, confidence 0.97. The coach graph generates a substantive answer grounded entirely in the exercise dataset. No hallucinated exercises."
+> "Most fitness apps make you pick a mode before you type. Workout Wiz skips that entirely — you send one natural-language message and a language model decides what kind of request it is using structured output, not a regex."
 
 ---
 
-### WORKOUT_GENERATE
+### Step 1 — COACH route *(~25 s)*
 
-> "Routed to WORKOUT_GENERATE, confidence 0.95. The generator sub-agent calls two tools: search_exercises_tool queries the 50-exercise Postgres dataset by muscle group and equipment, then build_workout_tool assembles the plan into warmup, main, and cooldown phases. Every exercise ID in the plan is validated against the dataset — hallucinated UUIDs land in invalid_ids_skipped in the audit log."
+**Prompt**: `How many rest days should I take per week for hypertrophy?`
 
----
+**Action**: Type the prompt in the chat UI and submit.
 
-### WORKOUT_GENERATE — equipment constraint
+> "Routed to COACH, confidence 0.97. The coaching sub-graph generates a grounded answer — it can only reference exercises in the 50-exercise dataset. Notice the RouteBadge in the UI: green for COACH."
 
-> "Same generator sub-graph, equipment constraint passed in plain English. search_exercises_tool filtered the dataset down to bands and bodyweight movements only. invalid_ids_skipped is empty — zero hallucinated UUIDs. The constraint was enforced through dataset filtering, not prompt instruction."
-
----
-
-### WORKOUT_LOG
-
-> "Routed to WORKOUT_LOG. The logger sub-agent fuzzy-matches the exercise name to the dataset, extracts sets, reps, and weight, and returns a structured JSON log entry with the resolved exercise ID. If match confidence is low, the system reports it rather than silently accepting the wrong exercise."
+**Expected result**: A substantive coaching answer; RouteBadge shows `COACH · 0.97`
 
 ---
 
-### KNOWLEDGE_GRAPH
+### Step 2 — WORKOUT_GENERATE with equipment constraint *(~35 s)*
 
-> "Routed to KNOWLEDGE_GRAPH. The retrieval sub-graph queries Neo4j — member profile, injury nodes, joint and muscle contraindications, workout history, and preference feedback from past sessions. A safety gate node then hard-filters any exercise whose ID appears in contraindicated_ids. This filter runs after the LLM generation step, so even if the model ignores the instruction, no contraindicated exercise can reach the response. Each recommended exercise shows the reasoning — a sentence that traces back to the graph path, not a generic LLM rationale."
+**Prompt**: `I only have resistance bands at home. Build me a 30-minute full-body workout.`
 
----
+**Action**: Type and submit.
 
-### KNOWLEDGE_GRAPH — injury trace
+> "Routed to WORKOUT_GENERATE, confidence 0.95. The generator calls two tools: search_exercises_tool filters the dataset to band and bodyweight exercises only — constraint enforced through data, not prompt instruction. Then build_workout_tool assembles warmup, main, and cooldown phases. Notice invalid_ids_skipped is empty in the audit — no hallucinated exercise IDs."
 
-> "Two injuries, one message. Route is KNOWLEDGE_GRAPH, confidence 0.99 — the router correctly distinguished this from a workout generation request based on the injury context alone. The retrieval sub-graph ran the injury traversal node. The safety gate ran after the LLM — hard code, not a prompt. The response explicitly states how many exercises were excluded: five."
-
----
-
-### FALLBACK
-
-> "FALLBACK, confidence 0.99. The hub recognises this is out of scope and returns a polite deflection — no crash, no silent misroute."
+**Expected result**: Structured workout plan in warmup/main/cooldown sections using only resistance band and bodyweight exercises
 
 ---
 
-### Audit trail
+### Step 3 — WORKOUT_LOG *(~25 s)*
 
+**Prompt**: `I just did 3 sets of 10 bench press at 135 lbs and a 20-minute run.`
+
+**Action**: Type and submit.
+
+> "Routed to WORKOUT_LOG. The logger fuzzy-matches 'bench press' to the dataset entry, extracts sets, reps, and weight, and returns a structured JSON log. If match confidence is low it reports it explicitly rather than silently accepting the wrong exercise."
+
+**Expected result**: Structured JSON log with resolved exercise ID, sets, reps, weight
+
+---
+
+### Step 4 — KNOWLEDGE_GRAPH injury-aware path *(~40 s)*
+
+**Prompt**: `I have a bad knee and a bad shoulder. Build me a workout that avoids aggravating either injury.`
+
+**Action**: Type and submit.
+
+> "Routed to KNOWLEDGE_GRAPH, confidence 0.99 — the router correctly distinguished this from a workout-gen request based on injury context alone. The retrieval sub-graph traverses Neo4j: member profile, then injury nodes via SNOMED CT codes through MAPS_TO_DISORDER → FINDING_SITE → PART_OF → CONTRAINDICATED edges. That produces a hard exclusion list of exercise IDs — 21 exercises in this run. A safety gate node hard-filters the LLM output against that list after generation. The filter is code, not a prompt. Each recommended exercise carries a SNOMED-grounded provenance trace you can read: disorder code, finding site, graph path."
+
+**Expected result**: Workout with exercises avoiding knee and shoulder loading; provenance objects on each recommendation; N exercises excluded stated in response
+
+---
+
+### Step 5 — FALLBACK *(~15 s)*
+
+**Prompt**: `What's the best recipe for banana bread?`
+
+**Action**: Type and submit.
+
+> "FALLBACK, confidence 0.99. Out-of-scope, no crash, polite deflection."
+
+**Expected result**: RouteBadge shows `FALLBACK · 0.99`; message says system handles fitness only
+
+---
+
+### Step 6 — Audit trail *(~20 s)*
+
+**Action**: Run in terminal:
 ```bash
 curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 ```
 
-> "Every message in this session is in the audit log. Each entry records the event name, model, route, confidence, latency in milliseconds, and token counts. This is the data you'd ship to a metrics store — Prometheus, Datadog, whatever — to monitor routing accuracy and flag when something drifts."
+> "Every message in this session is in the audit log — event name, model, route, confidence, latency in milliseconds, token counts. This is the data you'd ship to Prometheus or Datadog to monitor routing accuracy and detect drift."
+
+**Expected result**: JSON array with one entry per agent node per message; latency_ms and tokens_in/out populated
 
 ---
 
-### Eval suite
+### Wrap *(~15 s)*
 
-```bash
-make eval-stats
-```
-
-> "Three suites. Golden is the hard gate — 11 cases covering every routing path and edge case, 100% across nine recorded runs, trend from 91% up to 100% as the system was tuned. The scenario suite has 41 cases and sits at 66% — that's an honest number, it's testing known gaps in the knowledge graph layer. The replay suite is five frozen fixtures that run without an API key — those are what run in CI."
+> "One conversational interface, five routing paths — each a separate LangGraph sub-graph. LLM structured output does the routing. The injury safety gate is code, not a prompt. Full audit trail per session. The README covers production scaling, failure modes, and evaluation strategy."
 
 ---
 
-### Close
+## Timing Guide
 
-> "One conversational interface, five routing paths — COACH, WORKOUT_GENERATE, WORKOUT_LOG, KNOWLEDGE_GRAPH, and FALLBACK — each a separate LangGraph sub-agent. LLM structured output does the routing, not regex. The injury safety gate is a hard code filter, not a prompt instruction. Full audit trail available per session. The README covers production scaling, failure modes, and evaluation strategy."
-
----
-
-## Timing Summary
-
-| Step | Action | Target time |
-|------|--------|-------------|
-| Hook | Intro sentence | 15 s |
-| 1 | COACH route | 30 s |
-| 2 | WORKOUT_GENERATE route | 45 s |
-| 2b | Equipment constraint example | 30 s |
-| 3 | WORKOUT_LOG route | 30 s |
-| 4 | KNOWLEDGE_GRAPH route | 45 s |
-| 4b | Injury trace (knee + shoulder) | 45 s |
-| 5 | FALLBACK route | 15 s |
-| 6 | Audit trail | 20 s |
-| 6b | Eval stats (`make eval-stats`) | 20 s |
-| Close | Summary | 15 s |
-| **Full run** | | **~5 min 10 s** |
-| **Trim (drop 2b, 4b, 6b)** | | **~3 min 35 s** |
-
-Steps 2b, 4b, and 6b are the new additions; drop them to hit the original 3-minute mark.
+| Section | Target |
+|---------|--------|
+| Hook | 15 s |
+| Step 1 — COACH | 25 s |
+| Step 2 — WORKOUT_GENERATE | 35 s |
+| Step 3 — WORKOUT_LOG | 25 s |
+| Step 4 — KNOWLEDGE_GRAPH | 40 s |
+| Step 5 — FALLBACK | 15 s |
+| Step 6 — Audit | 20 s |
+| Wrap | 15 s |
+| **Total** | **~2 min 50 s** |
 
 ---
 
-## Fallback Prompts (if LLM response is slow or off)
+## Contingency Notes
 
-| Intent | Backup prompt |
-|--------|---------------|
+- **If LLM is slow**: Use fallback prompts below; the demo transcript in the README shows expected output verbatim
+- **If Neo4j is down**: Skip Step 4; substitute "KNOWLEDGE_GRAPH is also implemented — the README shows a live trace with 21 exercises excluded via SNOMED traversal"
+- **If asked about the 66% scenario-suite pass rate**: Honest answer — those test cases require the full Neo4j stack or exercise the LLM-dependent no-results recovery path; they are documented known gaps, not regressions
+- **If asked about Assessment 2**: GraphRAG pipeline (retrieval sub-graph, vector similarity, SNOMED traversal, safety gate, preference feedback) is implemented; richer member-context ingestion (biomarkers, HRV) is the main gap
+
+---
+
+## Fallback Prompts
+
+| Route | Backup prompt |
+|-------|---------------|
 | COACH | "How many sets per muscle group for hypertrophy?" |
 | WORKOUT_GENERATE | "Give me a 45-minute full-body strength workout with dumbbells." |
 | WORKOUT_LOG | "I just did 3 sets of 10 squat at 225 lbs." |
@@ -184,32 +174,32 @@ Steps 2b, 4b, and 6b are the new additions; drop them to hit the original 3-minu
 | Audit log | http://localhost:8000/chat/audit/{session_id} |
 | KG recommend | POST http://localhost:8000/kg/recommend |
 | KG explain | POST http://localhost:8000/kg/explain |
-| KG audit | GET http://localhost:8000/kg/audit/{member_id} |
 
 ---
 
 ## Requirements Coverage
 
-| Requirement | Source | Status |
-|-------------|--------|--------|
-| Hub routes via LLM structured output (not regex) | PRD-001 AC-1.1, CLAUDE.md | Covered — `with_structured_output(RouteDecision)` |
-| COACH, WORKOUT_GENERATE, WORKOUT_LOG, FALLBACK intents | PRD-001 US-1–4 | Covered |
-| KNOWLEDGE_GRAPH intent | PRD-002 US-1 | Covered |
-| Workout grounded in exercises.json only | PRD-001 AC-2.3 | Covered — `search_exercises_tool` + `build_workout_tool` |
-| Fuzzy exercise matching in logger | PRD-001 AC-3.3 | Covered — logger sub-agent |
-| Injury contraindication filtering (hard gate) | PRD-002 AC-1.2 | Covered — `_safety_gate_node` post-LLM filter |
-| Graph-traceable explainability | PRD-002 AC-2.1 | Covered — `explain_skipped_exercise` + `/kg/explain` endpoint |
-| Edge case resilience (no crash on bad input) | PRD-001 AC-4.2 | Covered — clarification node + global exception handler |
-| Per-session audit log with latency + tokens | README production eval | Covered — `audit_log` in hub state, `/chat/audit/{session_id}` |
-| Production evaluation README section | PRD-001 AC-4.3 | Covered — README.md "How I Would Productionize This" |
-| Preference feedback writeback | PRD-002 US-4 | Covered — FeedbackForm → POST /kg/feedback → Neo4j |
-| Single-command stack start | PRD-002 SM-5 | Covered — `make dev` |
+| # | Requirement | Source | Status |
+|---|-------------|--------|--------|
+| REQ-01 | Hub routes via `with_structured_output`, not regex | PRD-001 AC-1.1 | **Covered** — `RouteDecision` structured output |
+| REQ-02 | COACH intent → coaching sub-agent, grounded answer | PRD-001 US-1 | **Covered** — Step 1 |
+| REQ-03 | WORKOUT_GENERATE produces warmup/main/cooldown plan | PRD-001 AC-2.2 | **Covered** — Step 2 |
+| REQ-04 | All exercises traceable to exercises.json | PRD-001 AC-2.3 | **Covered** — `invalid_ids_skipped` validated |
+| REQ-05 | Equipment/time constraints reflected in plan | PRD-001 AC-2.4 | **Covered** — Step 2 band constraint |
+| REQ-06 | WORKOUT_LOG → structured JSON with fuzzy-matched ID | PRD-001 AC-3.2–3.3 | **Covered** — Step 3 |
+| REQ-07 | Low-confidence inputs → clarification, not misroute | PRD-001 AC-4.1 | **Covered** — clarification node at confidence < 0.6 |
+| REQ-08 | Edge cases → user-facing message, no crash | PRD-001 AC-4.2 | **Covered** — Step 5 FALLBACK + global handler |
+| REQ-09 | README production evaluation section | PRD-001 AC-4.3 | **Covered** — README "Production Evaluation" |
+| REQ-10 | Injury contraindication hard-filter (not prompt) | PRD-002 AC-1.2 | **Covered** — Step 4 safety gate |
+| REQ-11 | Graph-traceable explainability per recommendation | PRD-002 AC-2.1 | **Covered** — SNOMED provenance objects |
+| REQ-12 | Preference feedback writeback | PRD-002 US-4 | **Covered** — FeedbackForm → POST /kg/feedback |
 
 **Gaps**: None against PRD-001 or PRD-002 core acceptance criteria.
 
-**Undocumented features** (implemented but not in a PRD):
-- AgentTrace component (frontend) — shows per-step tool call breakdown
-- RouteBadge component — colour-coded route badge on each chat bubble
-- EnjoymentScale + FeedbackForm — 1–5 rating written back to Neo4j
-- PhaseTable — warmup/main/cooldown structured table in chat
-- `/kg/audit/{member_id}` endpoint — KG-layer audit log separate from hub audit
+**Undocumented features** (implemented but without a PRD requirement):
+- AgentTrace UI component — per-step tool call breakdown in the chat UI
+- RouteBadge — colour-coded route + confidence badge on each chat bubble
+- EnjoymentScale / FeedbackForm — 1–5 star rating written back to Neo4j
+- PhaseTable — warmup/main/cooldown structured table rendered in chat
+- `/kg/audit/{member_id}` — KG-layer audit log separate from hub audit
+- Eval suite (golden 11/11, scenarios 27/41, replays 5/5) with `make eval-stats` trend tracking
