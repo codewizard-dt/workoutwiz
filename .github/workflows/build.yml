@@ -59,10 +59,7 @@ jobs:
 
   deploy:
     needs: build
-    # Self-hosted runner on the VPS. Register it with label "prod":
-    #   ./config.sh --url https://github.com/codewizard-dt/workoutwiz --labels prod ...
-    # Then install as a service: ./svc.sh install && ./svc.sh start
-    runs-on: [self-hosted, prod]
+    runs-on: [self-hosted, droplet]
     steps:
       - name: Pull new images and restart stack
         working-directory: /opt/workoutwiz
