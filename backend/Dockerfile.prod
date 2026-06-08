@@ -11,9 +11,10 @@ WORKDIR /build
 COPY pyproject.toml .
 COPY app/ app/
 
-# Install heavy ML deps first as a separate layer for cache optimization
+# Install CPU-only torch first (avoids pulling the ~2 GB CUDA wheels on CI)
 RUN pip install --no-cache-dir \
-    torch \
+    torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir \
     sentence-transformers \
     langchain-huggingface
 

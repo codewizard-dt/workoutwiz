@@ -62,7 +62,7 @@ jobs:
     runs-on: [self-hosted, prod]
     steps:
       - name: Pull new images and restart stack
-        working-directory: /opt/workout-wiz
+        working-directory: /opt/workoutwiz
         run: |
           docker compose pull
           docker compose up -d --wait

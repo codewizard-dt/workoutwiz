@@ -38,8 +38,6 @@ services:
 
   backend:
     image: ghcr.io/codewizard-dt/workoutwiz-backend:latest
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/workoutwiz
       SECRET_KEY: ${SECRET_KEY:-changeme-in-development}
