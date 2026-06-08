@@ -7,8 +7,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from app.kg.feedback_service import write_feedback
+from app.models.feedback import ExerciseFeedback
 from app.schemas.kg import FeedbackPayload
 
 
@@ -135,6 +137,72 @@ async def test_write_feedback_returns_unique_ids():
     id2 = await write_feedback(payload, driver2, pg_session2)
 
     assert id1 != id2
+
+
+# ---------------------------------------------------------------------------
+# Persistence tests — PostgreSQL primary, Neo4j best-effort
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_write_feedback_persists_pg_row():
+    """The rating must be written to PostgreSQL (the UI restore source of truth)."""
+    driver = _build_driver_mock()
+    pg_session = _build_pg_session_mock()
+    member_id = str(uuid.uuid4())
+    exercise_id = str(uuid.uuid4())
+    workout_id = str(uuid.uuid4())
+    workout_set_id = str(uuid.uuid4())
+    payload = _make_payload(
+        member_id=member_id,
+        exercise_id=exercise_id,
+        workout_id=workout_id,
+        workout_set_id=workout_set_id,
+        rating=5,
+    )
+
+    await write_feedback(payload, driver, pg_session)
+
+    pg_session.add.assert_called_once()
+    row = pg_session.add.call_args.args[0]
+    assert isinstance(row, ExerciseFeedback)
+    assert str(row.user_id) == member_id
+    assert str(row.exercise_id) == exercise_id
+    assert str(row.workout_id) == workout_id
+    assert str(row.workout_set_id) == workout_set_id
+    assert row.rating == 5
+    pg_session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_write_feedback_neo4j_failure_is_best_effort():
+    """A Neo4j outage must not lose the rating or raise — PG commit still happens."""
+    driver = _build_driver_mock()
+    driver._session_mock.execute_write.side_effect = RuntimeError("neo4j unavailable")
+    pg_session = _build_pg_session_mock()
+    payload = _make_payload(rating=2)
+
+    result = await write_feedback(payload, driver, pg_session)
+
+    uuid.UUID(result)  # still returns a valid id (no exception escaped)
+    pg_session.add.assert_called_once()
+    pg_session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_write_feedback_pg_integrity_error_propagates():
+    """A genuine PG constraint failure must surface, not be reported as success."""
+    driver = _build_driver_mock()
+    pg_session = _build_pg_session_mock()
+    pg_session.commit.side_effect = IntegrityError("INSERT", {}, Exception("fk violation"))
+    payload = _make_payload()
+
+    with pytest.raises(IntegrityError):
+        await write_feedback(payload, driver, pg_session)
+
+    pg_session.rollback.assert_awaited_once()
+    # PG is primary: a failed commit short-circuits before the Neo4j enrichment.
+    driver._session_mock.execute_write.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

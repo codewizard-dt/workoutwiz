@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowRight, AlertTriangle } from 'lucide-react'
 import { useChat } from '../hooks/useChat'
 import { useWorkouts } from '../hooks/useWorkouts'
 import { useMe } from '@/hooks'
@@ -151,7 +152,9 @@ export default function ChatPage() {
               whiteSpace: 'nowrap',
             }}
           >
-            All Workouts →
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              All Workouts <ArrowRight size={14} aria-hidden />
+            </span>
           </Link>
         )}
       </div>
@@ -227,7 +230,7 @@ export default function ChatPage() {
                           gap: 'var(--space-2)',
                         }}
                       >
-                        <span>⚠️</span>
+                        <AlertTriangle size={14} aria-hidden style={{ flexShrink: 0 }} />
                         <span>Limited options due to injury constraints — fallback exercises shown.</span>
                       </div>
                     )}
@@ -475,7 +478,9 @@ export default function ChatPage() {
                 textDecoration: 'none',
               }}
             >
-              All Workouts →
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                All Workouts <ArrowRight size={14} aria-hidden />
+              </span>
             </Link>
           </div>
 

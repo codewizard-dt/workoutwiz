@@ -5,6 +5,7 @@ import { useDraftWorkout } from '@/hooks/useDraftWorkout'
 import { useExercises } from '../hooks/useExercises'
 import { RatingWidget } from '@/components/RatingWidget'
 import { PhaseTable } from '@/components/PhaseTable'
+import { ArrowLeft } from 'lucide-react'
 import { useMe } from '@/hooks'
 
 export default function WorkoutDetailPage() {
@@ -102,7 +103,7 @@ export default function WorkoutDetailPage() {
             gap: 'var(--space-1)',
           }}
         >
-          ← Workouts
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowLeft size={14} aria-hidden /> Workouts</span>
         </Link>
         {/* Skeleton header */}
         <div
@@ -149,7 +150,7 @@ export default function WorkoutDetailPage() {
             textDecoration: 'none',
           }}
         >
-          ← Workouts
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowLeft size={14} aria-hidden /> Workouts</span>
         </Link>
         <div
           style={{
@@ -180,7 +181,7 @@ export default function WorkoutDetailPage() {
             to="/workouts"
             style={{ fontSize: 'var(--text-sm)', color: 'var(--foreground)', textDecoration: 'underline' }}
           >
-            ← Back to workouts
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowLeft size={14} aria-hidden /> Back to workouts</span>
           </Link>
         </div>
       </div>
@@ -192,7 +193,7 @@ export default function WorkoutDetailPage() {
     return (
       <div style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         <Link to="/workouts" style={{ fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)', textDecoration: 'none' }}>
-          ← Workouts
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowLeft size={14} aria-hidden /> Workouts</span>
         </Link>
         <p style={{ color: 'var(--muted-foreground)', fontSize: 'var(--text-sm)' }}>
           Workout not found.{' '}
@@ -228,7 +229,7 @@ export default function WorkoutDetailPage() {
           alignSelf: 'flex-start',
         }}
       >
-        ← Workouts
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowLeft size={14} aria-hidden /> Workouts</span>
       </Link>
 
       {/* Header row: title + Replay All */}

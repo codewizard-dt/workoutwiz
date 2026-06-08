@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useMe } from '@/hooks'
+import { Menu, X } from 'lucide-react'
 import logoUrl from '@/assets/logo/logo-wordmark.svg'
 
 interface AppShellProps {
@@ -167,7 +168,7 @@ export function AppShell({ children }: AppShellProps) {
             aria-expanded={menuOpen}
             onClick={() => { setMenuOpen((v) => !v) }}
           >
-            {menuOpen ? '✕' : '☰'}
+            {menuOpen ? <X size={20} aria-hidden /> : <Menu size={20} aria-hidden />}
           </button>
         </div>
       </header>

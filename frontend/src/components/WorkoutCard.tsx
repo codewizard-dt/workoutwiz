@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Frown, Annoyed, Meh, Smile, Laugh, type LucideIcon } from 'lucide-react'
 import type { Workout } from '@/types'
 
 interface WorkoutCardProps {
@@ -6,7 +7,9 @@ interface WorkoutCardProps {
   to: string
 }
 
-const EMOJI: Record<number, string> = { 1: '😞', 2: '😟', 3: '😐', 4: '🙂', 5: '😄' }
+const FACE: Record<number, LucideIcon> = { 1: Frown, 2: Annoyed, 3: Meh, 4: Smile, 5: Laugh }
+// Sentiment scale: red (poor) → grey (neutral) → green (great)
+const FACE_COLOR: Record<number, string> = { 1: '#b91c1c', 2: '#82383f', 3: '#4b5563', 4: '#306a50', 5: '#15803d' }
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -81,11 +84,14 @@ export function WorkoutCard({ workout, to }: WorkoutCardProps) {
               <span className="ww-num">{durationMin}</span> min
             </span>
           )}
-          {workout.enjoyment != null && (
-            <span style={{ fontSize: 'var(--text-sm)' }} title="Feels">
-              {EMOJI[workout.enjoyment]}
-            </span>
-          )}
+          {workout.enjoyment != null && (() => {
+            const Face = FACE[workout.enjoyment]
+            return (
+              <span style={{ display: 'inline-flex' }} title="Feels">
+                <Face size={16} color={FACE_COLOR[workout.enjoyment]} aria-hidden />
+              </span>
+            )
+          })()}
         </div>
         {workout.note && (
           <p

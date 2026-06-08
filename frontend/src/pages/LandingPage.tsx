@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ArrowDown, Zap, Target, BarChart3 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import logoUrl from '@/assets/logo/logo-mark.svg'
 import heroUrl from '@/assets/hero/workout-wiz-hero-selected.png'
@@ -132,7 +133,9 @@ export default function LandingPage() {
             textTransform: 'uppercase',
           }}
         >
-          ↓ Learn more
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <ArrowDown size={12} aria-hidden /> Learn more
+          </span>
         </div>
       </section>
 
@@ -176,17 +179,17 @@ export default function LandingPage() {
         >
           {[
             {
-              icon: '⚡',
+              icon: Zap,
               title: 'AI Workout Generation',
               desc: 'Describe your goals and available equipment. The AI builds a complete program in seconds, optimized for your schedule.',
             },
             {
-              icon: '🎯',
+              icon: Target,
               title: 'Expert Real-time Coaching',
               desc: 'Ask anything — form cues, progression strategies, programming questions. Your coach is always available.',
             },
             {
-              icon: '📊',
+              icon: BarChart3,
               title: 'Effortless Progress Tracking',
               desc: 'Log every set with fuzzy exercise matching. Watch your strength trends build week over week.',
             },
@@ -196,8 +199,8 @@ export default function LandingPage() {
               className="ww-card"
               style={{ padding: 'var(--space-6)' }}
             >
-              <div style={{ fontSize: '2.25rem', marginBottom: 'var(--space-3)' }}>
-                {f.icon}
+              <div style={{ marginBottom: 'var(--space-3)', color: 'var(--accent)' }}>
+                <f.icon size={36} aria-hidden />
               </div>
               <h3
                 style={{

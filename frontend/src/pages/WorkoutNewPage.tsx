@@ -6,6 +6,7 @@ import { useChat } from '@/hooks/useChat'
 import { useDraftWorkout } from '@/hooks/useDraftWorkout'
 import { ChatBubble } from '@/components/ChatBubble'
 import { PhaseTable } from '@/components/PhaseTable'
+import { ArrowLeft, Check } from 'lucide-react'
 import type { WorkoutSequence, WorkoutSequenceCreate, WorkoutSet, WorkoutSetCreate, WorkoutPhase } from '@/types'
 
 const WORKOUT_CHIPS = [
@@ -167,7 +168,7 @@ export default function WorkoutNewPage() {
             textDecoration: 'none',
           }}
         >
-          ← Workouts
+          <ArrowLeft size={14} aria-hidden /> Workouts
         </Link>
         <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-semibold)' }}>
           New Workout
@@ -252,7 +253,9 @@ export default function WorkoutNewPage() {
                     style={{ alignSelf: 'flex-start' }}
                     onClick={() => { const d = msg.workout_draft; if (d) { setDraftSequences(workoutDraftToSequences(d)) } }}
                   >
-                    ✓ Use This Workout
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Check size={14} aria-hidden /> Use This Workout
+                    </span>
                   </button>
                 )}
               </div>

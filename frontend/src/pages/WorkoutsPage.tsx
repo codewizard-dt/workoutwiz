@@ -3,8 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useWorkouts, useDeleteWorkout } from '@/hooks/useWorkouts'
 import type { Workout } from '@/types'
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal'
+import { Frown, Annoyed, Meh, Smile, Laugh, type LucideIcon } from 'lucide-react'
 
-const EMOJI: Record<number, string> = { 1: '😞', 2: '😟', 3: '😐', 4: '🙂', 5: '😄' }
+const FACE: Record<number, LucideIcon> = { 1: Frown, 2: Annoyed, 3: Meh, 4: Smile, 5: Laugh }
+// Sentiment scale: red (poor) → grey (neutral) → green (great)
+const FACE_COLOR: Record<number, string> = { 1: '#b91c1c', 2: '#82383f', 3: '#4b5563', 4: '#306a50', 5: '#15803d' }
 
 function dominantType(workout: Workout): 'STRENGTH' | 'CARDIO' | '—' {
   let strength = 0, cardio = 0
@@ -142,7 +145,12 @@ export default function WorkoutsPage() {
                       })()}
                     </td>
                     <td style={{ padding: 'var(--space-3)' }}>
-                      {w.enjoyment != null ? EMOJI[w.enjoyment] ?? '—' : '—'}
+                      {w.enjoyment != null
+                        ? (() => {
+                            const Face = FACE[w.enjoyment]
+                            return <Face size={18} aria-hidden color={FACE_COLOR[w.enjoyment]} />
+                          })()
+                        : '—'}
                     </td>
                     <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', alignItems: 'center' }}>

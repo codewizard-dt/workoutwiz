@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ChangeEvent } from 'react'
-import { PartyPopper, AlertTriangle } from 'lucide-react'
+import { PartyPopper, AlertTriangle, TrendingDown, TrendingUp, ImageIcon, X } from 'lucide-react'
 import { useCoachBrief } from '../hooks/useCoachBrief'
 import { useCoachChat } from '../hooks/useCoachChat'
 import { useCoachMembers } from '../hooks/useCoachMembers'
@@ -329,9 +329,13 @@ export default function CoachPage() {
                   Trend:{' '}
                   {brief.adherence_weeks[brief.adherence_weeks.length - 1].pct <
                   brief.adherence_weeks[0].pct ? (
-                    <span style={{ color: '#ef4444', fontWeight: 600 }}>↓ declining</span>
+                    <span style={{ color: '#ef4444', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <TrendingDown size={14} aria-hidden /> declining
+                    </span>
                   ) : (
-                    <span style={{ color: '#22c55e', fontWeight: 600 }}>↑ improving</span>
+                    <span style={{ color: '#22c55e', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <TrendingUp size={14} aria-hidden /> improving
+                    </span>
                   )}
                 </div>
               )}
@@ -573,7 +577,7 @@ export default function CoachPage() {
               onClick={() => { setPendingImage(null) }}
               aria-label="Remove image"
             >
-              ✕
+              <X size={14} aria-hidden />
             </button>
           </div>
         )}
@@ -598,7 +602,7 @@ export default function CoachPage() {
             aria-label="Attach image"
             title="Attach image"
           >
-            🖼
+            <ImageIcon size={16} aria-hidden />
           </button>
           <textarea
             className="ww-scroll"

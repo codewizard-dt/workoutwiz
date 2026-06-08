@@ -1,13 +1,23 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { Frown, Annoyed, Meh, Smile, Laugh, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const EMOJI: Record<number, string> = {
-  1: '😞',
-  2: '🙁',
-  3: '😐',
-  4: '🙂',
-  5: '😄',
+const FACE: Record<number, LucideIcon> = {
+  1: Frown,
+  2: Annoyed,
+  3: Meh,
+  4: Smile,
+  5: Laugh,
+}
+
+// Sentiment scale: red (poor) → grey (neutral) → green (great)
+const FACE_COLOR: Record<number, string> = {
+  1: '#b91c1c',
+  2: '#82383f',
+  3: '#4b5563',
+  4: '#306a50',
+  5: '#15803d',
 }
 
 const LABEL: Record<number, string> = {
@@ -16,6 +26,11 @@ const LABEL: Record<number, string> = {
   3: 'OK',
   4: 'Good',
   5: 'Great',
+}
+
+function FaceIcon({ n }: { n: number }) {
+  const Icon = FACE[n]
+  return <Icon size={20} color={FACE_COLOR[n]} aria-hidden />
 }
 
 interface RatingWidgetProps {
@@ -40,6 +55,10 @@ export function RatingWidget({
   const [hovered, setHovered] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  // The popover is portaled to document.body, so it lives outside wrapperRef.
+  // Track it separately so the click-outside handler doesn't treat clicks on
+  // the rating faces as "outside" and close before their onClick can fire.
+  const popoverRef = useRef<HTMLDivElement>(null)
   const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null)
 
   // Close popover on click-outside or Escape
@@ -49,7 +68,10 @@ export function RatingWidget({
       if (e.key === 'Escape') setOpen(false)
     }
     function onOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      const insideTrigger = wrapperRef.current?.contains(target)
+      const insidePopover = popoverRef.current?.contains(target)
+      if (!insideTrigger && !insidePopover) {
         setOpen(false)
       }
     }
@@ -64,7 +86,7 @@ export function RatingWidget({
   const displayRating = hovered ?? value
 
   if (compact) {
-    const face = value != null ? EMOJI[value] : '😐'
+    const Face = value != null ? FACE[value] : Meh
     const faceLabel = value != null ? LABEL[value] : 'Rate'
 
     // Measure button position when opening so the portal popup can be placed correctly
@@ -107,11 +129,12 @@ export function RatingWidget({
             e.currentTarget.style.boxShadow = ''
           }}
         >
-          {face}
+          <Face size={20} color={value != null ? FACE_COLOR[value] : '#9ca3af'} aria-hidden />
         </button>
 
         {open && popoverPos !== null && createPortal(
           <div
+            ref={popoverRef}
             role="dialog"
             aria-label="Select rating"
             style={{
@@ -152,7 +175,7 @@ export function RatingWidget({
                   transition: 'opacity var(--dur-fast) var(--ease-out)',
                 }}
               >
-                {EMOJI[n]}
+                <FaceIcon n={n} />
               </button>
             ))}
           </div>,
@@ -200,7 +223,7 @@ export function RatingWidget({
               transition: 'opacity var(--dur-fast) var(--ease-out)',
             }}
           >
-            {EMOJI[n]}
+            <FaceIcon n={n} />
           </button>
         ))}
         {displayRating != null && (
