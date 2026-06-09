@@ -37,6 +37,25 @@ class WorkoutCreate(BaseModel):
         return v
 
 
+class WorkoutMetadataUpdate(BaseModel):
+    """Partial update of workout-level fields only — never touches sequences/sets.
+
+    Used by the detail page's enjoyment/note auto-save. Replacing the sequences
+    tree would regenerate every set's primary key (and null out per-set feedback
+    via the SET NULL FK), so metadata edits must go through this path.
+    """
+
+    enjoyment: int | None = Field(default=None, description="User enjoyment rating from 1 (low) to 5 (high)", examples=[4])
+    note: str | None = Field(default=None, description="Optional free-text note about the workout", examples=["Felt strong today"])
+
+    @field_validator("enjoyment")
+    @classmethod
+    def enjoyment_in_range(cls, v: int | None) -> int | None:
+        if v is not None and not (1 <= v <= 5):
+            raise ValueError("enjoyment must be between 1 and 5")
+        return v
+
+
 class WorkoutSetRead(WorkoutSetCreate):
     model_config = {"from_attributes": True}
     id: uuid.UUID = Field(description="Unique set identifier (UUID)", examples=["b2c3d4e5-f6a7-8901-bcde-f12345678901"])

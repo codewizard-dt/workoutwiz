@@ -1,0 +1,16 @@
+- id: "gs-017"
+  description: "WORKOUT_LOG intent — bodyweight exercise with no weight logged correctly without hallucinating a weight value"
+  query: "I just finished 3 sets of 15 push-ups"
+  expected_tools:
+    - workout_log
+  expected_sources:
+    - exercises.json
+  must_contain:
+    - "push"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+    - "Here is your personalized workout"
+    - "excluded due to injury constraints"
+    - "lbs"
+    - "kg"

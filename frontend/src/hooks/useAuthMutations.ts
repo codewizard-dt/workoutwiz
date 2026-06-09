@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/apiFetch'
 import { useAuth } from '@/context/AuthContext'
 import type { User } from '@/types'
 
@@ -37,10 +38,9 @@ export function useMe() {
   return useQuery({
     queryKey: ['me'],
     queryFn: async () => {
-      const res = await fetch('/api/auth/me', {
+      const res = await apiFetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${token ?? ''}` },
       })
-      if (!res.ok) throw new Error('Failed to fetch user')
       return res.json() as Promise<User>
     },
     enabled: !!token,

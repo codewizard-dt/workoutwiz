@@ -41,29 +41,11 @@ export default function WorkoutDetailPage() {
   useEffect(() => {
     if (!workout) return
     const timer = setTimeout(() => {
+      // Metadata-only: never resend sequences/sets, or the backend would
+      // delete+recreate every set (new PKs) and null out per-set feedback.
       updateWorkout.mutate({
         id: workout.id,
-        data: {
-          started_at: workout.started_at,
-          ended_at: workout.ended_at ?? undefined,
-          enjoyment,
-          note,
-          sequences: workout.sequences.map((seq) => ({
-            phase: seq.phase,
-            position: seq.position,
-            sets: seq.sets.map((s) => ({
-              exercise_id: s.exercise_id,
-              set_type: s.set_type,
-              position: s.position,
-              reps: s.reps,
-              weight_kg: s.weight_kg,
-              duration_s: s.duration_s,
-              speed: s.speed,
-              distance: s.distance,
-              calories: s.calories,
-            })),
-          })),
-        },
+        data: { enjoyment, note },
       })
     }, 300)
     return () => { clearTimeout(timer) }

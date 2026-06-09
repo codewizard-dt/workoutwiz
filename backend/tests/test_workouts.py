@@ -154,6 +154,38 @@ async def test_update_workout(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_patch_workout_metadata_preserves_set_ids(client: AsyncClient):
+    """PATCH must update enjoyment/note without regenerating set primary keys.
+
+    Per-set feedback is keyed on workout_set_id, so the metadata auto-save must
+    not delete+recreate sets (which would change their ids and orphan feedback).
+    """
+    token = await register_and_login(client, f"patch_wk_{uuid.uuid4().hex[:8]}@example.com", "S3cur3Pass!")
+    create_resp = await client.post(
+        "/workouts/",
+        json=SAMPLE_WORKOUT,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    body = create_resp.json()
+    workout_id = body["id"]
+    set_ids_before = [s["id"] for seq in body["sequences"] for s in seq["sets"]]
+    assert set_ids_before  # sanity: the sample workout has sets
+
+    resp = await client.patch(
+        f"/workouts/{workout_id}",
+        json={"enjoyment": 4, "note": "felt great"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200
+    patched = resp.json()
+    assert patched["enjoyment"] == 4
+    assert patched["note"] == "felt great"
+
+    set_ids_after = [s["id"] for seq in patched["sequences"] for s in seq["sets"]]
+    assert set_ids_after == set_ids_before, "set ids must be stable across a metadata PATCH"
+
+
+@pytest.mark.asyncio
 async def test_delete_workout(client: AsyncClient):
     token = await register_and_login(client, f"del_wk_{uuid.uuid4().hex[:8]}@example.com", "S3cur3Pass!")
     create_resp = await client.post(

@@ -107,6 +107,12 @@ export interface WorkoutCreate {
   note?: string | null
 }
 
+// Partial, metadata-only workout update (no sequences/sets) — keeps set PKs stable.
+export interface WorkoutMetadataUpdate {
+  enjoyment?: number | null
+  note?: string | null
+}
+
 export interface WorkoutSet extends WorkoutSetCreate {
   id: string
   sequence_id: string

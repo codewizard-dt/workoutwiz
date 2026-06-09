@@ -3,7 +3,7 @@ from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.models.workout import Workout, WorkoutSequence, WorkoutSet
-from app.schemas.workout import WorkoutCreate
+from app.schemas.workout import WorkoutCreate, WorkoutMetadataUpdate
 
 
 async def get_user_workouts(session: AsyncSession, user_id: uuid.UUID) -> list[Workout]:
@@ -64,6 +64,27 @@ async def update_workout(session: AsyncSession, workout: Workout, data: WorkoutC
         for set_data in seq_data.sets:
             ws = WorkoutSet(sequence_id=seq.id, **set_data.model_dump())
             session.add(ws)
+    workout_id = workout.id
+    user_id = workout.user_id
+    await session.commit()
+    session.expunge_all()
+    result = await get_workout(session, workout_id, user_id)
+    assert result is not None
+    return result
+
+
+async def update_workout_metadata(
+    session: AsyncSession, workout: Workout, data: WorkoutMetadataUpdate
+) -> Workout:
+    """Update only workout-level fields (enjoyment, note).
+
+    Deliberately does NOT replace sequences/sets, so set primary keys stay
+    stable and per-set feedback (FK ``workout_set_id``) is preserved.
+    """
+    if data.enjoyment is not None:
+        workout.enjoyment = data.enjoyment
+    if data.note is not None:
+        workout.note = data.note
     workout_id = workout.id
     user_id = workout.user_id
     await session.commit()

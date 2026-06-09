@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/apiFetch'
 import type { Exercise } from '@/types'
 
 export interface ExerciseFilters {
@@ -17,7 +18,7 @@ export function useExercises(filters?: ExerciseFilters) {
       filters?.muscle_groups?.forEach((m) => { params.append('muscle_groups', m); })
       filters?.equipment?.forEach((e) => { params.append('equipment', e); })
       if (filters?.priority_tier) params.append('priority_tier', String(filters.priority_tier))
-      const res = await fetch(`/api/exercises/?${params}`)
+      const res = await apiFetch(`/api/exercises/?${params}`)
       if (!res.ok) throw new Error('Failed to fetch exercises')
       return res.json() as Promise<Exercise[]>
     },

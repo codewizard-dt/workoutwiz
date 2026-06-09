@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/apiFetch'
 import { useAuth } from '@/context/AuthContext'
 
 interface FeedbackPayload {
@@ -26,7 +27,7 @@ export function useKGFeedback() {
       }
     },
     mutationFn: async (payload: FeedbackPayload) => {
-      const res = await fetch('/api/kg/feedback', {
+      const res = await apiFetch('/api/kg/feedback', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token ?? ''}`,

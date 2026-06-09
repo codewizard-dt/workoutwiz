@@ -1,0 +1,13 @@
+- id: "gs-018"
+  description: "KNOWLEDGE_GRAPH intent — wrist injury routes to knowledge_graph, safety gate fires and emits exclusion confirmation"
+  query: "My wrist is injured. Can you give me a workout that won't stress it?"
+  expected_tools:
+    - knowledge_graph
+  expected_sources: []
+  must_contain:
+    - "excluded due to injury constraints"
+  must_not_contain:
+    - "I don't know"
+    - "I cannot"
+    - "couldn't build a recommendation"
+    - "Error"

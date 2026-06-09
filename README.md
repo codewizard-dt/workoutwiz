@@ -1,9 +1,8 @@
 # Workout Wiz
 
-> [**Demo Video**](https://www.loom.com/share/979fb64f6145463ab2b2ece2df093302)
- - no audio though 😱
+> [**Architecture Walkthrough Video**](https://www.loom.com/share/dfc5eb7438a0459eaea6b04c9295f3dc)
 
-> **Demo slides**: [HTML](.docs/demo/runbook.slides.html) / [MD](.docs/demo/runbook.md) / [MD Slides (Marp)](.docs/demo/runbook.slides.md)
+> [**UI Walkthrough Video**](https://www.loom.com/share/f17c1447d44c4a2c91d97e86e18ab68a)
 
 ## Start Here
 

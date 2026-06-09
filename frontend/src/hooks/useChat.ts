@@ -1,6 +1,18 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/apiFetch'
 import { useAuth } from '../context/AuthContext'
 import type { AgentStep, ChatMessage, KGResult, WorkoutDraft } from '@/types'
+
+interface ChatApiResponse {
+  reply: string
+  route: string
+  confidence: number
+  session_id: string
+  audit_steps?: AgentStep[]
+  workout_draft?: WorkoutDraft
+  kg_result?: KGResult | null
+}
 
 function getOrCreateSessionId(): string {
   const KEY = 'ww_session_id'
@@ -15,51 +27,24 @@ function getOrCreateSessionId(): string {
 export function useChat() {
   const { token } = useAuth()
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [sessionId] = useState<string>(getOrCreateSessionId)
 
-  const sendMessage = useCallback(
-    async (text: string) => {
-      const trimmed = text.trim()
-      if (!trimmed) return
-
-      const userMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content: trimmed,
-      }
-
-      setMessages((prev) => [...prev, userMsg])
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const res = await fetch('/api/chat/', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token ?? ''}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ message: trimmed, session_id: sessionId }),
-        })
-
-        if (!res.ok) {
-          const body = await res.text()
-          throw new Error(body || `Request failed with status ${res.status}`)
-        }
-
-        const data = await res.json() as {
-          reply: string
-          route: string
-          confidence: number
-          session_id: string
-          audit_steps?: AgentStep[]
-          workout_draft?: WorkoutDraft
-          kg_result?: KGResult | null
-        }
-
-        const assistantMsg: ChatMessage = {
+  const mutation = useMutation({
+    mutationFn: async (text: string): Promise<ChatApiResponse> => {
+      const res = await apiFetch('/api/chat/', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token ?? ''}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: text, session_id: sessionId }),
+      })
+      return res.json() as Promise<ChatApiResponse>
+    },
+    onSuccess: (data) => {
+      setMessages((prev) => [
+        ...prev,
+        {
           id: crypto.randomUUID(),
           role: 'assistant',
           content: data.reply,
@@ -68,24 +53,39 @@ export function useChat() {
           steps: data.audit_steps,
           workout_draft: data.workout_draft,
           kg_result: data.kg_result,
-        }
-
-        setMessages((prev) => [...prev, assistantMsg])
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        // Remove the optimistic user message on failure
-        setMessages((prev) => prev.filter((m) => m.id !== userMsg.id))
-      } finally {
-        setIsLoading(false)
-      }
+        },
+      ])
     },
-    [token, sessionId],
-  )
+  })
 
-  const clearMessages = useCallback(() => {
+  const sendMessage = async (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed) return
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: trimmed,
+    }
+    setMessages((prev) => [...prev, userMsg])
+
+    try {
+      await mutation.mutateAsync(trimmed)
+    } catch {
+      // Drop the optimistic user message on failure. A 401 is handled globally
+      // by the QueryClient guard (session cleared + redirect to login).
+      setMessages((prev) => prev.filter((m) => m.id !== userMsg.id))
+    }
+  }
+
+  const clearMessages = () => {
     setMessages([])
-    setError(null)
-  }, [])
+    mutation.reset()
+  }
 
-  return { messages, sendMessage, isLoading, error, clearMessages, sessionId }
+  const error = mutation.error
+    ? (mutation.error instanceof Error ? mutation.error.message : String(mutation.error))
+    : null
+
+  return { messages, sendMessage, isLoading: mutation.isPending, error, clearMessages, sessionId }
 }

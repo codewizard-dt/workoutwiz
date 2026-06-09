@@ -144,14 +144,29 @@ async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
 
         rec = gen_result.get("recommendation")
         if rec and rec.exercises:
-            lines = ["Here is your personalized workout recommendation:\n"]
+            # Build a Markdown reply so the frontend can render it cleanly.
+            lines = ["**Here's your personalized workout:**", ""]
             for i, ex in enumerate(rec.exercises, 1):
-                rep_str = f"{ex.reps} reps" if ex.reps else f"{ex.duration_seconds}s"
-                lines.append(f"{i}. {ex.name} — {ex.sets} sets × {rep_str}")
-                lines.append(f"   Why: {ex.reasoning}")
-            lines.append(f"\n{rec.overall_reasoning}")
+                if ex.reps:
+                    detail = f"{ex.sets} × {ex.reps} reps"
+                elif ex.duration_seconds:
+                    detail = f"{ex.sets} × {ex.duration_seconds}s"
+                else:
+                    detail = f"{ex.sets} sets"
+                if getattr(ex, "weight_kg", None):
+                    detail += f" @ {ex.weight_kg} kg"
+                lines.append(f"{i}. **{ex.name}** — {detail}")
+                if ex.reasoning:
+                    lines.append(f"   - {ex.reasoning}")
+            if rec.overall_reasoning:
+                lines.append("")
+                lines.append(rec.overall_reasoning)
             if rec.skipped_exercise_ids:
-                lines.append(f"\nNote: {len(rec.skipped_exercise_ids)} exercise(s) excluded due to injury constraints.")
+                lines.append("")
+                lines.append(
+                    f"> Note: {len(rec.skipped_exercise_ids)} exercise(s) "
+                    "excluded due to injury constraints."
+                )
             content = "\n".join(lines)
         else:
             content = "I couldn't build a recommendation with the available context. Please provide more details."
@@ -165,11 +180,12 @@ async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
                 "fallback_used": getattr(rec, "fallback_used", False),
                 "exercises": [
                     {
-                        "id": getattr(ex, "id", None),
+                        "exercise_id": getattr(ex, "exercise_id", None),
                         "name": getattr(ex, "name", None),
                         "sets": getattr(ex, "sets", None),
                         "reps": getattr(ex, "reps", None),
                         "duration_seconds": getattr(ex, "duration_seconds", None),
+                        "weight_kg": getattr(ex, "weight_kg", None),
                         "reasoning": getattr(ex, "reasoning", None),
                     }
                     for ex in (rec.exercises or [])

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/apiFetch'
 import { useAuth } from '@/context/AuthContext'
 
 interface FeedbackItem {
@@ -25,7 +26,7 @@ export function useKGFeedbackList(workoutId?: string) {
     queryKey: ['kg-feedback', workoutId],
     enabled: workoutId != null && token != null,
     queryFn: async (): Promise<Record<string, Rating>> => {
-      const res = await fetch(`/api/kg/feedback?workout_id=${encodeURIComponent(workoutId ?? '')}`, {
+      const res = await apiFetch(`/api/kg/feedback?workout_id=${encodeURIComponent(workoutId ?? '')}`, {
         headers: { Authorization: `Bearer ${token ?? ''}` },
       })
       if (!res.ok) throw new Error(`Failed to fetch feedback (status ${res.status})`)

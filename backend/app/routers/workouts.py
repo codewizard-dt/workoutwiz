@@ -5,7 +5,7 @@ from app.database import get_async_session
 from app.auth import current_active_user
 from app.models.user import User
 from app.models.workout import Workout
-from app.schemas.workout import WorkoutCreate, WorkoutRead
+from app.schemas.workout import WorkoutCreate, WorkoutMetadataUpdate, WorkoutRead
 from app.schemas.errors import ErrorResponse
 from app.services import workouts as workout_service
 
@@ -91,6 +91,33 @@ async def update_workout(
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
     return await workout_service.update_workout(session, workout, data)
+
+
+@router.patch(
+    "/{workout_id}",
+    response_model=WorkoutRead,
+    summary="Update workout metadata",
+    description=(
+        "Partially update workout-level fields (enjoyment, note) without "
+        "touching sequences/sets. Set primary keys are preserved, so per-set "
+        "feedback survives."
+    ),
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        404: {"model": ErrorResponse, "description": "Workout not found or does not belong to this user"},
+        422: {"description": "Validation error"},
+    },
+)
+async def update_workout_metadata(
+    workout_id: uuid.UUID,
+    data: WorkoutMetadataUpdate,
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(current_active_user),
+) -> Workout:
+    workout = await workout_service.get_workout(session, workout_id, user.id)
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    return await workout_service.update_workout_metadata(session, workout, data)
 
 
 @router.delete(
