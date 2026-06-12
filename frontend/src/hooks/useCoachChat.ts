@@ -62,6 +62,12 @@ export function useCoachChat(memberId?: string | null) {
           role: 'assistant',
           content: data.reply,
           grounded_facts: data.grounded_facts,
+          steps: (data.audit_log ?? []).map((e) => ({
+            agent: e.event,
+            confidence: e.confidence,
+            latency_ms: e.latency_ms,
+            detail: e.detail,
+          })),
         },
       ])
     } catch (err) {

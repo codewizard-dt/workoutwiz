@@ -62,6 +62,7 @@ class CoachBriefResponse(BaseModel):
     equipment: list[str]
     message_pattern: list[MessagePatternPoint]
     weekly_comparison: list[WeeklyComparisonPoint]
+    audit_log: list[dict[str, Any]] = []
 
 
 class ActionItem(BaseModel):
@@ -103,6 +104,7 @@ class CoachChatResponse(BaseModel):
     grounded_facts: list[str]
     session_id: str
     image: str | None = None
+    audit_log: list[dict[str, Any]] = []
 
 
 class CoachDraftSchema(BaseModel):

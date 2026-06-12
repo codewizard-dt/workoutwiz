@@ -13,7 +13,6 @@ import { EMPTY_FILTERS } from '@/components/exerciseFilters'
 import type { ExerciseFilterState } from '@/components/exerciseFilters'
 import { ExerciseDetailDrawer } from '@/components/ExerciseDetailDrawer'
 import { AddExerciseModal } from '@/components/AddExerciseModal'
-import type { AddDraftSet } from '@/components/AddExerciseModal'
 import type { Contraindication, Exercise, FeedbackSummaryItem } from '@/types'
 
 const numStyle: CSSProperties = {

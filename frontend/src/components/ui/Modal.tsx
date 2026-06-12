@@ -15,7 +15,7 @@ export default function Modal({
     >
       <div
         className="flex animate-popIn flex-col gap-3 rounded-card border border-white/10 bg-surface p-5 shadow-pop"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); }}
       >
         {children}
       </div>

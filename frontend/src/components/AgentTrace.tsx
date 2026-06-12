@@ -3,6 +3,7 @@ export interface AgentStep {
   confidence?: number
   latency_ms?: number
   timestamp?: string
+  detail?: string
 }
 
 interface AgentTraceProps {
@@ -46,20 +47,25 @@ export function AgentTrace({ steps, defaultOpen = false }: AgentTraceProps) {
             key={i}
             style={{
               display: 'flex',
-              alignItems: 'baseline',
-              gap: 'var(--space-2)',
+              flexDirection: 'column',
+              gap: '1px',
               fontSize: 'var(--text-xs)',
               color: 'var(--muted-foreground)',
             }}
           >
-            <span style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--foreground)' }}>
-              {step.agent}
-            </span>
-            {step.confidence != null && (
-              <span className="ww-num">conf {step.confidence.toFixed(2)}</span>
-            )}
-            {step.latency_ms != null && (
-              <span className="ww-num">{step.latency_ms} ms</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--foreground)' }}>
+                {step.agent}
+              </span>
+              {step.confidence != null && (
+                <span className="ww-num">conf {step.confidence.toFixed(2)}</span>
+              )}
+              {step.latency_ms != null && (
+                <span className="ww-num">{step.latency_ms} ms</span>
+              )}
+            </div>
+            {step.detail && (
+              <span style={{ opacity: 0.75, lineHeight: 1.4 }}>{step.detail}</span>
             )}
           </div>
         ))}

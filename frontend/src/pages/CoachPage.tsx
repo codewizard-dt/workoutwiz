@@ -7,6 +7,7 @@ import { useCoachChat } from '../hooks/useCoachChat'
 import { useCoachMembers } from '../hooks/useCoachMembers'
 import { ChatBubble } from '@/components/ChatBubble'
 import { TypingBubble } from '@/components/TypingBubble'
+import { AgentTrace } from '@/components/AgentTrace'
 import { MessagePatternChart } from '@/components/MessagePatternChart'
 import { WeeklyComparisonChart } from '@/components/WeeklyComparisonChart'
 import { useCoachDrafts } from '../hooks/useCoachDrafts'
@@ -448,6 +449,27 @@ export default function CoachPage() {
             </div>
           </div>
 
+          {/* ── Graph provenance: how this brief was assembled ── */}
+          {brief.audit_log && brief.audit_log.length > 0 && (
+            <div
+              style={{
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                borderRadius: '0.75rem',
+                padding: 'var(--space-2) var(--space-4)',
+              }}
+            >
+              <AgentTrace
+                steps={brief.audit_log.map((e) => ({
+                  agent: e.event,
+                  confidence: e.confidence,
+                  latency_ms: e.latency_ms,
+                  detail: e.detail,
+                }))}
+              />
+            </div>
+          )}
+
           {/* ── Two-column: Morning brief + Adherence ── */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }} className="coach-grid">
             {/* Morning brief */}
@@ -703,6 +725,7 @@ export default function CoachPage() {
                 role={msg.role}
                 content={msg.content}
                 image={msg.image}
+                steps={msg.role === 'assistant' ? msg.steps : undefined}
               />
               {msg.role === 'assistant' && msg.grounded_facts && msg.grounded_facts.length > 0 && (
                 <div

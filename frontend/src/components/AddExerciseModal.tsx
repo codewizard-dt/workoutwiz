@@ -39,7 +39,7 @@ export function AddExerciseModal({ exercise, onClose, onAdd }: AddExerciseModalP
       exercise_id: exercise.id,
       sets: sets || 1,
       reps: isStrength ? (Number(reps) || null) : null,
-      weight_kg: exercise.supports_weight && weightKg !== '' ? (weightKg as number) : null,
+      weight_kg: exercise.supports_weight && weightKg !== '' ? (weightKg) : null,
       duration_s: isCardio ? (Number(durationS) || null) : null,
       weight_unit: weightUnit,
     }

@@ -179,6 +179,54 @@ async def _fetch_member_context(
         }
 
 
+def _build_context_audit(ctx: dict[str, Any], retrieval_ms: int) -> list[dict[str, Any]]:
+    """Agent-step trace reflecting the Neo4j member-context graph traversal.
+
+    Member context is assembled in a single Cypher query that fans out across
+    the member's relationships. The measured latency is attributed to that
+    graph lookup, and each relationship that actually surfaced data is emitted
+    as a sub-step so the trace mirrors the traversal the graph performed.
+    """
+    steps: list[dict[str, Any]] = [
+        {
+            "event": "graph_member_lookup",
+            "provider": "neo4j",
+            "latency_ms": retrieval_ms,
+            "detail": "MATCH (m:Member) — context traversal",
+        }
+    ]
+
+    sections: list[tuple[str, str, int]] = [
+        ("graph_goals", "HAS_GOAL → Goal", len(ctx.get("goals", []))),
+        ("graph_injuries", "HAS_INJURY → Injury", len(ctx.get("injuries", []))),
+        ("graph_adherence", "REPORTED_ADHERENCE → AdherenceWeek", len(ctx.get("adherence", []))),
+        ("graph_workouts", "HAD_WORKOUT → AssessmentWorkout", len(ctx.get("workouts", []))),
+        ("graph_labs", "HAS_LAB_RESULT → LabResult", len(ctx.get("labs", []))),
+        ("graph_chat_history", "SENT_MESSAGE → ChatMessage", len(ctx.get("chat_messages", []))),
+        ("graph_coach_messages", "SENT_COACH_MESSAGE → ChatMessage", len(ctx.get("coach_messages", []))),
+    ]
+    for event, rel, count in sections:
+        if count > 0:
+            steps.append(
+                {
+                    "event": event,
+                    "provider": "neo4j",
+                    "detail": f"{rel} · {count} node{'s' if count != 1 else ''}",
+                }
+            )
+
+    if ctx.get("coach_brief"):
+        steps.append(
+            {"event": "graph_coach_brief", "provider": "neo4j", "detail": "HAS_COACH_BRIEF → CoachBrief"}
+        )
+    if ctx.get("biomarkers"):
+        steps.append(
+            {"event": "graph_biomarkers", "provider": "neo4j", "detail": "HAS_BIOMARKER → BiomarkerSnapshot"}
+        )
+
+    return steps
+
+
 def _build_context_prompt(ctx: dict[str, Any]) -> str:
     """Assemble a rich context string for the LLM from Neo4j data."""
     m = ctx.get("member", {})
@@ -424,7 +472,9 @@ async def get_coach_brief(
     member_id: str | None = None,
 ) -> CoachBriefResponse:
     try:
+        t_ctx = time.monotonic()
         ctx = await _fetch_member_context(driver, user.email, member_id=member_id)
+        retrieval_ms = int((time.monotonic() - t_ctx) * 1000)
         if not ctx or not ctx.get("member"):
             raise HTTPException(
                 status_code=404,
@@ -487,6 +537,7 @@ async def get_coach_brief(
             weekly_comparison=_build_weekly_comparison(
                 adherence, workouts, chat_messages, coach_messages
             ),
+            audit_log=_build_context_audit(ctx, retrieval_ms),
         )
     except HTTPException:
         raise
@@ -516,7 +567,9 @@ async def coach_chat(
     session_id = request.session_id or str(uuid.uuid4())
 
     try:
+        t_ctx = time.monotonic()
         ctx = await _fetch_member_context(driver, user.email, member_id=request.member_id)
+        retrieval_ms = int((time.monotonic() - t_ctx) * 1000)
         if not ctx or not ctx.get("member"):
             raise HTTPException(
                 status_code=404,
@@ -527,6 +580,8 @@ async def coach_chat(
     except Exception as exc:
         logger.exception("Error fetching member context for coach chat")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    audit_log = _build_context_audit(ctx, retrieval_ms)
 
     member_context = _build_context_prompt(ctx)
 
@@ -559,6 +614,16 @@ MEMBER CONTEXT:
     latency_ms = int((time.monotonic() - t0) * 1000)
     logger.info("coach_chat latency=%d ms", latency_ms)
 
+    audit_log.append(
+        {
+            "event": "coach_copilot_llm",
+            "model": settings.coach_model,
+            "provider": "anthropic",
+            "latency_ms": latency_ms,
+            "detail": "Grounded copilot answer from member context",
+        }
+    )
+
     reply = str(response.content)
 
     # Extract grounded facts mentioned in the reply (simple keyword scan)
@@ -582,6 +647,7 @@ MEMBER CONTEXT:
         reply=reply,
         grounded_facts=grounded_facts,
         session_id=session_id,
+        audit_log=audit_log,
     )
 
 

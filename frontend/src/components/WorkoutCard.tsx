@@ -39,7 +39,7 @@ function dominantType(workout: Workout): 'STRENGTH' | 'CARDIO' | null {
 }
 
 export function WorkoutCard({ workout, to }: WorkoutCardProps) {
-  const sequences = workout.sequences ?? []
+  const sequences = workout.sequences
   const setCount = sequences.reduce((acc, seq) => acc + seq.sets.length, 0)
   const type = dominantType(workout)
   const exerciseCount = new Set(sequences.flatMap((seq) => seq.sets.map((s) => s.exercise_id))).size
@@ -64,12 +64,12 @@ export function WorkoutCard({ workout, to }: WorkoutCardProps) {
         transition: 'background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out)',
       }}
       onMouseEnter={(e) => {
-        const el = e.currentTarget as HTMLAnchorElement
+        const el = e.currentTarget
         el.style.background = 'var(--surface-sunken)'
         el.style.borderColor = 'var(--border-strong)'
       }}
       onMouseLeave={(e) => {
-        const el = e.currentTarget as HTMLAnchorElement
+        const el = e.currentTarget
         el.style.background = 'var(--card)'
         el.style.borderColor = 'var(--border)'
       }}

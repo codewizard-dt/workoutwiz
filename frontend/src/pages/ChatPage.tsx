@@ -275,12 +275,12 @@ export default function ChatPage() {
                       animationDelay: '0.15s',
                     }}
                     onMouseEnter={(e) => {
-                      const el = e.currentTarget as HTMLDivElement
+                      const el = e.currentTarget
                       el.style.transform = 'translateY(-2px)'
                       el.style.boxShadow = 'var(--shadow-lg)'
                     }}
                     onMouseLeave={(e) => {
-                      const el = e.currentTarget as HTMLDivElement
+                      const el = e.currentTarget
                       el.style.transform = ''
                       el.style.boxShadow = ''
                     }}

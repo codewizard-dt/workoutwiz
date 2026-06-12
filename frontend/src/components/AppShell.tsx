@@ -37,7 +37,7 @@ export function AppShell({ children }: AppShellProps) {
   const countDraft = () => {
     try {
       // Primary draft (useDraftWorkout → WorkoutNewPage + PhaseTable)
-      type Seq = { sets?: unknown[] }
+      interface Seq { sets?: unknown[] }
       const seqs = JSON.parse(localStorage.getItem('ww_draft_sequences') ?? '[]') as Seq[]
       const seqCount = Array.isArray(seqs)
         ? seqs.reduce((n, s) => n + (Array.isArray(s.sets) ? s.sets.length : 0), 0)

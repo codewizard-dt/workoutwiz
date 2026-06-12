@@ -97,6 +97,15 @@ export interface AgentStep {
   confidence?: number
   latency_ms?: number
   timestamp?: string
+  detail?: string
+}
+
+/** Raw audit entry as emitted by the backend hub / coach endpoints. */
+export interface AuditEntry {
+  event: string
+  confidence?: number
+  latency_ms?: number
+  detail?: string
 }
 
 export interface RecommendedExercise {
@@ -237,6 +246,7 @@ export interface CoachBriefResponse {
   equipment: string[]
   message_pattern: MessagePatternPoint[]
   weekly_comparison: WeeklyComparisonPoint[]
+  audit_log?: AuditEntry[]
 }
 
 export interface ActionItem {
@@ -264,12 +274,14 @@ export interface CoachChatMessage {
   content: string
   grounded_facts?: string[]
   image?: string
+  steps?: AgentStep[]
 }
 
 export interface CoachChatResponse {
   reply: string
   grounded_facts: string[]
   session_id: string
+  audit_log?: AuditEntry[]
 }
 
 export interface CoachMemberSummary {

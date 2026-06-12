@@ -9,7 +9,7 @@ interface ChatApiResponse {
   route: string
   confidence: number
   session_id: string
-  audit_log?: Array<{ event: string; confidence?: number; latency_ms?: number }>
+  audit_log?: { event: string; confidence?: number; latency_ms?: number }[]
   workout_draft?: WorkoutDraft
   kg_result?: KGResult | null
 }

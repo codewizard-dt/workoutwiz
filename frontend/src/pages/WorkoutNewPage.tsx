@@ -784,7 +784,9 @@ export default function WorkoutNewPage() {
             <div
               style={{
                 padding: 'var(--space-3) var(--space-4)',
+                paddingTop: 'var(--space-6)',
                 borderTop: '1px solid var(--border)',
+                marginBottom: 'var(--space-4)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 'var(--space-2)',

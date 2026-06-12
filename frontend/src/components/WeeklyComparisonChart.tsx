@@ -30,10 +30,11 @@ export function WeeklyComparisonChart({ data }: Props) {
   const tooltipFormatter = (
     value: number,
     name: string,
-    props: { payload: typeof formatted[number] },
+    props: { payload?: typeof formatted[number] },
   ) => {
-    if (name === 'Workouts') return [props.payload.workouts_completed, name]
-    if (name === 'Messages') return [props.payload.messages_sent, name]
+    const p = props.payload
+    if (name === 'Workouts') return [p?.workouts_completed ?? Math.round(value), name]
+    if (name === 'Messages') return [p?.messages_sent ?? Math.round(value), name]
     return [Math.round(value), name]
   }
 
