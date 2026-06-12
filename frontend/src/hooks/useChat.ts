@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/apiFetch'
 import { useAuth } from '../context/AuthContext'
-import type { AgentStep, ChatMessage, KGResult, WorkoutDraft } from '@/types'
+import type { ChatMessage, KGResult, WorkoutDraft } from '@/types'
 
 interface ChatApiResponse {
   reply: string
   route: string
   confidence: number
   session_id: string
-  audit_steps?: AgentStep[]
+  audit_log?: Array<{ event: string; confidence?: number; latency_ms?: number }>
   workout_draft?: WorkoutDraft
   kg_result?: KGResult | null
 }
@@ -50,7 +50,7 @@ export function useChat() {
           content: data.reply,
           route: data.route,
           confidence: data.confidence,
-          steps: data.audit_steps,
+          steps: (data.audit_log ?? []).map((e) => ({ agent: e.event, confidence: e.confidence, latency_ms: e.latency_ms })),
           workout_draft: data.workout_draft,
           kg_result: data.kg_result,
         },

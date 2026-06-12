@@ -1,9 +1,12 @@
 import { useRef, useEffect, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, AlertTriangle, ShieldCheck, Zap, ClipboardList } from 'lucide-react'
+import { ArrowRight, AlertTriangle, ShieldCheck, Zap, ClipboardList, Plus } from 'lucide-react'
 import { useChat } from '../hooks/useChat'
 import { useWorkouts } from '../hooks/useWorkouts'
 import { useMe } from '@/hooks'
+import { useExercises } from '@/hooks/useExercises'
+import { AddExerciseModal } from '@/components/AddExerciseModal'
+import type { Exercise } from '@/types'
 import { ChatBubble } from '@/components/ChatBubble'
 import { TypingBubble } from '@/components/TypingBubble'
 import { WorkoutCard } from '@/components/WorkoutCard'
@@ -21,6 +24,8 @@ export default function ChatPage() {
   const { messages, sendMessage, isLoading, error, clearMessages } = useChat()
   const { data: workouts, isLoading: workoutsLoading } = useWorkouts()
   const { data: user } = useMe()
+  const { data: exercises = [] } = useExercises()
+  const [addTarget, setAddTarget] = useState<Exercise | null>(null)
 
   const [draft, setDraft] = useState('')
   const streamRef = useRef<HTMLDivElement>(null)
@@ -29,6 +34,7 @@ export default function ChatPage() {
     if (streamRef.current) {
       streamRef.current.scrollTop = streamRef.current.scrollHeight
     }
+    console.log('messages', messages)
   }, [messages, isLoading])
 
   function handleSend() {
@@ -464,26 +470,41 @@ export default function ChatPage() {
                             >
                               {ex.name}
                             </span>
-                            <span
-                              style={{
-                                fontSize: 'var(--text-sm)',
-                                color: 'var(--muted-foreground)',
-                                background: 'var(--muted)',
-                                borderRadius: 'var(--radius-sm)',
-                                padding: '2px var(--space-2)',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {ex.sets != null && ex.reps != null
-                                ? `${ex.sets} × ${ex.reps} reps`
-                                : ex.sets != null && ex.duration_seconds != null
-                                  ? `${ex.sets} × ${ex.duration_seconds}s`
-                                  : ex.sets != null
-                                    ? `${ex.sets} sets`
-                                    : ex.duration_seconds != null
-                                      ? `${ex.duration_seconds}s`
-                                      : ''}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                              <span
+                                style={{
+                                  fontSize: 'var(--text-sm)',
+                                  color: 'var(--muted-foreground)',
+                                  background: 'var(--muted)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  padding: '2px var(--space-2)',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {ex.sets != null && ex.reps != null
+                                  ? `${ex.sets} × ${ex.reps} reps`
+                                  : ex.sets != null && ex.duration_seconds != null
+                                    ? `${ex.sets} × ${ex.duration_seconds}s`
+                                    : ex.sets != null
+                                      ? `${ex.sets} sets`
+                                      : ex.duration_seconds != null
+                                        ? `${ex.duration_seconds}s`
+                                        : ''}
+                              </span>
+                              <button
+                                type="button"
+                                className="ww-btn ww-btn--gradient ww-btn--sm"
+                                disabled={!exercises.find((e) => e.id === ex.exercise_id)}
+                                onClick={() => {
+                                  const full = exercises.find((e) => e.id === ex.exercise_id)
+                                  if (full) setAddTarget(full)
+                                }}
+                              >
+                                <Plus size={14} />
+                                Add
+                              </button>
+                            </div>
+
                           </div>
                           {ex.reasoning && (
                             <p
@@ -499,11 +520,13 @@ export default function ChatPage() {
                           )}
                           {user?.id != null && (
                             <FeedbackForm
-                              compact
                               exerciseId={ex.exercise_id}
                               memberId={user.id}
                             />
                           )}
+                          {/* <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+
+                          </div> */}
                         </div>
                       ))}
                     </div>
@@ -692,6 +715,14 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
+
+      {addTarget && (
+        <AddExerciseModal
+          exercise={addTarget}
+          onClose={() => { setAddTarget(null) }}
+          onAdd={() => { /* draft stored in localStorage by modal */ }}
+        />
+      )}
 
       <style>{`
         @media (max-width: 768px) {

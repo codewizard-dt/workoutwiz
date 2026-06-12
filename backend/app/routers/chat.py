@@ -61,6 +61,7 @@ async def chat(
     state["messages"] = list(state["messages"]) + [
         HumanMessage(content=request.message)
     ]
+    state["audit_log"] = []  # reset per-request; nodes accumulate only this message's entries
 
     result = await hub.ainvoke(state)
     _sessions[session_id] = result

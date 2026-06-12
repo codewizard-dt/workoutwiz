@@ -17,7 +17,7 @@ class RouteDecision(BaseModel):
     intent: Intent = Field(
         description=(
             "The most likely intent of the user message. "
-            "MEMBER_CONTEXT_KG for fitness questions, advice, and education (not workout generation). "
+            "MEMBER_CONTEXT_KG for fitness questions (but not fitness apparel recommendations), advice, and education (not workout generation). "
             "WORKOUT_LOG to record a completed workout. "
             "WORKOUT_GENERATE_KG to build, create, plan, generate, OR recommend a personalized, injury-aware list of exercises for this user — "
             "including questions like 'what exercises suit my injuries?' whose best answer is a tailored exercise list. "

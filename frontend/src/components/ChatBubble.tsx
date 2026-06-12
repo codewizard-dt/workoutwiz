@@ -2,6 +2,7 @@ import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
 import { RouteBadge } from './RouteBadge'
 import { AgentTrace, type AgentStep } from './AgentTrace'
+import { useMemo } from 'react'
 
 interface ChatBubbleProps {
   role: 'user' | 'assistant'
@@ -14,6 +15,10 @@ interface ChatBubbleProps {
 
 export function ChatBubble({ role, content, route, confidence, steps, image }: ChatBubbleProps) {
   const isUser = role === 'user'
+
+  useMemo(() => {
+    console.log('steps', steps)
+  }, [steps])
 
   return (
     <div className={cn('ww-chat', isUser ? 'ww-chat--user' : 'ww-chat--coach')}>

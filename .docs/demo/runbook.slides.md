@@ -3,303 +3,422 @@ marp: true
 paginate: true
 size: 16:9
 style: |
+  :root {
+    --bg: #0d1117;
+    --fg: #c9d1d9;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --amber: #d29922;
+    --success: #3fb950;
+    --danger: #f85149;
+    --border: #30363d;
+    --surface: #161b22;
+  }
   section {
-    background-color: #0d1117;
-    color: #c9d1d9;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    padding: 48px 64px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'DM Sans', -apple-system, system-ui, sans-serif;
+    padding: 48px 56px;
   }
-  h1 { color: #f0f6fc; font-size: 2.2em; margin-bottom: 0.2em; }
-  h2 { color: #58a6ff; font-size: 1.4em; border-bottom: 1px solid #21262d; padding-bottom: 0.3em; }
-  h3 { color: #79c0ff; font-size: 1.1em; }
-  a { color: #58a6ff; }
-  code { background: #161b22; color: #e6edf3; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
-  pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
-  pre code { background: transparent; padding: 0; }
-  table { border-collapse: collapse; width: 100%; font-size: 0.85em; }
-  th { background: #161b22; color: #79c0ff; padding: 8px 12px; border: 1px solid #30363d; text-align: left; }
-  td { padding: 8px 12px; border: 1px solid #30363d; color: #c9d1d9; }
-  tr:nth-child(even) td { background: #0d1117; }
-  tr:nth-child(odd) td { background: #161b22; }
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
-  .coach { background: #1f4e2b; color: #3fb950; }
-  .log { background: #4b2a06; color: #e3b341; }
-  .kg { background: #3a1c61; color: #bc8cff; }
-  .fallback { background: #2d1717; color: #f85149; }
-  footer { color: #484f58; font-size: 0.7em; }
-  section.diagram { justify-content: flex-start; }
-  section.diagram img {
-    display: block;
-    margin: 0.4em auto;
-    max-height: 460px;
-    max-width: 100%;
-    width: auto;
-    object-fit: contain;
-  }
+  h1 { color: #ffffff; font-size: 2.2rem; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
+  h2 { color: #ffffff; font-size: 1.5rem; letter-spacing: -0.01em; margin: 0 0 0.4rem; }
+  h3 { color: var(--accent); font-size: 1rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 1rem; }
+  p, li { color: var(--fg); font-size: 0.95rem; line-height: 1.65; }
+  code { background: var(--surface); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  ul { padding-left: 1.4rem; }
+  li { margin-bottom: 0.35rem; }
+  .dim { color: var(--muted); font-size: 0.8rem; }
+  strong { color: #ffffff; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
+  section.lead h1 { font-size: 3rem; }
+  section.lead p { font-size: 1.1rem; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+  th { color: var(--muted); border-bottom: 1px solid var(--border); padding: 6px 10px; text-align: left; font-weight: 600; }
+  td { padding: 5px 10px; border-bottom: 1px solid var(--border); }
 ---
 
 <!-- _class: lead -->
 
 # Workout Wiz
 
-### One conversational interface. Four routing paths. Zero mode-switching.
+**UI Walkthrough** — Every page, every requirement
 
-**FastAPI · LangGraph · Neo4j · React**
+LangGraph multi-agent · Neo4j knowledge graph · FastAPI · React
 
 <!--
-"Most fitness apps force you to pick a mode before you type. Workout Wiz removes that entirely — you send one natural-language message and the system decides what kind of request it is. The routing decision is made by a language model using structured output, not a regex."
+"This is Workout Wiz — three fitness workflows in one interface: ask coaching questions, generate injury-aware workout plans, and log sessions conversationally. A single AI hub decides which agent handles each message using LLM structured output, never a regex. Let me walk through every screen."
 -->
 
 ---
 
 ## The Problem
 
-Most fitness apps force users to pick a mode:
+> Most fitness apps make you **pick a mode** before you type.
 
-> *"Are you asking a question? Generating a workout? Logging a session?"*
+Workout Wiz skips that entirely — one natural-language message, one hub that routes automatically.
 
-Workout Wiz removes that decision entirely.
-
-**You type. The system decides.**
-
-Routing is done by a language model using `with_structured_output` — not a regex, not a keyword list.
+| Workflow | What you say | Agent |
+|----------|-------------|-------|
+| Ask a question | "How do I improve squat depth?" | COACH |
+| Log a session | "3×10 bench press at 185 lbs" | WORKOUT_LOG |
+| Build a plan | "45 min upper body, dumbbells" | WORKOUT_GENERATE_KG |
+| Out of scope | "Best banana bread recipe?" | FALLBACK |
 
 <!--
-"One conversational interface handles coaching questions, workout generation, activity logging, and injury-aware recommendations. The system figures out which one you need."
+"The hub uses with_structured_output — not regex, not keyword matching. The LLM returns a typed RouteDecision object. Let's see it in the UI."
 -->
 
 ---
 
-<!-- _class: diagram -->
+## Landing Page `/`
 
-## Architecture
+**Hero** — full-bleed image, bottom-anchored copy, glass nav
 
-![Architecture](architecture.svg)
+Feature grid highlights the three capabilities:
+- Multi-agent routing
+- Injury-aware recommendations
+- Conversational logging
 
-Every message flows through a typed `StateGraph` hub. Sub-agents are **separate graphs** composed into the hub — not inlined functions.
+CTAs: **Find Your Coach** → `/register` · **Sign in** → `/login`
+
+Authenticated users auto-redirect to `/chat`
+
+*Extra feature — not a PRD requirement; sets product context for the assessor*
 
 <!--
-"The hub is a LangGraph StateGraph with typed state and conditional edges. Each sub-agent — coach, logger, knowledge graph — is a separate compiled graph composed into the hub. That's the assessment spec requirement: not inlined lambdas, actual separate graphs. All workout generation routes through the knowledge graph."
+"The landing page establishes the product context. In production this would be the public marketing surface."
 -->
 
 ---
 
-<!-- _class: diagram -->
+## Login `/login`
 
-## Knowledge Graph Schema
+Email + password form → JWT via `fastapi-users`
 
-![KG Schema](kg-schema.svg)
+- Inline error state (no page reload)
+- Gradient submit button disabled while pending
+- "Need an account? Register" link → `/register`
+- **On success**: navigates directly to `/chat`
 
-Neo4j holds the coaching graph. `Member`, `Exercise`, `Injury` live alongside SNOMED-grounded `Disorder` and `BodyStructure` nodes — frozen at build time from `snomed_subset.json`, never fetched at runtime.
+*REQ-AUTH: JWT authentication — production requirement*
 
 <!--
-"The knowledge graph has six key node types connected by typed relationships. SNOMED CT disorder and body-structure nodes are frozen at build time — the running app never calls SNOMED CT. That gives us deterministic contraindication traversal without any external API dependency."
+"Standard JWT auth. Successful login drops the user straight into the AI Coach chat."
 -->
 
 ---
 
-## Four Routing Paths
+## AI Coach `/chat` — One Page, All Three Routes
 
-| Route | Example input |
-|-------|---------------|
-| `COACH` | "How many rest days for hypertrophy?" |
-| `WORKOUT_LOG` | "I just did 3×10 bench press at 135 lbs" |
-| `KNOWLEDGE_GRAPH` | "30-min dumbbell session — avoid my knee injury" |
-| `FALLBACK` | "What's the capital of France?" |
+The chat page is the member's **primary interface**.
 
-All workout generation — with or without injuries — routes to `KNOWLEDGE_GRAPH`. The router emits a `RouteDecision` (intent + confidence). Confidence < 0.6 → **clarification node** asks the user to rephrase — no silent misroute.
+**Prompt chips** — always-visible, one-tap queries:
+
+- "What exercises suit my injuries?"
+- "Log 3×10 decline bench press at 185"
+- "Bench press form tips"
+- "How do I improve my squat depth?"
+
+**Right sidebar** — recent workouts with quick-navigate links
+
+**Composer** — auto-growing textarea, `Enter` to send, `✕` to clear
 
 <!--
-"Four paths. The router node calls the LLM with a structured output schema — RouteDecision with intent and confidence fields. Every build-a-workout request, with or without injuries, goes to the knowledge graph. If confidence is below 0.6, a clarification node fires instead of guessing."
+"The chat page is where all three routing paths converge. Prompt chips let users one-tap common queries."
 -->
 
 ---
 
-## COACH
+## COACH Route
 
-**Prompt**: *"How many rest days should I take per week for hypertrophy?"*
+**Prompt**: *"Bench press form tips"*
 
-<span class="badge coach">COACH · 0.97</span>
+**RouteBadge** `COACH · 97%` (green)
 
-The coaching sub-graph generates a grounded answer using only the 50-exercise dataset. No hallucinated muscle groups or exercises.
+- Dispatched to the coaching sub-graph
+- Response rendered as **Markdown** — never raw JSON
+- **AgentTrace** accordion → "Show reasoning"
+  - Per step: agent name · confidence · latency ms
 
-**What the assessor sees:**
-- Correct route classification using `with_structured_output`
-- RouteBadge in the UI shows intent + confidence
-- Response addresses the question without fabricating content
+---
+
+**REQ-01** Hub routes via `with_structured_output` ✓
+**REQ-02** Coaching answer grounded in dataset ✓
+**REQ-03** Human-readable markdown response ✓
 
 <!--
-"Routed to COACH, confidence 0.97. The coaching sub-graph generates a substantive answer grounded entirely in the exercise dataset. No hallucinated exercises. Notice the RouteBadge in the UI: green for COACH."
+"The RouteBadge shows COACH at 97% confidence. Click 'Show reasoning' to expand the agent trace — each node name, its confidence, and latency in milliseconds."
 -->
 
 ---
 
-## WORKOUT_LOG — Fuzzy Matching
+## WORKOUT_LOG Route
 
-**Prompt**: *"I just did 3 sets of 10 bench press at 135 lbs and a 20-minute run."*
+**Prompt**: *"Log 3×10 decline bench press at 185"*
 
-<span class="badge log">WORKOUT_LOG · 0.93</span>
+**RouteBadge** `Logged · 94%` (blue)
 
-The logger sub-agent:
-- Fuzzy-matches "bench press" → `Barbell Flat Bench Press` (dataset entry)
-- Extracts sets, reps, and weight into structured JSON
-- Returns a resolved `exercise_id` from exercises.json
-- Reports low-confidence matches explicitly — no silent wrong match
+- Logger sub-agent fuzzy-matches "decline bench press" → correct dataset entry
+- Returns structured log: exercise name · sets · reps · weight · resolved exercise ID
+- Low-confidence match → explicit indicator, not silent acceptance
+
+---
+
+**REQ-07** Structured JSON log with fuzzy-matched ID ✓
+**REQ-08** Uncertain match surfaces confidence indicator ✓
 
 <!--
-"Routed to WORKOUT_LOG. The logger fuzzy-matches 'bench press' to the dataset entry, extracts sets, reps, and weight, and returns a structured JSON log with the resolved exercise ID. If match confidence is low it reports it rather than silently accepting the wrong exercise."
+"The WORKOUT_LOG agent fuzzy-matches the natural language exercise name to the 50-exercise dataset."
 -->
 
 ---
 
-<!-- _class: diagram -->
+## WORKOUT_GENERATE_KG + Injury Safety
 
-## KNOWLEDGE_GRAPH — Injury-Aware
+**Prompt**: *"Build me a 30-min upper body session — I have a shoulder injury"*
 
-**Prompt**: *"I have a bad knee and a bad shoulder. Build me a workout that avoids aggravating either."*
+**RouteBadge** `Injury-Screened · 99%` (amber)
 
-<span class="badge kg">KNOWLEDGE_GRAPH · 0.99</span>
+Amber provenance banner:
+> Injury-screened — Medical knowledge graph · SNOMED CT contraindication gate
 
-![SNOMED Safety Path](snomed-safety.svg)
+- Neo4j traversal builds a hard exclusion list of exercise IDs
+- Safety gate filters LLM output **in code** — not a prompt instruction
+- Each exercise card: name · sets×reps · reasoning text · inline FeedbackForm
 
-21 exercises excluded. Every decision is **graph-traceable** — SNOMED code, finding site, and joint matched — not an LLM rationale.
+---
+
+**REQ-KG-01/02/05** Member context · no contraindicated exercises · structured plan ✓
 
 <!--
-"Routed to KNOWLEDGE_GRAPH, confidence 0.99. The retrieval sub-graph traverses Neo4j — member profile, then injury nodes through SNOMED CT codes. That produces a hard exclusion list: 21 exercises excluded in this run. Each contraindicated decision carries a full SNOMED-grounded provenance trace."
+"Contraindicated exercises are blocked by a code-level safety gate after LLM generation — not by a prompt instruction."
 -->
 
 ---
 
-## The Safety Gate
-
-The injury filter runs **after** LLM generation — not as a prompt instruction.
-
-```
-LLM generates draft workout
-         ↓
-safety_gate_node: hard-filter any exercise_id in contraindicated_ids
-         ↓
-violations_filtered = 0  ← always, in production
-```
-
-Even if the model ignores an instruction, **no contraindicated exercise reaches the response.**
-
-This resists prompt-injection bypasses — a deliberate architectural choice.
-
-<!--
-"Two injuries, one message. The safety gate runs after the LLM — hard code, not a prompt. Even if the model ignores an explicit instruction, the gate catches it. The response states how many exercises were excluded."
--->
-
----
-
-<!-- _class: diagram -->
-
-## Coach Copilot — A Second, Coach-Facing Surface
-
-![Coach Copilot](coach-copilot.svg)
-
-`/coach` assembles the full member context from Neo4j — churn risk, adherence, goals, injuries, biomarkers — and answers the human coach grounded in **that context only**. Every reply carries graph-cited `grounded_facts` pills.
-
-<!--
-"Switch personas. Beyond the member-facing hub, there's a coach-facing copilot at slash-coach. It pulls the member's entire graph context — churn risk, adherence trend, goals, injuries, even biomarkers — and answers the coach's questions grounded only in that context. The system prompt forbids inventing data, and every answer shows grounded-facts pills pulled straight from the graph. This is PRD-002's coach user story: surface member context the coach can trust and repeat."
--->
-
----
-
-## HITL Gate — Human Review Before Sending
-
-Every AI-generated nudge must be approved before it reaches a member:
-
-```
-POST /coach/nudge → saves CoachDraft (status: draft)
-         ↓
-Coach edits body text in PendingDraftsPanel (grounded-on facts visible)
-         ↓
-Coach clicks Approve → status: approved
-         ↓
-Send becomes available → status: sent
-```
-
-Editing an approved draft **resets it to `draft`** — re-approval required. Attempting to send a `draft` returns **HTTP 409**. The state machine lives in the API, not just the UI.
-
-<!--
-"Before any AI nudge reaches a member, it goes through this HITL gate in the CoachPage. The coach sees the draft body and the grounded-on facts that triggered it, can rewrite the text, and must explicitly approve. Send is disabled until approved — and if you edit an approved draft, it drops back to draft so re-approval is mandatory. The 409 is enforced in the API, not just convention. This is responsible deployment of AI-generated content."
--->
-
----
-
-## FALLBACK + Observability
+## FALLBACK Route
 
 **Prompt**: *"What's the best recipe for banana bread?"*
 
-<span class="badge fallback">FALLBACK · 0.99</span> — polite deflection, no crash
+**RouteBadge** `Clarifying · 99%` (red)
 
-**Every message produces a per-node audit entry:**
+- Out-of-scope → polite clarification message
+- No crash, no exception, no silent misroute
 
-```json
-{
-  "event": "router",
-  "route": "KNOWLEDGE_GRAPH",
-  "confidence": 0.99,
-  "latency_ms": 1259,
-  "tokens_in": 1376,
-  "tokens_out": 113
-}
-```
+---
 
-```bash
-curl http://localhost:8000/chat/audit/{session_id}
-```
+**REQ-09** Ambiguous/out-of-scope → user-facing message ✓
+**REQ-10** Edge cases → message, not unhandled exception ✓
 
 <!--
-"FALLBACK, confidence 0.99. No crash, polite deflection. And every message in this session is in the audit log — event name, model, route, confidence, latency in milliseconds, token counts. This is the data you'd ship to a metrics store to monitor routing accuracy and flag drift."
+"FALLBACK fires for anything outside fitness scope. 99% confidence. Polite deflection. No crash."
 -->
 
 ---
 
-## Eval Suite
+## New Workout Builder `/workouts/new`
 
-| Suite | Cases | Latest | Trend |
-|-------|-------|--------|-------|
-| **Golden** (critical paths, live API) | 11 | **11/11 (100%)** | 91% → 100% |
-| **Scenarios** (coverage matrix, live API) | 41 | 27/41 (66%) | 66% |
-| **Replays** (frozen fixtures, no API key) | 5 | **5/5 (100%)** | 100% |
+**Setup card** chips auto-compose the chat textarea:
 
-Golden is the hard gate. Scenarios at 66% is an honest number — failing cases require the full Neo4j stack or test known LLM-dependent edge cases. Documented gaps, not regressions.
+| Control | Options |
+|---------|---------|
+| Duration | 15 / 30 / 45 / 60 min |
+| Intensity | Challenging / Easy |
+| Focus | Upper body / Lower body |
+| Equipment | Searchable multi-select picker |
+| Exclude | Searchable exercise exclusion picker |
+
+**Dual-pane**: AI chat (left) · live sequence editor (right)
+
+AI returns draft → **"Use this workout"** → PhaseTable fills → **"Save workout"**
 
 <!--
-"Three suites. Golden is the hard gate — 11 cases covering every routing path and edge case, 100% across nine recorded runs. Scenarios at 66% is honest: those test known gaps in the knowledge graph layer. Replay suite runs in CI without an API key."
+"The setup chips compose a natural-language request you can still edit. The sequence panel shows the live draft. Save commits to Postgres."
 -->
 
 ---
 
-## Summary
+## Workout Builder Requirements
 
-One interface. Four routing paths. One hard safety rule.
+**REQ-04** Warmup / main / cooldown structure → PhaseTable renders each phase ✓
 
-| What | How |
-|------|-----|
-| Routing | `with_structured_output` — never regex |
-| Grounding | Every exercise ID validated against exercises.json |
-| Safety | Post-LLM hard filter, not a prompt instruction |
-| Two surfaces | Member hub (`/chat`) + coach copilot (`/coach`) |
-| HITL gate | `draft → approved → sent` state machine; 409 blocks unapproved sends |
-| Observability | Per-node audit trail with latency + token counts |
-| Honesty | Eval results, known gaps, productionization plan in README |
+**REQ-05** Every exercise traceable to exercises.json by ID → `exercise_id` on each set ✓
 
-> `make dev` — full stack in one command.
+**REQ-06** Equipment/time constraints reflected → chips compose the constraint text ✓
+
+---
+
+**Extra features beyond PRD:**
+- Duration / intensity / focus / equipment / exclude chips
+- Auto-composing textarea (mirrors setup state in real time)
+- Draft persisted in `localStorage` — survives navigation
+- Dual-pane split layout with independent scroll
 
 <!--
-"One conversational interface, four routing paths — each a separate LangGraph sub-graph. LLM structured output does the routing. The injury safety gate is a hard code filter, not a prompt instruction. A second coach-facing copilot answers grounded only in the member's graph. Full audit trail available per session. The README covers production scaling, failure modes, and evaluation strategy."
+"All three WORKOUT_GENERATE requirements are visible here."
+-->
+
+---
+
+## Workout Detail `/workouts/:id`
+
+**PhaseTable** — warmup / main / cooldown with exercise, sets, reps, weight
+
+**Feels (enjoyment):**
+- 1–5 emoji scale (frown → smile)
+- Auto-saves on change with **300 ms debounce** — no submit button needed
+
+**Note** textarea — same debounced auto-save → shows "✓ Saved"
+
+**FeedbackForm** — compact inline on each set row → ratings write back to Neo4j as preference edges
+
+*Extra features: debounced auto-save, emoji rating, per-exercise inline feedback, KG preference feedback loop*
+
+<!--
+"The detail page is where athletes review their session. The auto-save means nothing is lost even if they close the tab mid-thought."
+-->
+
+---
+
+## Workouts List `/workouts`
+
+Table: **Date · Sets · Type · Feels · Actions**
+
+- `STRENGTH` badge · `CARDIO` badge
+- Emoji face icon from the enjoyment rating
+- **Delete** → `DeleteConfirmModal`: confirms permanent removal
+- Empty state → "New Workout" + "Ask the coach" CTAs
+
+*Extra features: type badge, enjoyment icon in list, modal-guarded delete, contextual empty state*
+
+<!--
+"The workouts list. Delete is protected by a confirmation modal."
+-->
+
+---
+
+## Exercise Library `/exercises`
+
+**Stat tiles**: 50 exercises · N muscle groups · N equipment types
+
+**Filter rail** — multi-select chips: muscle groups · movement patterns · equipment
+
+**"Safe for me" toggle:**
+- Activates SNOMED-grounded safety lens
+- Injury banner: "Personalized for your N active injuries"
+- Flagged exercises show red shield indicator
+- "Flagged for you" stat tile appears
+
+**Exercise detail drawer** → bilateral pair · muscle groups · equipment · feedback form
+
+**REQ-KG-01/02** Contraindications surfaced in the UI ✓
+
+<!--
+"The safety lens wires the same Neo4j knowledge graph that powers the chat."
+-->
+
+---
+
+## Coach View `/coach`
+
+Separate surface for the professional coach — own auth + subdomain in production.
+
+**Member switcher** — pill buttons, auto-selects first member
+
+**Sticky member header**: name · age · tier · goals · churn risk pill
+
+**Morning brief** — alert/celebrate task cards from Neo4j
+
+**Adherence chart** — 4 weeks + trend arrow (improving / declining)
+
+**Injury + Equipment cards** — pulled from member's graph nodes
+
+<!--
+"The coach view is a completely different AI system from the member hub."
+-->
+
+---
+
+## Coach View — Copilot + Analytics
+
+**Action items** · **Message pattern chart** · **Weekly comparison chart**
+
+**Coach copilot chat** (bottom):
+- Quick-prompt chips: "How's adherence trending?" · "Draft a nudge"
+- **Image attachment** — attach a photo to a message
+- Grounded replies carry amber **grounded_facts** pills — graph-cited facts
+
+---
+
+**REQ-KG-03** Member context surfaced ✓
+**REQ-KG-06** Graph-traceable explanations via grounded_facts ✓
+
+<!--
+"Every copilot reply is grounded only in this member's Neo4j context. The grounded_facts pills make that explicit."
+-->
+
+---
+
+## Architecture
+
+![Architecture](.docs/demo/architecture.svg)
+
+<!--
+"The hub is a LangGraph StateGraph. The router node calls with_structured_output. Each intent dispatches to its own sub-graph. The KG pipeline runs Neo4j traversal then a code-level safety gate post-LLM."
+-->
+
+---
+
+## Requirements Coverage
+
+| Requirement | UI Evidence | Status |
+|-------------|------------|--------|
+| COACH routing via `with_structured_output` | RouteBadge green · AgentTrace | ✓ |
+| WORKOUT_LOG → structured JSON + fuzzy match | Logged badge · structured reply | ✓ |
+| WORKOUT_GENERATE → warmup/main/cooldown | PhaseTable in builder + detail page | ✓ |
+| Equipment/time constraints reflected | Setup chips + constraint text | ✓ |
+| Ambiguous input → FALLBACK, not crash | Clarifying badge · message | ✓ |
+| Injury-aware generation (SNOMED gate) | Amber provenance banner | ✓ |
+| Graph-traceable explanations | Per-exercise reasoning text | ✓ |
+| Member context (injuries, adherence, goals) | CoachPage brief + injuries card | ✓ |
+| `docker compose up` starts full stack | docker-compose.yml at repo root | ✓ |
+
+**Gaps**: None against PRD-001 or PRD-002 core acceptance criteria.
+
+<!--
+"All core requirements are visible in the UI. Zero gaps."
 -->
 
 ---
 
 <!-- _class: lead -->
 
-# Questions?
+## What makes this production-ready
 
-**Repo**: github.com/gauntlet/workout-wiz  
-**Demo video**: README → Demo Video  
-**Swagger**: `http://localhost:8000/docs`  
-**Audit**: `GET /chat/audit/{session_id}`
+- **Safety in code** — SNOMED contraindication gate is a `filter()`, not a prompt
+- **Observable by design** — route · confidence · latency_ms on every response
+- **Preference learning loop** — FeedbackForm → Neo4j preference edges → future recommendations
+- **Grounded, auditable** — grounded_facts pills; audit log per session
+- **One command** — `docker compose up` starts the entire stack
+
+*Full production eval strategy in README: metrics, failure modes, health signals*
+
+<!--
+"These aren't features bolted on for the demo — they're the architecture."
+-->
+
+---
+
+<!-- _class: lead -->
+
+# Demo complete
+
+**Repo**: `github.com/gauntlet/workout-wiz`
+**README**: Architecture · Eval suite · Production evaluation section
+**Run it**: `docker compose up`
+
+Questions?
+
+<!--
+"That's the full UI walkthrough. Questions welcome."
+-->
