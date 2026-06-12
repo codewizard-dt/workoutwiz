@@ -1,6 +1,8 @@
 """Pydantic schemas for the coach copilot endpoints."""
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -62,6 +64,26 @@ class CoachBriefResponse(BaseModel):
     weekly_comparison: list[WeeklyComparisonPoint]
 
 
+class ActionItem(BaseModel):
+    priority: str  # "high" | "medium" | "low"
+    member_id: str
+    member_name: str
+    reason: str
+    context: dict[str, Any]
+
+
+class NudgeRequest(BaseModel):
+    member_id: str
+    member_name: str
+    action_item: ActionItem
+
+
+class NudgeResponse(BaseModel):
+    draft_message: str
+    grounded_on: list[str]
+    draft_id: str | None = None
+
+
 class CoachChatRequest(BaseModel):
     message: str
     session_id: str | None = None
@@ -81,3 +103,20 @@ class CoachChatResponse(BaseModel):
     grounded_facts: list[str]
     session_id: str
     image: str | None = None
+
+
+class CoachDraftSchema(BaseModel):
+    id: str
+    member_id: str
+    member_name: str
+    content_type: str
+    body: str
+    grounded_on: list[str]
+    status: str
+    created_by: str | None
+    approved_by: str | None
+    approved_at: str | None
+    sent_at: str | None
+    created_at: str
+
+    model_config = {"from_attributes": True}

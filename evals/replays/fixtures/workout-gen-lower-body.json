@@ -2,7 +2,7 @@
   "recorded_at": "2026-06-06",
   "query": "Build me a lower body workout focused on glutes and hamstrings using barbells",
   "ground_truth": {
-    "expected_route": "KNOWLEDGE_GRAPH",
+    "expected_route": "WORKOUT_GENERATE_KG",
     "must_contain": ["sets", "reps", "deadlift"],
     "must_not_contain": ["I don't know", "excluded due to injury constraints"]
   },
@@ -10,14 +10,14 @@
     "_note": "stub — re-record against live API",
     "session_id": "00000000-0000-0000-0000-000000000002",
     "reply": "Here is your **Barbell Lower Body — Glutes & Hamstrings** workout:\n\n## Warm-Up\n1. **Romanian Deadlift** — 3 sets × 10 reps (light warm-up weight)\n\n## Main Phase\n2. **Barbell Hip Thrust** — 4 sets × 8–10 reps\n3. **Romanian Deadlift** — 4 sets × 8 reps\n4. **Barbell Good Morning** — 3 sets × 10 reps\n\n## Cooldown\n5. **Lying Hamstring Stretch** — 2 sets × 45 seconds per leg\n\nFocus on hip hinge mechanics and full hip extension at the top of each rep to maximise glute recruitment.",
-    "route": "KNOWLEDGE_GRAPH",
+    "route": "WORKOUT_GENERATE_KG",
     "confidence": 0.98,
     "audit_log": [
       {
         "event": "router",
         "model": "claude-haiku-4-5-20251001",
         "provider": "anthropic",
-        "route": "KNOWLEDGE_GRAPH",
+        "route": "WORKOUT_GENERATE_KG",
         "confidence": 0.98,
         "latency_ms": 0,
         "user_id": "00000000-0000-0000-0000-000000000000",

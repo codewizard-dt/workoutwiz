@@ -2,7 +2,7 @@
 
 **Audience**: Recruiting engineers / AI engineering assessors  
 **Duration**: 2–3 minutes  
-**Last updated**: 2026-06-08
+**Last updated**: 2026-06-11
 
 ---
 
@@ -149,7 +149,7 @@ flowchart LR
 
 ---
 
-### Step 3 — KNOWLEDGE_GRAPH workout generation + injury safety *(~40 s)*
+### Step 3 — KNOWLEDGE_GRAPH workout generation + injury safety *(~30 s)*
 
 **Prompt**: `I have a bad knee and a bad shoulder. Build me a workout that avoids aggravating either injury.`
 
@@ -173,13 +173,28 @@ flowchart LR
 
 ---
 
-### Step 5 — Coach Copilot (coach-facing) *(~35 s)*
+### Step 5 — Coach Copilot (coach-facing) *(~25 s)*
 
 **Action**: Navigate to `/coach`. Pick a member in the switcher, then click the **"How's adherence trending?"** quick-prompt.
 
-> "Now switch personas. This is the coach-facing copilot — a separate surface from the member chat. The morning brief is built live from Neo4j: churn risk, adherence trend, goals, injuries, message pattern. When I ask about adherence, the copilot answers using *only* this member's graph context — the system prompt forbids inventing data. See the grounded-facts pills under the reply: each one is a fact pulled straight from the graph, so the coach can trust it and repeat it to the member."
+> "Switch personas. This is the coach-facing copilot — separate from the member hub. The morning brief pulls from Neo4j: churn risk, adherence, goals, injuries. When I ask about adherence the copilot answers grounded *only* in this member's graph context. The grounded-facts pills you see are facts pulled from the graph — the coach can trust and repeat them."
 
-**Expected result**: Brief dashboard (churn risk badge, adherence bars, goals, injuries); chat reply citing the member's actual adherence numbers; `grounded_facts` pills rendered beneath the reply
+**Expected result**: Brief dashboard (churn risk badge, adherence bars, goals, injuries); chat reply citing actual adherence numbers; `grounded_facts` pills rendered beneath the reply
+
+---
+
+### Step 5b — HITL Draft Review *(~25 s)*
+
+**Action**: Still on `/coach`. Trigger a nudge via the nudge button for the selected member. The **Pending Drafts** panel should appear with the new draft at `status: draft`.
+
+1. Edit the body text (the "Save Edit" button appears).
+2. Save the edit — draft resets to `draft`.
+3. Click **Approve** — `status` flips to `approved`.
+4. Click **Send** — `status` becomes `sent` and the card disappears.
+
+> "Before any AI-generated nudge reaches a member, it goes through this HITL gate. The coach sees the draft body and the grounded-on facts that triggered it, can rewrite the text, and must explicitly approve before Send becomes active. Try to send without approving — the API returns 409. Editing an already-approved draft resets it to draft so re-approval is required. This state machine is enforced in the API, not just the UI."
+
+**Expected result**: Draft card cycles through `draft → approved → sent`; Send button disabled until approved; card disappears after sending; panel hidden when no pending drafts remain
 
 ---
 
@@ -198,7 +213,7 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 
 ### Wrap *(~15 s)*
 
-> "One conversational interface, four routing paths — each a separate LangGraph sub-graph. LLM structured output does the routing. The injury safety gate is code, not a prompt. A second coach-facing copilot answers grounded only in the member's graph. Full audit trail per session. The README covers production scaling, failure modes, and evaluation strategy."
+> "One conversational interface, four routing paths — each a separate LangGraph sub-graph. LLM structured output does the routing. The injury safety gate is code, not a prompt. A coach-facing copilot answers grounded only in the member's graph. And every AI nudge goes through a HITL gate enforced in the API. Full audit trail per session. The README covers production scaling, failure modes, and evaluation strategy."
 
 ---
 
@@ -209,12 +224,13 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 | Hook | 15 s |
 | Step 1 — COACH | 25 s |
 | Step 2 — WORKOUT_LOG | 25 s |
-| Step 3 — KNOWLEDGE_GRAPH | 40 s |
+| Step 3 — KNOWLEDGE_GRAPH | 30 s |
 | Step 4 — FALLBACK | 15 s |
-| Step 5 — Coach Copilot | 35 s |
+| Step 5 — Coach Copilot | 25 s |
+| Step 5b — HITL Draft Review | 25 s |
 | Step 6 — Audit | 20 s |
 | Wrap | 15 s |
-| **Total** | **~2 min 50 s** |
+| **Total** | **~2 min 55 s** |
 
 ---
 
@@ -224,6 +240,7 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 - **If Neo4j is down**: Skip Step 3; substitute "KNOWLEDGE_GRAPH is also implemented — the README shows a live trace with 21 exercises excluded via SNOMED traversal"
 - **If asked about the 66% scenario-suite pass rate**: Honest answer — those test cases require the full Neo4j stack or exercise the LLM-dependent no-results recovery path; they are documented known gaps, not regressions
 - **If asked about Assessment 2**: GraphRAG pipeline (retrieval sub-graph, vector similarity, SNOMED traversal, safety gate, preference feedback) is implemented; richer member-context ingestion (biomarkers, HRV) is the main gap
+- **If draft doesn't appear after nudge**: Nudge may not have Neo4j member context; use the smoke-test `curl` from task 110 to create a draft manually, then demo the approval flow in the UI
 
 ---
 
@@ -251,6 +268,7 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 | KG recommend | POST http://localhost:8000/kg/recommend |
 | KG explain | POST http://localhost:8000/kg/explain |
 | Coach brief / chat | GET /coach/brief · POST /coach/chat |
+| Coach drafts | GET /coach/draft · POST /coach/draft · PATCH /coach/draft/{id} |
 
 ---
 
@@ -272,6 +290,7 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 | REQ-12 | Preference feedback writeback | PRD-002 US-4 | **Covered** — FeedbackForm → POST /kg/feedback |
 | REQ-13 | Coach-facing copilot surfaces member context (injuries, adherence, goals) grounded in the graph | PRD-002 US-3 | **Covered** — Step 5 `/coach` brief + grounded chat |
 | REQ-14 | Copilot distinguishes graph-grounded facts from inferred context | PRD-002 US-3 AC-3 | **Covered** — `grounded_facts` pills + "answer from context ONLY" system prompt |
+| REQ-15 | AI-generated nudges require human approval before reaching a member (HITL gate) | Task 110/111 | **Covered** — `draft → approved → sent` state machine enforced in API (409 on unapproved send); Step 5b |
 
 **Gaps**: None against PRD-001 or PRD-002 core acceptance criteria.
 
@@ -282,3 +301,4 @@ curl http://localhost:8000/chat/audit/<SESSION_ID> | python3 -m json.tool
 - PhaseTable — warmup/main/cooldown structured table rendered in chat
 - `/kg/audit/{member_id}` — KG-layer audit log separate from hub audit
 - Eval suite (golden 11/11, scenarios 27/41, replays 5/5) with `make eval-stats` trend tracking
+- PendingDraftsPanel — in-UI draft review with edit / approve / send flow; polls every 10 s for new drafts

@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ChangeEvent } from 'react'
-import { PartyPopper, AlertTriangle, TrendingDown, TrendingUp, ImageIcon, X } from 'lucide-react'
+import { PartyPopper, AlertTriangle, TrendingDown, TrendingUp, ImageIcon, X, Info } from 'lucide-react'
 import { useCoachBrief } from '../hooks/useCoachBrief'
+import { useCoachActionItems } from '../hooks/useCoachActionItems'
+import { useCoachNudge } from '../hooks/useCoachNudge'
 import { useCoachChat } from '../hooks/useCoachChat'
 import { useCoachMembers } from '../hooks/useCoachMembers'
 import { ChatBubble } from '@/components/ChatBubble'
 import { TypingBubble } from '@/components/TypingBubble'
 import { MessagePatternChart } from '@/components/MessagePatternChart'
 import { WeeklyComparisonChart } from '@/components/WeeklyComparisonChart'
+import { useCoachDrafts } from '../hooks/useCoachDrafts'
+import { useCoachDraftActions } from '../hooks/useCoachDraftActions'
 
 const QUICK_PROMPTS = [
   'Show me the brief',
@@ -18,9 +22,9 @@ const QUICK_PROMPTS = [
 ] as const
 
 const CHURN_COLORS: Record<string, string> = {
-  elevated: 'var(--color-danger, #ef4444)',
-  moderate: 'var(--color-warning, #f59e0b)',
-  low: 'var(--color-success, #22c55e)',
+  elevated: 'var(--destructive)',
+  moderate: 'var(--accent)',
+  low: 'var(--success)',
 }
 
 // ── Adherence bar chart (pure CSS) ──────────────────────────────────────────
@@ -30,7 +34,7 @@ function AdherenceChart({ weeks }: { weeks: { week_of: string; pct: number }[] }
 
   const maxPct = 100
   const barColor = (pct: number) =>
-    pct >= 90 ? 'var(--ember-500, #f97316)' : pct >= 60 ? '#f59e0b' : '#ef4444'
+    pct >= 90 ? 'var(--success)' : pct >= 60 ? 'var(--accent)' : 'var(--destructive)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -77,6 +81,149 @@ function AdherenceChart({ weeks }: { weeks: { week_of: string; pct: number }[] }
 }
 
 // ── Main page ────────────────────────────────────────────────────────────────
+
+// ── Action Items card ────────────────────────────────────────────────────────
+
+function ActionItemsCard({
+  memberId,
+  memberName,
+  adherenceWeeks,
+  churnRisk,
+}: {
+  memberId: string
+  memberName: string
+  adherenceWeeks: import('../types').AdherenceWeek[]
+  churnRisk: import('../types').ChurnRisk
+}) {
+  const actionItems = useCoachActionItems(memberId, memberName, adherenceWeeks, churnRisk)
+  const { draftNudge, isLoading: nudgeLoading } = useCoachNudge()
+  const [nudgeDrafts, setNudgeDrafts] = useState<Record<number, string>>({})
+
+  if (actionItems.length === 0) return null
+
+  return (
+    <div style={{ background: 'color-mix(in srgb, var(--ember-500) 4%, var(--card))', border: '1px solid var(--ember-300)', borderLeft: '3px solid var(--ember-500)', borderRadius: '0.75rem', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+      <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ember-600)' }}>
+        Action Items
+      </div>
+      {actionItems.map((item, i) => (
+        <div key={i} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start', background: item.priority === 'high' ? 'color-mix(in srgb, var(--destructive) 8%, var(--card))' : 'var(--card)', border: item.priority === 'high' ? '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)' : '1px solid var(--border)', borderRadius: '0.5rem', padding: 'var(--space-3)' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: item.priority === 'high' ? 'var(--destructive)' : 'var(--muted-foreground)', marginBottom: '0.2rem' }}>
+              {item.priority}
+            </div>
+            <div style={{ fontSize: '0.85rem', lineHeight: 1.4 }}>{item.reason}</div>
+            {nudgeDrafts[i] && (
+              <div style={{ marginTop: 'var(--space-2)', fontSize: '0.85rem', background: 'var(--accent)', borderRadius: '0.375rem', padding: 'var(--space-2)', color: 'var(--accent-foreground)', lineHeight: 1.5 }}>
+                {nudgeDrafts[i]}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className="ww-btn ww-btn--sm ww-btn--ghost"
+            disabled={nudgeLoading}
+            onClick={() => {
+              void draftNudge(memberId, memberName, item).then(result => {
+                if (result) setNudgeDrafts(prev => ({ ...prev, [i]: result.draft_message }))
+              })
+            }}
+            style={{ flexShrink: 0, fontSize: '0.75rem' }}
+          >
+            Draft Nudge
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Pending Drafts panel ──────────────────────────────────────────────────────
+
+function PendingDraftsPanel({ memberId }: { memberId: string }) {
+  const { data: drafts, isLoading } = useCoachDrafts(memberId)
+  const { patchDraft, isLoading: actionLoading } = useCoachDraftActions()
+  const [editBodies, setEditBodies] = useState<Record<string, string>>({})
+
+  if (isLoading || !drafts || drafts.length === 0) return null
+
+  return (
+    <div style={{ background: 'color-mix(in srgb, var(--ember-500) 4%, var(--card))', border: '1px solid var(--ember-300)', borderLeft: '3px solid var(--ember-500)', borderRadius: '0.75rem', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+      <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ember-600)' }}>
+        Pending Drafts
+      </div>
+      {drafts.map((draft) => {
+        const currentBody = editBodies[draft.id] ?? draft.body
+        const isEdited = currentBody !== draft.body
+        const canSend = draft.status === 'approved' && !isEdited
+        return (
+          <div key={draft.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: 'var(--space-3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: draft.status === 'approved' ? 'var(--success)' : 'var(--muted-foreground)' }}>
+                {draft.status} · {draft.content_type}
+              </span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>
+                {new Date(draft.created_at).toLocaleTimeString()}
+              </span>
+            </div>
+            <textarea
+              className="ww-scroll"
+              style={{ width: '100%', minHeight: '4rem', borderRadius: '0.375rem', border: '1px solid var(--border)', background: 'var(--background)', padding: '0.5rem 0.75rem', fontSize: '0.85rem', fontFamily: 'inherit', color: 'inherit', resize: 'vertical' }}
+              value={currentBody}
+              onChange={(e) => { setEditBodies((prev) => ({ ...prev, [draft.id]: e.target.value })) }}
+            />
+            {draft.grounded_on.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
+                {draft.grounded_on.map((fact, i) => (
+                  <span key={i} className="ww-badge ww-badge--amber">{fact}</span>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+              {isEdited && (
+                <button
+                  type="button"
+                  className="ww-btn ww-btn--sm ww-btn--ghost"
+                  disabled={actionLoading}
+                  onClick={() => {
+                    void patchDraft(draft.id, 'edit', currentBody).then(() => {
+                      setEditBodies((prev) => {
+                        const { [draft.id]: _discarded, ...rest } = prev
+                        void _discarded
+                        return rest
+                      })
+                    })
+                  }}
+                >
+                  Save Edit
+                </button>
+              )}
+              {draft.status === 'draft' && !isEdited && (
+                <button
+                  type="button"
+                  className="ww-btn ww-btn--sm"
+                  disabled={actionLoading}
+                  onClick={() => { void patchDraft(draft.id, 'approve') }}
+                >
+                  Approve
+                </button>
+              )}
+              <button
+                type="button"
+                className="ww-btn ww-btn--sm ww-btn--gradient"
+                disabled={!canSend || actionLoading}
+                title={!canSend ? 'Draft must be approved before sending' : undefined}
+                onClick={() => { void patchDraft(draft.id, 'send') }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function CoachPage() {
   const { data: members } = useCoachMembers()
@@ -131,6 +278,7 @@ export default function CoachPage() {
 
   const churnLevel = brief?.churn_risk.level ?? 'unknown'
   const churnColor = CHURN_COLORS[churnLevel] ?? 'var(--muted-foreground)'
+  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   return (
     <div
@@ -140,11 +288,48 @@ export default function CoachPage() {
         flex: 1,
         padding: 'var(--space-5) var(--space-4)',
         gap: 'var(--space-5)',
-        maxWidth: '56rem',
-        margin: '0 auto',
+        maxWidth: '1100px',
         width: '100%',
+        margin: '0 auto',
       }}
     >
+      {/* ── Demo disclaimer banner ── */}
+      {!bannerDismissed && (
+        <div
+          style={{
+            background: 'var(--surface-sunken)',
+            border: '1px solid var(--border)',
+            borderLeft: '3px solid var(--amber-500)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 'var(--space-3) var(--space-4)',
+            display: 'flex',
+            gap: 'var(--space-3)',
+            alignItems: 'flex-start',
+          }}
+        >
+          <Info size={16} style={{ color: 'var(--amber-600)', flexShrink: 0, marginTop: '0.1rem' }} aria-hidden />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', color: 'var(--foreground)', marginBottom: '0.25rem' }}>
+              Demo mode — Coach View
+            </div>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)', margin: 0, lineHeight: 1.6 }}>
+              In production this surface lives on a separate subdomain with coach-specific authentication and role-based access.
+              It is a completely distinct AI system — its own knowledge graph, member context layer, and accountability engine —
+              with no shared state with the athlete-facing app.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="ww-btn ww-btn--ghost ww-iconbtn ww-btn--sm"
+            style={{ flexShrink: 0, color: 'var(--muted-foreground)' }}
+            aria-label="Dismiss"
+            onClick={() => { setBannerDismissed(true) }}
+          >
+            <X size={14} aria-hidden />
+          </button>
+        </div>
+      )}
+
       {/* ── Page header ── */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 'var(--space-3)', justifyContent: 'space-between' }}>
         <div>
@@ -209,6 +394,9 @@ export default function CoachPage() {
               flexWrap: 'wrap',
               gap: 'var(--space-4)',
               alignItems: 'flex-start',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
             }}
           >
             <div style={{ flex: 1, minWidth: '12rem' }}>
@@ -222,13 +410,7 @@ export default function CoachPage() {
                   .map((g: import('../types').GoalItem) => (
                     <span
                       key={g.id}
-                      style={{
-                        fontSize: '0.7rem',
-                        background: 'var(--accent)',
-                        color: 'var(--accent-foreground)',
-                        borderRadius: '999px',
-                        padding: '0.15rem 0.55rem',
-                      }}
+                      className="ww-badge ww-badge--amber"
                     >
                       {g.text}
                     </span>
@@ -329,11 +511,11 @@ export default function CoachPage() {
                   Trend:{' '}
                   {brief.adherence_weeks[brief.adherence_weeks.length - 1].pct <
                   brief.adherence_weeks[0].pct ? (
-                    <span style={{ color: '#ef4444', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ color: 'var(--destructive)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <TrendingDown size={14} aria-hidden /> declining
                     </span>
                   ) : (
-                    <span style={{ color: '#22c55e', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ color: 'var(--success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <TrendingUp size={14} aria-hidden /> improving
                     </span>
                   )}
@@ -341,6 +523,18 @@ export default function CoachPage() {
               )}
             </div>
           </div>
+
+          {/* ── Action Items ── */}
+          <ActionItemsCard
+            memberId={brief.member_id}
+            memberName={brief.member_name}
+            adherenceWeeks={brief.adherence_weeks}
+            churnRisk={brief.churn_risk}
+          />
+
+          {selectedMemberId !== null && (
+            <PendingDraftsPanel memberId={selectedMemberId} />
+          )}
 
           {/* ── Message pattern + 4-week comparison ── */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }} className="coach-grid">
@@ -381,7 +575,7 @@ export default function CoachPage() {
               }}
             >
               <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)' }}>
-                Last 4 Weeks
+                Workouts vs Messages
               </div>
               {brief.weekly_comparison.length >= 1 ? (
                 <WeeklyComparisonChart data={brief.weekly_comparison} />
@@ -494,7 +688,7 @@ export default function CoachPage() {
             flexDirection: 'column',
             gap: 'var(--space-2)',
             minHeight: '10rem',
-            maxHeight: '28rem',
+            maxHeight: 'clamp(20rem, 45vh, 32rem)',
             padding: '0.25rem 0',
           }}
         >
@@ -521,16 +715,7 @@ export default function CoachPage() {
                   }}
                 >
                   {msg.grounded_facts.map((fact: string, i: number) => (
-                    <span
-                      key={i}
-                      style={{
-                        fontSize: '0.65rem',
-                        background: 'var(--accent)',
-                        color: 'var(--accent-foreground)',
-                        borderRadius: '999px',
-                        padding: '0.1rem 0.45rem',
-                      }}
-                    >
+                    <span key={i} className="ww-badge ww-badge--amber">
                       {fact}
                     </span>
                   ))}

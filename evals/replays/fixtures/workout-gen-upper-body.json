@@ -2,7 +2,7 @@
   "recorded_at": "2026-06-06",
   "query": "Create a 30-minute upper body workout for me",
   "ground_truth": {
-    "expected_route": "KNOWLEDGE_GRAPH",
+    "expected_route": "WORKOUT_GENERATE_KG",
     "must_contain": [
       "sets",
       "reps",
@@ -16,14 +16,14 @@
   "response": {
     "session_id": "78bd1b5e-d3e5-4a7b-a4e6-3bd23ab2dd81",
     "reply": "Perfect! Here's your **30-Minute Upper Body Workout**:\n\n---\n\n## **Warm-Up Phase**\n1. **Dumbbell Neutral-Grip Bench Press**\n   - 3 sets × 10-12 reps\n   - Rest: 60 seconds between sets\n   - *Targets: Chest, triceps*\n\n2. **Band-Assisted Chin-Up (From Foot)**\n   - 3 sets × 10-12 reps\n   - Rest: 60 seconds between sets\n   - *Targets: Lats, middle back, biceps, upper back*\n\n---\n\n## **Main Phase**\n3. **Alternating Dumbbell Overhead Press**\n   - 3 sets × 10-12 reps\n   - Rest: 60 seconds between sets\n   - *Targets: Deltoids (shoulders), triceps*\n\n4. **Dumbbell Incline Chest Fly**\n   - 3 sets × 10-12 reps\n   - Rest: 60 seconds between sets\n   - *Targets: Chest*\n\n---\n\n## **Workout Summary**\n- **Total Exercises:** 4\n- **Total Sets:** 12\n- **Total Rest Time:** ~12 minutes\n- **Estimated Duration:** 28-30 minutes\n- **Focus:** Upper body strength with balanced push/pull movements\n\nThis workout provides excellent coverage of your chest, back, shoulders, and arms with a mix of pressing and pulling movements to build strength and muscle development!",
-    "route": "KNOWLEDGE_GRAPH",
+    "route": "WORKOUT_GENERATE_KG",
     "confidence": 0.98,
     "audit_log": [
       {
         "event": "router",
         "model": "claude-haiku-4-5-20251001",
         "provider": "anthropic",
-        "route": "KNOWLEDGE_GRAPH",
+        "route": "WORKOUT_GENERATE_KG",
         "confidence": 0.98,
         "latency_ms": 4756,
         "user_id": "e2fe5599-3ad0-450d-84c2-abf41d1e71a6",

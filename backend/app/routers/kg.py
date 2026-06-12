@@ -7,13 +7,14 @@ from typing import Any
 import neo4j
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import current_active_user
 from app.database import get_async_session
 from app.kg.driver import get_neo4j_driver
 from app.kg.explainability import explain_skipped_exercise
+from app.knowledge_graph.traversal import get_contraindicated_provenance
 from app.kg.feedback_service import write_feedback
 from app.kg.generation_graph import RecommendedExercise, build_generation_graph
 from app.kg.retrieval_graph import build_retrieval_graph
@@ -68,6 +69,29 @@ class KgAuditResponse(BaseModel):
     session_id: str
     audit_log: list[dict[str, Any]]
     total_entries: int
+
+
+class ContraindicationItem(BaseModel):
+    exercise_id: str
+    reason: str
+    confidence: float
+    injuries: list[str]
+
+
+class ContraindicationListResponse(BaseModel):
+    member_id: str
+    items: list[ContraindicationItem]
+
+
+class FeedbackSummaryItem(BaseModel):
+    exercise_id: str
+    avg_rating: float
+    count: int
+    last_rated_at: str | None = None
+
+
+class FeedbackSummaryResponse(BaseModel):
+    items: list[FeedbackSummaryItem]
 
 
 # ---------------------------------------------------------------------------
@@ -326,3 +350,130 @@ async def get_kg_audit(
         audit_log=audit_log,
         total_entries=len(audit_log),
     )
+
+
+
+async def _resolve_member_id(
+    driver: neo4j.AsyncDriver, member_id: str | None, email: str
+) -> str | None:
+    """Resolve a graph Member id from an explicit id or the caller's email."""
+    if member_id:
+        return member_id
+    async with driver.session() as session:
+        result = await session.run(
+            "MATCH (m:Member {email: $email}) RETURN m.id AS id", email=email
+        )
+        record = await result.single()
+    return record["id"] if record else None
+
+
+@router.get(
+    "/contraindications",
+    response_model=ContraindicationListResponse,
+    summary="List contraindicated exercises for a member",
+    description=(
+        "Return every exercise that is contraindicated for the member, each with a "
+        "graph-grounded reason (loaded joints + offending injuries) and a confidence "
+        "score. One round-trip for the whole catalog, powering the 'Safe for me' lens."
+    ),
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        500: {"model": ErrorResponse, "description": "Neo4j query error"},
+    },
+)
+async def kg_contraindications(
+    member_id: str | None = Query(
+        None, description="Member to evaluate; defaults to the authenticated user"
+    ),
+    user: User = Depends(current_active_user),
+    driver: neo4j.AsyncDriver = Depends(get_neo4j_driver),
+) -> ContraindicationListResponse:
+    """Aggregate SNOMED-grounded provenance into per-exercise contraindications."""
+    try:
+        resolved = await _resolve_member_id(driver, member_id, user.email)
+        if not resolved:
+            return ContraindicationListResponse(member_id="", items=[])
+
+        records = await get_contraindicated_provenance(resolved, driver)
+
+        by_exercise: dict[str, dict[str, set[str]]] = {}
+        for record in records:
+            exercise_id = record.get("exercise_id")
+            if not exercise_id:
+                continue
+            entry = by_exercise.setdefault(
+                exercise_id, {"injuries": set(), "joints": set()}
+            )
+            if record.get("injury_name"):
+                entry["injuries"].add(record["injury_name"])
+            if record.get("matched_joint"):
+                entry["joints"].add(record["matched_joint"])
+
+        items: list[ContraindicationItem] = []
+        for exercise_id, entry in by_exercise.items():
+            injuries = sorted(entry["injuries"])
+            joints = sorted(entry["joints"])
+            joint_part = f"loads {', '.join(joints)}; " if joints else ""
+            injury_part = (
+                f"contraindicated for {', '.join(injuries)}"
+                if injuries
+                else "contraindicated"
+            )
+            reason = f"{joint_part}{injury_part}".capitalize()
+            # Mirror explain_skipped_exercise scoring: 2-hop depth (0.5) + injury coverage.
+            coverage = min(max(len(injuries), 1), 4) / 4 * 0.5
+            confidence = min(1.0, 0.5 + coverage)
+            items.append(
+                ContraindicationItem(
+                    exercise_id=exercise_id,
+                    reason=reason,
+                    confidence=round(confidence, 3),
+                    injuries=injuries,
+                )
+            )
+
+        return ContraindicationListResponse(member_id=resolved, items=items)
+    except Exception as exc:
+        logger.exception("Error in /kg/contraindications for member %s", member_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/feedback/summary",
+    response_model=FeedbackSummaryResponse,
+    summary="Per-exercise feedback summary for the current member",
+    description=(
+        "Return the authenticated member's aggregated rating per exercise "
+        "(average rating, number of ratings, and most recent rating timestamp) "
+        "across all workouts, for surfacing 'you rated this' signals."
+    ),
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+    },
+)
+async def kg_feedback_summary(
+    user: User = Depends(current_active_user),
+    pg_session: AsyncSession = Depends(get_async_session),
+) -> FeedbackSummaryResponse:
+    """Aggregate exercise_feedback rows for the current user, grouped by exercise."""
+    stmt = (
+        select(
+            ExerciseFeedback.exercise_id,
+            func.avg(ExerciseFeedback.rating),
+            func.count(ExerciseFeedback.id),
+            func.max(ExerciseFeedback.created_at),
+        )
+        .where(ExerciseFeedback.user_id == user.id)
+        .group_by(ExerciseFeedback.exercise_id)
+    )
+    rows = (await pg_session.execute(stmt)).all()
+    items = [
+        FeedbackSummaryItem(
+            exercise_id=str(exercise_id),
+            avg_rating=round(float(avg_rating), 2),
+            count=int(count),
+            last_rated_at=last_rated.isoformat() if last_rated else None,
+        )
+        for exercise_id, avg_rating, count, last_rated in rows
+    ]
+    return FeedbackSummaryResponse(items=items)

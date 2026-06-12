@@ -17,10 +17,25 @@ interface Props {
 export function WeeklyComparisonChart({ data }: Props) {
   if (data.length < 1) return null
 
+  const maxWorkouts = Math.max(...data.map((d) => d.workouts_completed), 1)
+  const maxMessages = Math.max(...data.map((d) => d.messages_sent), 1)
+
   const formatted = data.map((d) => ({
     ...d,
-    week: d.week_of.slice(5), // MM-DD
+    week: d.week_of.slice(5),
+    workouts_norm: (d.workouts_completed / maxWorkouts) * 100,
+    messages_norm: (d.messages_sent / maxMessages) * 100,
   }))
+
+  const tooltipFormatter = (
+    value: number,
+    name: string,
+    props: { payload: typeof formatted[number] },
+  ) => {
+    if (name === 'Workouts') return [props.payload.workouts_completed, name]
+    if (name === 'Messages') return [props.payload.messages_sent, name]
+    return [Math.round(value), name]
+  }
 
   return (
     <ResponsiveContainer width="100%" height={180}>
@@ -33,12 +48,14 @@ export function WeeklyComparisonChart({ data }: Props) {
           tickLine={false}
         />
         <YAxis
+          domain={[0, 100]}
           allowDecimals={false}
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
           axisLine={false}
           tickLine={false}
         />
         <Tooltip
+          formatter={tooltipFormatter}
           contentStyle={{
             background: 'var(--card)',
             border: '1px solid var(--border)',
@@ -50,9 +67,8 @@ export function WeeklyComparisonChart({ data }: Props) {
         <Legend
           wrapperStyle={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}
         />
-        <Bar dataKey="adherence_pct" name="Adherence %" fill="var(--chart-1)" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="workouts_completed" name="Workouts" fill="var(--chart-3)" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="messages_sent" name="Messages" fill="var(--chart-5)" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="workouts_norm" name="Workouts" fill="var(--chart-3)" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="messages_norm" name="Messages" fill="var(--chart-5)" radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

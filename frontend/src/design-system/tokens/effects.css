@@ -1,46 +1,45 @@
 /* ============================================================
    Workout Wiz — Radii, Shadows, Motion
-   Soft rounded cards (shadcn --radius 0.625rem = 10px base),
-   warm-tinted shadows, snappy ease-out motion.
+   House-style 14px card radius, neutral-tinted shadows,
+   snappy ease-out motion.
    ============================================================ */
 
 :root {
   /* radii — derived from --radius like shadcn */
-  --radius: 0.625rem;                 /* 10px base */
-  --radius-sm: calc(var(--radius) - 4px);  /* 6 */
-  --radius-md: calc(var(--radius) - 2px);  /* 8 */
-  --radius-lg: var(--radius);              /* 10 */
-  --radius-xl: calc(var(--radius) + 4px);  /* 14 — cards */
-  --radius-2xl: calc(var(--radius) + 10px);/* 20 — hero / sheets */
-  --radius-full: 9999px;              /* pills, badges, avatars */
+  --radius: 0.875rem;                  /* 14px base — house-style card */
+  --radius-sm: calc(var(--radius) - 4px);   /* 10 */
+  --radius-md: calc(var(--radius) - 2px);   /* 12 */
+  --radius-lg: var(--radius);               /* 14 */
+  --radius-xl: calc(var(--radius) + 4px);   /* 18 */
+  --radius-2xl: calc(var(--radius) + 10px); /* 24 */
+  --radius-full: 9999px;               /* pills, badges, avatars */
 
-  /* shadows — warm-tinted (brown/amber cast, never neutral grey) */
-  --shadow-xs: 0 1px 2px oklch(0.38 0.05 42 / 0.10);
-  --shadow-sm: 0 1px 2px oklch(0.38 0.05 42 / 0.09),
-               0 2px 5px oklch(0.36 0.06 40 / 0.11);
-  --shadow-md: 0 2px 4px oklch(0.38 0.05 42 / 0.09),
-               0 8px 18px oklch(0.36 0.06 40 / 0.14);
-  --shadow-lg: 0 6px 12px oklch(0.38 0.05 42 / 0.11),
-               0 18px 38px oklch(0.34 0.07 38 / 0.18);
-  --shadow-xl: 0 10px 24px oklch(0.38 0.05 42 / 0.13),
-               0 32px 64px oklch(0.32 0.07 36 / 0.22);
+  /* shadows — neutral tints (house-style editorial) */
+  --shadow-xs: 0 1px 2px 0 rgb(16 17 26 / 0.04);
+  --shadow-sm: 0 1px 2px 0 rgb(16 17 26 / 0.04);
+  --shadow-md: 0 2px 4px -1px rgb(16 17 26 / 0.06),
+               0 8px 24px -6px rgb(16 17 26 / 0.08);
+  --shadow-lg: 0 18px 44px -14px rgb(10 11 18 / 0.34),
+               0 4px 12px -4px rgb(10 11 18 / 0.16);
+  --shadow-xl: 0 10px 24px -8px rgb(10 11 18 / 0.28),
+               0 32px 64px -16px rgb(10 11 18 / 0.24);
   /* ember glow — for primary CTAs & active timer rings */
   --shadow-ember: 0 6px 20px oklch(0.645 0.190 38 / 0.35);
   /* hairline ring used on cards instead of a hard border */
-  --ring-card: 0 0 0 1px oklch(0.40 0.03 45 / 0.10);
+  --ring-card: 0 0 0 1px rgb(16 17 26 / 0.04);
 
   /* motion */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);  /* @kind other */
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* @kind other */
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* @kind other */
-  --dur-fast: 120ms;  /* @kind other */
-  --dur-base: 180ms;  /* @kind other */
-  --dur-slow: 280ms;  /* @kind other */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 280ms;
 
   /* z-index scale */
-  --z-base: 0;     /* @kind other */
-  --z-sticky: 100; /* @kind other */
-  --z-overlay: 200;/* @kind other */
-  --z-modal: 300;  /* @kind other */
-  --z-toast: 400;  /* @kind other */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-overlay: 200;
+  --z-modal: 300;
+  --z-toast: 400;
 }

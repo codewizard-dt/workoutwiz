@@ -25,9 +25,9 @@ export function AgentTrace({ steps, defaultOpen = false }: AgentTraceProps) {
           userSelect: 'none',
         }}
       >
-        Agent trace
+        Show reasoning
         <span className="ww-num" style={{ opacity: 0.6 }}>
-          · {steps.length} step{steps.length !== 1 ? 's' : ''}
+          · {steps.length} agent{steps.length !== 1 ? 's' : ''}
         </span>
       </summary>
 

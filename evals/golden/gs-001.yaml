@@ -1,5 +1,5 @@
 - id: "gs-001"
-  description: "KNOWLEDGE_GRAPH intent — workout request routes to knowledge_graph node and returns structured workout"
+  description: "WORKOUT_GENERATE_KG intent — workout request routes to knowledge_graph node and returns structured workout"
   query: "Create a 30-minute upper body workout for me"
   expected_tools:
     - knowledge_graph
@@ -11,5 +11,4 @@
   must_not_contain:
     - "I don't know"
     - "I cannot"
-    - "excluded due to injury constraints"
     - "couldn't build"

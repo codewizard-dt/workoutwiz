@@ -206,6 +206,28 @@ This resists prompt-injection bypasses — a deliberate architectural choice.
 
 ---
 
+## HITL Gate — Human Review Before Sending
+
+Every AI-generated nudge must be approved before it reaches a member:
+
+```
+POST /coach/nudge → saves CoachDraft (status: draft)
+         ↓
+Coach edits body text in PendingDraftsPanel (grounded-on facts visible)
+         ↓
+Coach clicks Approve → status: approved
+         ↓
+Send becomes available → status: sent
+```
+
+Editing an approved draft **resets it to `draft`** — re-approval required. Attempting to send a `draft` returns **HTTP 409**. The state machine lives in the API, not just the UI.
+
+<!--
+"Before any AI nudge reaches a member, it goes through this HITL gate in the CoachPage. The coach sees the draft body and the grounded-on facts that triggered it, can rewrite the text, and must explicitly approve. Send is disabled until approved — and if you edit an approved draft, it drops back to draft so re-approval is mandatory. The 409 is enforced in the API, not just convention. This is responsible deployment of AI-generated content."
+-->
+
+---
+
 ## FALLBACK + Observability
 
 **Prompt**: *"What's the best recipe for banana bread?"*
@@ -261,6 +283,7 @@ One interface. Four routing paths. One hard safety rule.
 | Grounding | Every exercise ID validated against exercises.json |
 | Safety | Post-LLM hard filter, not a prompt instruction |
 | Two surfaces | Member hub (`/chat`) + coach copilot (`/coach`) |
+| HITL gate | `draft → approved → sent` state machine; 409 blocks unapproved sends |
 | Observability | Per-node audit trail with latency + token counts |
 | Honesty | Eval results, known gaps, productionization plan in README |
 

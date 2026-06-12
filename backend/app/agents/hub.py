@@ -18,12 +18,12 @@ from app.config import settings
 _ROUTER_SYSTEM_PROMPT = """You are a routing agent for a fitness coaching system.
 Classify the user's message into exactly one of these intents:
 
-- COACH: The user is asking a fitness *question* or wants advice, education, explanation, or motivation — but is NOT asking to generate a workout. Examples: "What muscles does a deadlift work?", "How many rest days do I need?", "Should I do cardio before or after lifting?", "who am i", "what's my name", "tell me about myself". COACH is for questions, not plans.
+- MEMBER_CONTEXT_KG: The user is asking a fitness *question* or wants advice, education, explanation, or motivation — but is NOT asking to generate a workout. Examples: "What muscles does a deadlift work?", "How many rest days do I need?", "Should I do cardio before or after lifting?", "who am i", "what's my name", "tell me about myself". COACH is for questions, not plans.
 - WORKOUT_LOG: The user is recording a workout they already completed (e.g. "I just did 3x10 squats at 100kg", "Log my run: 5km in 25 minutes", "I finished my chest day").
-- KNOWLEDGE_GRAPH: The user wants a workout or exercise selection *produced for them* — built, created, planned, generated, OR recommended based on their own profile/injuries. This route reads the member's personal knowledge graph (their injuries, history, equipment) and returns a personalized, injury-filtered list of exercises. Use it whenever the answer should be a tailored list of specific exercises. Examples: "Give me a 30-minute upper body workout", "Build me a push day", "I only have dumbbells, give me a full-body workout", "Create a leg day routine", "What should I do for my workout today?", "I have a bad knee, build me something safe", "Suggest exercises that won't aggravate my shoulder", "What exercises suit my injuries?", "What exercises are safe for me?", "Which exercises should I avoid given my injuries?". Any request whose best answer is a personalized list of exercises belongs here — even when it is phrased as a question.
+- WORKOUT_GENERATE_KG: The user wants a workout or exercise selection *produced for them* — built, created, planned, generated, OR recommended based on their own profile/injuries. This route reads the member's personal knowledge graph (their injuries, history, equipment) and returns a personalized, injury-filtered list of exercises. Use it whenever the answer should be a tailored list of specific exercises. Examples: "Give me a 30-minute upper body workout", "Build me a push day", "I only have dumbbells, give me a full-body workout", "Create a leg day routine", "What should I do for my workout today?", "I have a bad knee, build me something safe", "Suggest exercises that won't aggravate my shoulder", "What exercises suit my injuries?", "What exercises are safe for me?", "Which exercises should I avoid given my injuries?". Any request whose best answer is a personalized list of exercises belongs here — even when it is phrased as a question.
 - FALLBACK: The message is unclear, off-topic, or cannot be mapped to the above intents (e.g. "What's the capital of France?", "Tell me a joke").
 
-IMPORTANT: When in doubt between COACH and KNOWLEDGE_GRAPH, ask: would the best answer be a personalized list of specific exercises for *this* user? If yes — including injury-aware questions like "what exercises suit my injuries?" — always choose KNOWLEDGE_GRAPH. COACH is only for general fitness questions whose answer is explanation or advice, not a tailored exercise list. Never route an injury-aware exercise-suitability question to COACH or FALLBACK.
+IMPORTANT: When in doubt between MEMBER_CONTEXT_KG and WORKOUT_GENERATE_KG, ask: would the best answer be a personalized list of specific exercises for *this* user? If yes — including injury-aware questions like "what exercises suit my injuries?" — always choose WORKOUT_GENERATE_KG. COACH is only for general fitness questions whose answer is explanation or advice, not a tailored exercise list. Never route an injury-aware exercise-suitability question to COACH or FALLBACK.
 
 Return a confidence score (0.0–1.0). Use < 0.6 only when genuinely ambiguous.
 """
@@ -201,7 +201,7 @@ async def _knowledge_graph_node(state: AgentState) -> dict[str, Any]:
         "event": "kg_hub",
         "model": "n/a",
         "provider": "neo4j",
-        "intent": "KNOWLEDGE_GRAPH",
+        "intent": "WORKOUT_GENERATE_KG",
         "latency_ms": latency_ms,
         "user_id": state.get("user_id"),
         "tokens_in": tokens_in,
@@ -221,10 +221,10 @@ def _route_selector(state: AgentState) -> str:
     if rd is None or rd.confidence < 0.6:
         return "clarification"
     intent_to_node = {
-        Intent.COACH: "coach",
+        Intent.MEMBER_CONTEXT_KG: "coach",
         Intent.WORKOUT_LOG: "workout_log",
         Intent.FALLBACK: "clarification",
-        Intent.KNOWLEDGE_GRAPH: "knowledge_graph",
+        Intent.WORKOUT_GENERATE_KG: "knowledge_graph",
     }
     return intent_to_node.get(rd.intent, "clarification")
 

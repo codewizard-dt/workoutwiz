@@ -23,7 +23,7 @@ export function ChatBubble({ role, content, route, confidence, steps, image }: C
             <div
               style={{
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 gap: 'var(--space-2)',
                 flexWrap: 'wrap',
                 marginBottom: 'var(--space-2)',

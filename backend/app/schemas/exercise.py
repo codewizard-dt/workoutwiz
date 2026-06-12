@@ -58,3 +58,34 @@ class ExerciseRead(BaseModel):
         description="Optional longer description of the exercise",
         examples=["A compound lower-body movement targeting quadriceps and glutes."],
     )
+    joints_loaded: list[str] = Field(
+        default_factory=list,
+        description="Joints loaded by this exercise (used for injury-aware safety)",
+        examples=[["knee", "hip"]],
+    )
+    side: str | None = Field(
+        default=None,
+        description="Side for unilateral variants ('L'/'R'), if applicable",
+        examples=[None],
+    )
+    estimated_rep_duration: float | None = Field(
+        default=None,
+        description="Estimated seconds per repetition, if known",
+        examples=[3.0],
+    )
+
+
+class ExerciseFacetValue(BaseModel):
+    """A single facet value and the number of exercises carrying it."""
+
+    value: str = Field(description="The facet value", examples=["Quadriceps"])
+    count: int = Field(description="Number of exercises with this value", examples=[12])
+
+
+class ExerciseFacets(BaseModel):
+    """Distinct filterable values across the exercise catalog, with counts."""
+
+    muscle_groups: list[ExerciseFacetValue]
+    equipment: list[ExerciseFacetValue]
+    movement_patterns: list[ExerciseFacetValue]
+    categories: list[ExerciseFacetValue]

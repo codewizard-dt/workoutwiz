@@ -245,4 +245,90 @@ def test_create_neo4j_driver_returns_singleton():
 
 
 
+# ---------------------------------------------------------------------------
+# /kg/contraindications
+# ---------------------------------------------------------------------------
+
+
+def test_kg_contraindications_aggregates_provenance(override_auth):
+    """Provenance rows are aggregated per exercise into reason + confidence."""
+    provenance = [
+        {"exercise_id": "ex1", "injury_name": "knee injury", "matched_joint": "knee"},
+        {"exercise_id": "ex1", "injury_name": "knee injury", "matched_joint": "patella"},
+        {"exercise_id": "ex2", "injury_name": "shoulder injury", "matched_joint": "shoulder"},
+    ]
+    with (
+        patch(
+            "app.routers.kg._resolve_member_id",
+            new_callable=AsyncMock,
+            return_value="member-123",
+        ),
+        patch(
+            "app.routers.kg.get_contraindicated_provenance",
+            new_callable=AsyncMock,
+            return_value=provenance,
+        ),
+    ):
+        resp = client.get("/kg/contraindications")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["member_id"] == "member-123"
+    items = {i["exercise_id"]: i for i in data["items"]}
+    assert set(items) == {"ex1", "ex2"}
+    assert items["ex1"]["injuries"] == ["knee injury"]
+    assert "knee, patella" in items["ex1"]["reason"]
+    assert "knee injury" in items["ex1"]["reason"]
+    # 1 injury → depth 0.5 + coverage 0.125 = 0.625
+    assert items["ex1"]["confidence"] == pytest.approx(0.625)
+
+
+def test_kg_contraindications_empty_when_no_member(override_auth):
+    """No graph member resolved → empty result, not an error."""
+    with patch(
+        "app.routers.kg._resolve_member_id",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        resp = client.get("/kg/contraindications")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data == {"member_id": "", "items": []}
+
+
+# ---------------------------------------------------------------------------
+# /kg/feedback/summary
+# ---------------------------------------------------------------------------
+
+
+def test_kg_feedback_summary_aggregates(override_auth):
+    """Aggregated feedback rows map to avg_rating/count/last_rated_at."""
+    from datetime import datetime
+
+    from app.database import get_async_session
+
+    exercise_id = uuid.uuid4()
+    rated_at = datetime(2026, 6, 1, 12, 0, 0)
+    mock_result = MagicMock()
+    mock_result.all.return_value = [(exercise_id, 4.5, 2, rated_at)]
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    app.dependency_overrides[get_async_session] = lambda: mock_session
+    try:
+        resp = client.get("/kg/feedback/summary")
+    finally:
+        app.dependency_overrides.pop(get_async_session, None)
+
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert len(items) == 1
+    assert items[0]["exercise_id"] == str(exercise_id)
+    assert items[0]["avg_rating"] == 4.5
+    assert items[0]["count"] == 2
+    assert items[0]["last_rated_at"] == rated_at.isoformat()
+
+
+
 

@@ -1,5 +1,5 @@
 - id: "gs-004"
-  description: "KNOWLEDGE_GRAPH intent — knee injury routes to knowledge_graph node and returns a knee-aware recommendation"
+  description: "WORKOUT_GENERATE_KG intent — knee injury routes to knowledge_graph node and returns a knee-aware recommendation"
   query: "I have a bad knee. Can you build me a workout that avoids aggravating it?"
   expected_tools:
     - knowledge_graph

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link, useParams, useNavigate } from 'react-router-dom'
-import { useWorkout, useUpdateWorkout, useCreateWorkout } from '../hooks/useWorkouts'
+import { Link, useParams } from 'react-router-dom'
+import { useWorkout, useUpdateWorkout } from '../hooks/useWorkouts'
 import { useDraftWorkout } from '@/hooks/useDraftWorkout'
 import { useExercises } from '../hooks/useExercises'
 import { RatingWidget } from '@/components/RatingWidget'
@@ -10,7 +10,6 @@ import { useMe } from '@/hooks'
 
 export default function WorkoutDetailPage() {
   const { workoutId } = useParams<{ workoutId: string }>()
-  const navigate = useNavigate()
 
   const {
     data: workout,
@@ -21,12 +20,12 @@ export default function WorkoutDetailPage() {
 
   const { data: exercises = [] } = useExercises()
   const updateWorkout = useUpdateWorkout()
-  const createWorkout = useCreateWorkout()
   const { addExercise: addToDraft } = useDraftWorkout()
   const { data: user } = useMe()
 
   const [enjoyment, setEnjoyment] = useState<1 | 2 | 3 | 4 | 5>(3)
   const [note, setNote] = useState('')
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (workout) {
@@ -34,7 +33,7 @@ export default function WorkoutDetailPage() {
       if (workout.enjoyment) setEnjoyment(workout.enjoyment as 1 | 2 | 3 | 4 | 5)
       if (workout.note != null) setNote(workout.note)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workout?.id])
 
   // Debounced auto-save for enjoyment and note changes
@@ -43,10 +42,10 @@ export default function WorkoutDetailPage() {
     const timer = setTimeout(() => {
       // Metadata-only: never resend sequences/sets, or the backend would
       // delete+recreate every set (new PKs) and null out per-set feedback.
-      updateWorkout.mutate({
-        id: workout.id,
-        data: { enjoyment, note },
-      })
+      updateWorkout.mutate(
+        { id: workout.id, data: { enjoyment, note } },
+        { onSuccess: () => { setSaved(true); setTimeout(() => { setSaved(false) }, 2000) } },
+      )
     }, 300)
     return () => { clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -195,7 +194,9 @@ export default function WorkoutDetailPage() {
         display: 'flex',
         flexDirection: 'column',
         gap: 'var(--space-5)',
-        maxWidth: '960px',
+        maxWidth: '1100px',
+        width: '100%',
+        margin: '0 auto',
       }}
     >
       {/* Back navigation */}
@@ -232,38 +233,10 @@ export default function WorkoutDetailPage() {
             margin: 0,
           }}
         >
-          Workout Details
+          {workout.started_at
+            ? `Workout · ${new Date(workout.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+            : 'Workout Details'}
         </h1>
-        <button
-          type="button"
-          className="ww-btn ww-btn--gradient ww-btn--sm"
-          disabled={createWorkout.isPending}
-          onClick={() => {
-            createWorkout.mutate(
-              {
-                started_at: new Date().toISOString(),
-                sequences: workout.sequences.map((seq) => ({
-                  phase: seq.phase,
-                  position: seq.position,
-                  sets: seq.sets.map((s) => ({
-                    exercise_id: s.exercise_id,
-                    set_type: s.set_type,
-                    position: s.position,
-                    reps: s.reps,
-                    weight_kg: s.weight_kg,
-                    duration_s: s.duration_s,
-                    speed: s.speed,
-                    distance: s.distance,
-                    calories: s.calories,
-                  })),
-                })),
-              },
-              { onSuccess: (created) => { navigate(`/workouts/${created.id}`) } },
-            )
-          }}
-        >
-          Start from the beginning
-        </button>
       </div>
 
       {/* Metadata row */}
@@ -313,7 +286,14 @@ export default function WorkoutDetailPage() {
       {/* Enjoyment + Note card */}
       <div
         className="ww-card"
-        style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+        style={{
+          padding: 'var(--space-4)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-4)',
+          border: '1px solid var(--ember-200)',
+          boxShadow: 'var(--ring-card), var(--shadow-md), 0 6px 24px oklch(0.645 0.190 38 / 0.10)',
+        }}
       >
         {/* Enjoyment */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -323,7 +303,7 @@ export default function WorkoutDetailPage() {
               fontWeight: 'var(--weight-semibold)',
               textTransform: 'uppercase',
               letterSpacing: 'var(--tracking-caps)',
-              color: 'var(--muted-foreground)',
+              color: 'var(--ember-600)',
             }}
           >
             Feels
@@ -343,7 +323,7 @@ export default function WorkoutDetailPage() {
               fontWeight: 'var(--weight-semibold)',
               textTransform: 'uppercase',
               letterSpacing: 'var(--tracking-caps)',
-              color: 'var(--muted-foreground)',
+              color: 'var(--ember-600)',
             }}
           >
             Note
@@ -360,7 +340,7 @@ export default function WorkoutDetailPage() {
               border: '1px solid var(--border)',
               padding: 'var(--space-2) var(--space-3)',
               fontSize: 'var(--text-sm)',
-              background: 'var(--input)',
+              background: 'var(--surface-sunken)',
               color: 'var(--foreground)',
               fontFamily: 'inherit',
               lineHeight: 1.5,
@@ -370,6 +350,11 @@ export default function WorkoutDetailPage() {
             }}
           />
         </div>
+        {saved && (
+          <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--success)', animation: 'fadeIn 0.15s ease' }}>
+            ✓ Saved
+          </p>
+        )}
       </div>
 
       {/* Phase tables */}

@@ -19,7 +19,7 @@ export default function RegisterPage() {
         onSuccess: () => {
           login.mutate(
             { email, password },
-            { onSuccess: () => { navigate('/workouts'); } }
+            { onSuccess: () => { navigate('/chat'); } }
           )
         },
       }
@@ -95,7 +95,7 @@ export default function RegisterPage() {
                 marginBottom: 'var(--space-4)',
                 padding: 'var(--space-3)',
                 borderRadius: 'var(--radius-md)',
-                background: 'oklch(0.97 0.02 25)',
+                background: 'var(--danger-100)',
                 color: 'var(--destructive)',
                 fontSize: 'var(--text-sm)',
               }}

@@ -2,11 +2,35 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_async_session
 from app.models.exercise import Exercise
-from app.schemas.exercise import ExerciseRead
-from app.services.exercises import list_exercises
+from app.schemas.exercise import ExerciseRead, ExerciseFacets, ExerciseFacetValue
+from app.services.exercises import list_exercises, get_exercise_facets
 from app.schemas.errors import ErrorResponse
 
 router = APIRouter(prefix="/exercises", tags=["exercises"])
+
+
+@router.get(
+    "/facets",
+    response_model=ExerciseFacets,
+    summary="Exercise filter facets",
+    description=(
+        "Return distinct muscle groups, equipment, movement patterns, and "
+        "categories across the catalog, each with a count, for building filter UI."
+    ),
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated — valid JWT Bearer token required"},
+    },
+)
+async def get_facets(
+    session: AsyncSession = Depends(get_async_session),
+) -> ExerciseFacets:
+    data = await get_exercise_facets(session)
+    return ExerciseFacets(
+        muscle_groups=[ExerciseFacetValue(value=v, count=c) for v, c in data["muscle_groups"]],
+        equipment=[ExerciseFacetValue(value=v, count=c) for v, c in data["equipment"]],
+        movement_patterns=[ExerciseFacetValue(value=v, count=c) for v, c in data["movement_patterns"]],
+        categories=[ExerciseFacetValue(value=v, count=c) for v, c in data["categories"]],
+    )
 
 
 @router.get(

@@ -28,8 +28,8 @@ class ChatResponse(BaseModel):
     )
     route: str | None = Field(
         default=None,
-        description="Intent the router classified this message as (COACH, WORKOUT_LOG, KNOWLEDGE_GRAPH, FALLBACK)",
-        examples=["COACH"],
+        description="Intent the router classified this message as (MEMBER_CONTEXT_KG, WORKOUT_LOG, WORKOUT_GENERATE_KG, FALLBACK)",
+        examples=["MEMBER_CONTEXT_KG"],
     )
     confidence: float | None = Field(
         default=None,
@@ -47,5 +47,5 @@ class ChatResponse(BaseModel):
     )
     kg_result: dict[str, Any] | None = Field(
         default=None,
-        description="Raw knowledge graph recommendation returned by the KG pipeline (KNOWLEDGE_GRAPH route only)",
+        description="Raw knowledge graph recommendation returned by the KG pipeline (WORKOUT_GENERATE_KG route only)",
     )

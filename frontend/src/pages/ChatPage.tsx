@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, AlertTriangle } from 'lucide-react'
+import { ArrowRight, AlertTriangle, ShieldCheck, Zap, ClipboardList } from 'lucide-react'
 import { useChat } from '../hooks/useChat'
 import { useWorkouts } from '../hooks/useWorkouts'
 import { useMe } from '@/hooks'
@@ -12,13 +12,13 @@ import { cn } from '@/lib/utils'
 
 const PROMPT_CHIPS = [
   "What exercises suit my injuries?",
-  "30 min dumbbell workout",
-  "Log 3x10 bench at 185",
+  "Log 3x10 decline bench press at 185",
   "Bench press form tips",
+  "How do I improve my squat depth?",
 ] as const
 
 export default function ChatPage() {
-  const { messages, sendMessage, isLoading, error, clearMessages, sessionId } = useChat()
+  const { messages, sendMessage, isLoading, error, clearMessages } = useChat()
   const { data: workouts, isLoading: workoutsLoading } = useWorkouts()
   const { data: user } = useMe()
 
@@ -66,7 +66,6 @@ export default function ChatPage() {
       <div
         style={{
           padding: 'var(--space-4) var(--space-6) var(--space-3)',
-          borderBottom: '1px solid var(--border)',
           flexShrink: 0,
         }}
       >
@@ -89,7 +88,7 @@ export default function ChatPage() {
             marginBottom: 0,
           }}
         >
-          Ask questions, generate personalized workouts, log activity, or get injury-aware exercise recommendations.
+          Ask anything about fitness, log your sessions, or get injury-aware recommendations — I'll route each message to the right agent.
         </p>
       </div>
 
@@ -191,10 +190,163 @@ export default function ChatPage() {
             }}
           >
             {messages.length === 0 && !error && (
-              <ChatBubble
-                role="assistant"
-                content="What are we training today? Ask for a workout, log what you did, or get coaching — I'll route each message to the right agent."
-              />
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-4)',
+                  padding: 'var(--space-4) 0',
+                  animation: 'fadeIn 0.35s ease both',
+                }}
+              >
+                {/* Greeting */}
+                <div>
+                  <p className="ww-eyebrow" style={{ marginBottom: 'var(--space-2)' }}>AI Coach</p>
+                  <h2
+                    style={{
+                      fontSize: 'var(--text-2xl)',
+                      fontWeight: 'var(--weight-bold)',
+                      letterSpacing: '-0.01em',
+                      margin: 0,
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    Ask me anything about fitness, or tell me about your last workout
+                  </h2>
+                  <p
+                    style={{
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--muted-foreground)',
+                      marginTop: 'var(--space-2)',
+                      marginBottom: 0,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Form cues, programming questions, injury-aware recommendations — your coaching AI is ready.
+                  </p>
+                </div>
+
+                {/* Injury-aware capability highlight */}
+                <div
+                  style={{
+                    background: 'var(--warning-100)',
+                    border: '1px solid var(--amber-200)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: 'var(--space-3) var(--space-4)',
+                    display: 'flex',
+                    gap: 'var(--space-3)',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <ShieldCheck size={18} style={{ color: 'var(--amber-600)', flexShrink: 0, marginTop: '0.05rem' }} aria-hidden />
+                  <div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', color: 'var(--foreground)', marginBottom: '0.2rem' }}>
+                      Injury-aware recommendations
+                    </div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)', lineHeight: 1.55 }}>
+                      Every exercise recommendation is screened by a medical knowledge graph (SNOMED CT grounding). Contraindicated movements are blocked before they reach you.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Build a Workout — prominent animated CTA */}
+                <Link to="/workouts/new" style={{ textDecoration: 'none' }}>
+                  <div
+                    className="ww-card"
+                    style={{
+                      padding: 'var(--space-4) var(--space-5)',
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 'var(--space-4)',
+                      cursor: 'pointer',
+                      background: 'var(--foreground)',
+                      color: 'var(--background)',
+                      borderColor: 'transparent',
+                      transition: 'transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)',
+                      animation: 'riseIn 0.5s cubic-bezier(0.22,1,0.36,1) both',
+                      animationDelay: '0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      const el = e.currentTarget as HTMLDivElement
+                      el.style.transform = 'translateY(-2px)'
+                      el.style.boxShadow = 'var(--shadow-lg)'
+                    }}
+                    onMouseLeave={(e) => {
+                      const el = e.currentTarget as HTMLDivElement
+                      el.style.transform = ''
+                      el.style.boxShadow = ''
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-semibold)', marginBottom: '0.2rem' }}>
+                        Build a Workout
+                      </div>
+                      <div style={{ fontSize: 'var(--text-xs)', opacity: 0.65 }}>
+                        Tell the AI your goals, equipment, and time — get a complete plan in seconds.
+                      </div>
+                    </div>
+                    <ArrowRight size={22} style={{ flexShrink: 0, opacity: 0.75 }} aria-hidden />
+                  </div>
+                </Link>
+
+                {/* Secondary capabilities */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+                  <div
+                    style={{
+                      background: 'var(--surface-sunken)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-lg)',
+                      padding: 'var(--space-3)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-1-5)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--weight-medium)',
+                        color: 'var(--foreground)',
+                        marginBottom: '0.25rem',
+                      }}
+                    >
+                      <Zap size={14} aria-hidden />
+                      Multi-agent routing
+                    </div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)', lineHeight: 1.55 }}>
+                      Coaching, generation &amp; logging agents — with confidence on every reply.
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      background: 'var(--surface-sunken)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-lg)',
+                      padding: 'var(--space-3)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-1-5)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--weight-medium)',
+                        color: 'var(--foreground)',
+                        marginBottom: '0.25rem',
+                      }}
+                    >
+                      <ClipboardList size={14} aria-hidden />
+                      Conversational logging
+                    </div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--muted-foreground)', lineHeight: 1.55 }}>
+                      "3×10 bench at 185" → structured sets, fuzzy exercise match.
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {messages.map((msg) => (
@@ -206,7 +358,7 @@ export default function ChatPage() {
                   confidence={msg.role === 'assistant' ? msg.confidence : undefined}
                   steps={msg.role === 'assistant' ? msg.steps : undefined}
                 />
-                {msg.role === 'assistant' && msg.route === 'KNOWLEDGE_GRAPH' && msg.kg_result != null && (
+                {msg.role === 'assistant' && msg.route === 'WORKOUT_GENERATE_KG' && msg.kg_result != null && (
                   <div
                     className="ww-card"
                     style={{
@@ -216,6 +368,30 @@ export default function ChatPage() {
                       padding: 'var(--space-4)',
                     }}
                   >
+                    {/* Injury-screened provenance header */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-2)',
+                        padding: 'var(--space-2) var(--space-3)',
+                        background: 'var(--warning-100)',
+                        border: '1px solid var(--amber-200)',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: 'var(--text-xs)',
+                      }}
+                    >
+                      <ShieldCheck size={14} style={{ color: 'var(--amber-600)', flexShrink: 0 }} aria-hidden />
+                      <span>
+                        <span style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--foreground)' }}>
+                          Injury-screened
+                        </span>
+                        {' — '}
+                        <span style={{ color: 'var(--muted-foreground)' }}>
+                          Medical knowledge graph · SNOMED CT contraindication gate
+                        </span>
+                      </span>
+                    </div>
                     {msg.kg_result.fallback_used && (
                       <div
                         style={{
@@ -359,7 +535,7 @@ export default function ChatPage() {
             className="chat-composer-sticky"
             style={{
               borderTop: '1px solid var(--border)',
-              padding: 'var(--space-3) var(--space-4)',
+              padding: 'var(--space-3) var(--space-6)',
               flexShrink: 0,
               background: 'var(--background)',
             }}
@@ -400,10 +576,20 @@ export default function ChatPage() {
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
                   gap: 'var(--space-1)',
+                  alignItems: 'flex-end',
                 }}
               >
+                <button
+                  type="button"
+                  className="ww-btn ww-btn--ghost ww-btn--sm ww-iconbtn"
+                  style={{ visibility: messages.length > 0 ? 'visible' : 'hidden' }}
+                  onClick={clearMessages}
+                  aria-label="Clear conversation"
+                  title="Clear conversation"
+                >
+                  ✕
+                </button>
                 <button
                   type="button"
                   className={cn('ww-btn ww-btn--gradient ww-btn--sm')}
@@ -413,28 +599,10 @@ export default function ChatPage() {
                 >
                   {isLoading ? '…' : 'Send'}
                 </button>
-                {messages.length > 0 && (
-                  <button
-                    type="button"
-                    className="ww-btn ww-btn--ghost ww-btn--sm"
-                    onClick={clearMessages}
-                    aria-label="Clear conversation"
-                  >
-                    Clear
-                  </button>
-                )}
               </div>
             </div>
 
-            <p
-              style={{
-                fontSize: 'var(--text-xs)',
-                color: 'var(--muted-foreground)',
-                margin: 'var(--space-2) 0 0',
-              }}
-            >
-              Session: <span className="ww-num">{sessionId.slice(0, 8)}…</span>
-            </p>
+
           </div>
         </div>
 
@@ -488,6 +656,9 @@ export default function ChatPage() {
           <div
             style={{
               overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-2)',
             }}
           >
             {workoutsLoading && (

@@ -1,7 +1,7 @@
 # Tasks
 
-**Last task:** [104-chat-history-kg-retrieval](104-chat-history-kg-retrieval.md)
-**Next task number:** 105
+**Last task:** [112-hitl-approval-tests](completed/112-hitl-approval-tests.md)
+**Next task number:** 113
 
 ---
 
@@ -10,7 +10,6 @@
 | # | Task | Progress | Depends on | Blocks | Objective |
 |---|------|----------|------------|--------|-----------|
 | 071 | [feedback-submission-ui](071-feedback-submission-ui.md) | 5/5 ✓ | 065 | — | FeedbackForm component: star rating + text, POST /kg/feedback |
-| 084 | [test-source-type-population](084-test-source-type-population.md) | 0/5 | 079 | — | Write tests asserting every exercise in KG recommendation has source_type set to valid enum |
 
 ---
 

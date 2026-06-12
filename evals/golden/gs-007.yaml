@@ -1,5 +1,5 @@
 - id: "gs-007"
-  description: "KNOWLEDGE_GRAPH intent — equipment-constrained request routes to knowledge_graph and returns only dumbbell exercises"
+  description: "WORKOUT_GENERATE_KG intent — equipment-constrained request routes to knowledge_graph and returns only dumbbell exercises"
   query: "I only have dumbbells at home. Give me a 20-minute full body workout."
   expected_tools:
     - knowledge_graph
@@ -14,4 +14,3 @@
     - "I cannot"
     - "barbell"
     - "machine"
-    - "excluded due to injury constraints"

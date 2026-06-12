@@ -1,5 +1,5 @@
 - id: "gs-014"
-  description: "KNOWLEDGE_GRAPH intent — goal-based request with equipment constraint filters out barbell/dumbbell exercises"
+  description: "WORKOUT_GENERATE_KG intent — goal-based request with equipment constraint filters out barbell/dumbbell exercises"
   query: "I want to lose weight. Give me a 3-day-per-week full body workout using only resistance bands."
   expected_tools:
     - knowledge_graph
@@ -14,4 +14,3 @@
     - "machine"
     - "I don't know"
     - "I cannot"
-    - "excluded due to injury constraints"

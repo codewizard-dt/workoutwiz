@@ -27,7 +27,7 @@ _sessions: dict[str, dict[str, Any]] = {}
     summary="Send a chat message",
     description=(
         "Send a natural-language message to the fitness coaching multi-agent system. "
-        "The hub router classifies intent (COACH, WORKOUT_LOG, KNOWLEDGE_GRAPH, FALLBACK) "
+        "The hub router classifies intent (MEMBER_CONTEXT_KG, WORKOUT_LOG, WORKOUT_GENERATE_KG, FALLBACK) "
         "using structured LLM output and delegates to the appropriate sub-agent. "
         "Session history is preserved across calls via the returned session_id."
     ),

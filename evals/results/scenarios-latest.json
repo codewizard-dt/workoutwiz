@@ -1,21 +1,21 @@
 {
   "suite": "scenarios",
-  "started_at": "2026-06-06T22:57:18.624272+00:00",
-  "finished_at": "2026-06-06T23:01:15.186102+00:00",
-  "api_base": "http://localhost:8000",
+  "started_at": "2026-06-12T02:27:37.164565+00:00",
+  "finished_at": "2026-06-12T02:32:28.848432+00:00",
+  "api_base": "http://localhost:3000/api",
   "summary": {
-    "total": 41,
-    "passed": 27,
-    "failed": 14,
-    "pass_pct": 66,
+    "total": 43,
+    "passed": 28,
+    "failed": 15,
+    "pass_pct": 65,
     "matrix": {
       "coach": {
         "straightforward": [
-          2,
+          3,
           3
         ],
         "ambiguous": [
-          3,
+          2,
           3
         ],
         "edge_case": [
@@ -25,12 +25,12 @@
       },
       "fallback": {
         "straightforward": [
-          1,
+          2,
           3
         ],
         "ambiguous": [
-          1,
-          2
+          2,
+          3
         ],
         "edge_case": [
           1,
@@ -39,30 +39,16 @@
       },
       "knowledge_graph": {
         "straightforward": [
-          1,
-          3
-        ],
-        "ambiguous": [
-          1,
-          2
-        ],
-        "edge_case": [
-          1,
-          3
-        ]
-      },
-      "workout_gen": {
-        "straightforward": [
           3,
-          3
+          6
         ],
         "ambiguous": [
-          1,
-          3
+          3,
+          6
         ],
         "edge_case": [
           3,
-          3
+          6
         ]
       },
       "workout_log": {
@@ -100,17 +86,17 @@
       "id": "sc-coach-003",
       "category": "coach",
       "difficulty": "straightforward",
-      "passed": false,
-      "failures": [
-        "must_not_contain 'sets' present"
-      ]
+      "passed": true,
+      "failures": []
     },
     {
       "id": "sc-coach-004",
       "category": "coach",
       "difficulty": "ambiguous",
-      "passed": true,
-      "failures": []
+      "passed": false,
+      "failures": [
+        "tool 'coach' missing from audit_log"
+      ]
     },
     {
       "id": "sc-coach-005",
@@ -132,9 +118,7 @@
       "difficulty": "edge_case",
       "passed": false,
       "failures": [
-        "must_contain 'consult' absent",
-        "must_not_contain 'sets' present",
-        "must_not_contain 'reps' present"
+        "must_contain 'consult' absent"
       ]
     },
     {
@@ -150,17 +134,16 @@
       "difficulty": "edge_case",
       "passed": false,
       "failures": [
-        "must_contain 'consult' absent"
+        "tool 'coach' missing from audit_log",
+        "must_contain 'doctor' absent"
       ]
     },
     {
       "id": "sc-fb-001",
       "category": "fallback",
       "difficulty": "straightforward",
-      "passed": false,
-      "failures": [
-        "must_not_contain 'France' present"
-      ]
+      "passed": true,
+      "failures": []
     },
     {
       "id": "sc-fb-002",
@@ -203,6 +186,13 @@
       "failures": []
     },
     {
+      "id": "sc-fb-007",
+      "category": "fallback",
+      "difficulty": "ambiguous",
+      "passed": true,
+      "failures": []
+    },
+    {
       "id": "sc-kg-001",
       "category": "knowledge_graph",
       "difficulty": "straightforward",
@@ -222,10 +212,8 @@
       "id": "sc-kg-003",
       "category": "knowledge_graph",
       "difficulty": "straightforward",
-      "passed": false,
-      "failures": [
-        "must_contain 'excluded due to injury constraints' absent"
-      ]
+      "passed": true,
+      "failures": []
     },
     {
       "id": "sc-kg-004",
@@ -240,7 +228,6 @@
       "difficulty": "ambiguous",
       "passed": false,
       "failures": [
-        "tool 'knowledge_graph' missing from audit_log",
         "must_contain 'excluded due to injury constraints' absent"
       ]
     },
@@ -255,11 +242,8 @@
       "id": "sc-kg-007",
       "category": "knowledge_graph",
       "difficulty": "edge_case",
-      "passed": false,
-      "failures": [
-        "must_contain 'excluded due to injury constraints' absent",
-        "must_not_contain 'Error' present"
-      ]
+      "passed": true,
+      "failures": []
     },
     {
       "id": "sc-kg-008",
@@ -272,70 +256,84 @@
       ]
     },
     {
+      "id": "sc-kg-009",
+      "category": "knowledge_graph",
+      "difficulty": "ambiguous",
+      "passed": false,
+      "failures": [
+        "tool 'knowledge_graph' missing from audit_log"
+      ]
+    },
+    {
       "id": "sc-wg-001",
-      "category": "workout_gen",
+      "category": "knowledge_graph",
       "difficulty": "straightforward",
       "passed": true,
       "failures": []
     },
     {
       "id": "sc-wg-002",
-      "category": "workout_gen",
+      "category": "knowledge_graph",
       "difficulty": "straightforward",
-      "passed": true,
-      "failures": []
+      "passed": false,
+      "failures": [
+        "must_contain 'sets' absent"
+      ]
     },
     {
       "id": "sc-wg-003",
-      "category": "workout_gen",
+      "category": "knowledge_graph",
       "difficulty": "straightforward",
+      "passed": false,
+      "failures": [
+        "must_contain 'sets' absent"
+      ]
+    },
+    {
+      "id": "sc-wg-004",
+      "category": "knowledge_graph",
+      "difficulty": "ambiguous",
       "passed": true,
       "failures": []
     },
     {
-      "id": "sc-wg-004",
-      "category": "workout_gen",
+      "id": "sc-wg-005",
+      "category": "knowledge_graph",
+      "difficulty": "ambiguous",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "sc-wg-006",
+      "category": "knowledge_graph",
       "difficulty": "ambiguous",
       "passed": false,
       "failures": [
-        "tool 'workout_gen' missing from audit_log",
+        "must_contain 'sets' absent"
+      ]
+    },
+    {
+      "id": "sc-wg-007",
+      "category": "knowledge_graph",
+      "difficulty": "edge_case",
+      "passed": false,
+      "failures": [
         "must_contain 'sets' absent",
         "must_contain 'reps' absent"
       ]
     },
     {
-      "id": "sc-wg-005",
-      "category": "workout_gen",
-      "difficulty": "ambiguous",
+      "id": "sc-wg-008",
+      "category": "knowledge_graph",
+      "difficulty": "edge_case",
       "passed": false,
       "failures": [
-        "tool 'workout_gen' missing from audit_log"
+        "must_contain 'sets' absent"
       ]
     },
     {
-      "id": "sc-wg-006",
-      "category": "workout_gen",
-      "difficulty": "ambiguous",
-      "passed": true,
-      "failures": []
-    },
-    {
-      "id": "sc-wg-007",
-      "category": "workout_gen",
-      "difficulty": "edge_case",
-      "passed": true,
-      "failures": []
-    },
-    {
-      "id": "sc-wg-008",
-      "category": "workout_gen",
-      "difficulty": "edge_case",
-      "passed": true,
-      "failures": []
-    },
-    {
       "id": "sc-wg-009",
-      "category": "workout_gen",
+      "category": "knowledge_graph",
       "difficulty": "edge_case",
       "passed": true,
       "failures": []

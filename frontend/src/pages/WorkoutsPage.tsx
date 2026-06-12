@@ -7,7 +7,13 @@ import { Frown, Annoyed, Meh, Smile, Laugh, type LucideIcon } from 'lucide-react
 
 const FACE: Record<number, LucideIcon> = { 1: Frown, 2: Annoyed, 3: Meh, 4: Smile, 5: Laugh }
 // Sentiment scale: red (poor) → grey (neutral) → green (great)
-const FACE_COLOR: Record<number, string> = { 1: '#b91c1c', 2: '#82383f', 3: '#4b5563', 4: '#306a50', 5: '#15803d' }
+const FACE_COLOR: Record<number, string> = {
+  1: 'var(--danger-500)',
+  2: 'color-mix(in srgb, var(--danger-500) 60%, var(--muted-foreground))',
+  3: 'var(--muted-foreground)',
+  4: 'color-mix(in srgb, var(--success-500) 70%, var(--muted-foreground))',
+  5: 'var(--success-500)',
+}
 
 function dominantType(workout: Workout): 'STRENGTH' | 'CARDIO' | '—' {
   let strength = 0, cardio = 0
@@ -38,7 +44,8 @@ export default function WorkoutsPage() {
     <div
       style={{
         padding: 'var(--space-6) var(--space-4)',
-        maxWidth: 900,
+        maxWidth: 1100,
+        width: '100%',
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
@@ -81,7 +88,7 @@ export default function WorkoutsPage() {
           </p>
           <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link to="/workouts/new" style={{ textDecoration: 'none' }}>
-              <button type="button" className="ww-btn ww-btn--gradient">New workout</button>
+              <button type="button" className="ww-btn ww-btn--gradient">New Workout</button>
             </Link>
             <button
               type="button"
@@ -95,7 +102,7 @@ export default function WorkoutsPage() {
       )}
 
       {workouts && workouts.length > 0 && (
-        <div style={{ overflowX: 'auto' }}>
+        <div className="ww-responsive-table" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -127,13 +134,13 @@ export default function WorkoutsPage() {
                     key={w.id}
                     style={{ borderBottom: '1px solid var(--border)' }}
                   >
-                    <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>
-                      {new Date(w.started_at).toLocaleString()}
+                    <td data-label="Date" style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>
+                      {new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
-                    <td style={{ padding: 'var(--space-3)' }}>
+                    <td data-label="Sets" style={{ padding: 'var(--space-3)' }}>
                       <span className="ww-num">{totalSets}</span>
                     </td>
-                    <td style={{ padding: 'var(--space-3)' }}>
+                    <td data-label="Type" style={{ padding: 'var(--space-3)' }}>
                       {(() => {
                         const dt = dominantType(w)
                         if (dt === '—') return <span>—</span>
@@ -144,7 +151,7 @@ export default function WorkoutsPage() {
                         )
                       })()}
                     </td>
-                    <td style={{ padding: 'var(--space-3)' }}>
+                    <td data-label="Feels" style={{ padding: 'var(--space-3)' }}>
                       {w.enjoyment != null
                         ? (() => {
                             const Face = FACE[w.enjoyment]
@@ -152,7 +159,7 @@ export default function WorkoutsPage() {
                           })()
                         : '—'}
                     </td>
-                    <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
+                    <td data-label="" style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', alignItems: 'center' }}>
                         <Link
                           to={`/workouts/${w.id}`}
@@ -164,7 +171,7 @@ export default function WorkoutsPage() {
                         </Link>
                         <button
                           type="button"
-                          className="ww-btn ww-btn--destructive ww-btn--sm"
+                          className="ww-btn ww-btn--ghost ww-btn--destructive ww-btn--sm"
                           disabled={deleteWorkout.isPending}
                           onClick={() => { setDeleteTarget(w.id) }}
                         >

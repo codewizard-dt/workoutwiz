@@ -768,7 +768,16 @@ export default function WorkoutNewPage() {
                   Nothing yet — ask the coach to build a session.
                 </p>
               ) : (
-                <PhaseTable sequences={draftSequences} exercises={exercises ?? []} />
+                <PhaseTable
+                  sequences={draftSequences}
+                  exercises={exercises ?? []}
+                  onRemoveSet={(setId) => {
+                    const next = draftSequences
+                      .map((seq) => ({ ...seq, sets: seq.sets.filter((s) => s.id !== setId) }))
+                      .filter((seq) => seq.sets.length > 0)
+                    setDraftSequences(next)
+                  }}
+                />
               )}
             </div>
 

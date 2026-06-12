@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useMe } from '@/hooks'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, UserCheck } from 'lucide-react'
 import logoUrl from '@/assets/logo/logo-wordmark.svg'
 
 interface AppShellProps {
@@ -34,20 +34,25 @@ export function AppShell({ children }: AppShellProps) {
     ? me.email.split('@')[0].split('.')[0].replace(/^./, (c) => c.toUpperCase())
     : null
 
-  const [draftCount, setDraftCount] = useState(() => {
+  const countDraft = () => {
     try {
-      const d: unknown = JSON.parse(localStorage.getItem('ww_workout_draft') ?? '[]')
-      return Array.isArray(d) ? d.length : 0
+      // Primary draft (useDraftWorkout → WorkoutNewPage + PhaseTable)
+      type Seq = { sets?: unknown[] }
+      const seqs = JSON.parse(localStorage.getItem('ww_draft_sequences') ?? '[]') as Seq[]
+      const seqCount = Array.isArray(seqs)
+        ? seqs.reduce((n, s) => n + (Array.isArray(s.sets) ? s.sets.length : 0), 0)
+        : 0
+      if (seqCount > 0) return seqCount
+      // Fallback: flat draft (ExercisesPage modal)
+      const flat = JSON.parse(localStorage.getItem('ww_workout_draft') ?? '[]') as unknown[]
+      return Array.isArray(flat) ? flat.length : 0
     } catch { return 0 }
-  })
+  }
+
+  const [draftCount, setDraftCount] = useState(countDraft)
 
   useEffect(() => {
-    const refresh = () => {
-      try {
-        const d: unknown = JSON.parse(localStorage.getItem('ww_workout_draft') ?? '[]')
-        setDraftCount(Array.isArray(d) ? d.length : 0)
-      } catch { setDraftCount(0) }
-    }
+    const refresh = () => { setDraftCount(countDraft()) }
     window.addEventListener('storage', refresh)
     window.addEventListener('ww:draft-updated', refresh)
     return () => {
@@ -102,8 +107,8 @@ export function AppShell({ children }: AppShellProps) {
         >
           <img
             src={logoUrl}
-            alt="Workout Wiz"
-            style={{ height: '2rem' }}
+            alt="futurePro"
+            style={{ height: '1.25rem' }}
           />
         </Link>
 
@@ -117,21 +122,33 @@ export function AppShell({ children }: AppShellProps) {
           className="topnav-desktop"
         >
           {NAV_LINKS.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              style={{ textDecoration: 'none' }}
-            >
-              <button
-                type="button"
-                className={cn(
-                  'ww-btn ww-btn--ghost ww-btn--sm',
-                  isNavActive(link.to, location.pathname) && 'ww-btn--secondary',
-                )}
-              >
-                {link.label}
-              </button>
-            </Link>
+            <Fragment key={link.to}>
+              {link.to === '/coach' && (
+                <span
+                  style={{ width: '1px', height: '1.25rem', background: 'var(--border)', flexShrink: 0, margin: '0 var(--space-1)' }}
+                  aria-hidden
+                />
+              )}
+              <Link to={link.to} style={{ textDecoration: 'none' }}>
+                <button
+                  type="button"
+                  className={cn(
+                    link.to === '/coach'
+                      ? 'ww-btn ww-btn--outline ww-btn--sm'
+                      : 'ww-btn ww-btn--ghost ww-btn--sm',
+                    isNavActive(link.to, location.pathname) && 'ww-btn--secondary',
+                  )}
+                  style={link.to === '/coach' ? { color: 'var(--amber-600)', borderColor: 'var(--amber-200)' } : undefined}
+                >
+                  {link.to === '/coach' ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <UserCheck size={13} aria-hidden />
+                      {link.label}
+                    </span>
+                  ) : link.label}
+                </button>
+              </Link>
+            </Fragment>
           ))}
         </nav>
 
@@ -147,14 +164,19 @@ export function AppShell({ children }: AppShellProps) {
             </span>
           )}
           <Link to="/workouts/new" style={{ textDecoration: 'none' }} className="topnav-desktop">
-            <button type="button" className="ww-btn ww-btn--gradient ww-btn--sm">
+            <button type="button" className="ww-btn ww-btn--gradient ww-btn--sm ww-btn--shimmer">
               {draftCount > 0 ? `Current Workout (${draftCount})` : 'Start New Workout'}
             </button>
           </Link>
 
+          <span
+            style={{ width: '1px', height: '1.25rem', background: 'var(--border)', flexShrink: 0 }}
+            aria-hidden
+          />
           <button
             type="button"
             className="ww-btn ww-btn--ghost ww-btn--sm"
+            style={{ opacity: 0.65, fontSize: 'var(--text-xs)' }}
             onClick={handleLogout}
             aria-label="Log out"
           >

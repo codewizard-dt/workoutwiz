@@ -20,6 +20,46 @@ export interface Exercise {
   bilateral_pair_id: string | null
   priority_tier: number
   description: string | null
+  joints_loaded: string[]
+  side: string | null
+  estimated_rep_duration: number | null
+}
+
+// ── Exercise explorer types ─────────────────────────────────────────────────
+
+export interface ExerciseFacetValue {
+  value: string
+  count: number
+}
+
+export interface ExerciseFacets {
+  muscle_groups: ExerciseFacetValue[]
+  equipment: ExerciseFacetValue[]
+  movement_patterns: ExerciseFacetValue[]
+  categories: ExerciseFacetValue[]
+}
+
+export interface Contraindication {
+  exercise_id: string
+  reason: string
+  confidence: number
+  injuries: string[]
+}
+
+export interface ContraindicationListResponse {
+  member_id: string
+  items: Contraindication[]
+}
+
+export interface FeedbackSummaryItem {
+  exercise_id: string
+  avg_rating: number
+  count: number
+  last_rated_at: string | null
+}
+
+export interface FeedbackSummaryResponse {
+  items: FeedbackSummaryItem[]
 }
 
 export type WorkoutPhase = 'warmup' | 'main' | 'cooldown'
@@ -35,6 +75,21 @@ export interface WorkoutSetCreate {
   speed?: number | null
   distance?: number | null
   calories?: number | null
+}
+
+export interface CoachDraftSchema {
+  id: string
+  member_id: string
+  member_name: string
+  content_type: string
+  body: string
+  grounded_on: string[]
+  status: 'draft' | 'approved' | 'sent'
+  created_by: string | null
+  approved_by: string | null
+  approved_at: string | null
+  sent_at: string | null
+  created_at: string
 }
 
 export interface AgentStep {
@@ -182,6 +237,25 @@ export interface CoachBriefResponse {
   equipment: string[]
   message_pattern: MessagePatternPoint[]
   weekly_comparison: WeeklyComparisonPoint[]
+}
+
+export interface ActionItem {
+  priority: 'high' | 'medium' | 'low'
+  member_id: string
+  member_name: string
+  reason: string
+  context: Record<string, unknown>
+}
+
+export interface NudgeRequest {
+  member_id: string
+  member_name: string
+  action_item: ActionItem
+}
+
+export interface NudgeResponse {
+  draft_message: string
+  grounded_on: string[]
 }
 
 export interface CoachChatMessage {

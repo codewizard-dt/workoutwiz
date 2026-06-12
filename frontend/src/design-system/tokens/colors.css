@@ -1,76 +1,73 @@
 /* ============================================================
-   Workout Wiz — Color Tokens
-   Warm "ember" palette: flame orange + amber gold over warm
-   sand/stone neutrals. Built on the shadcn/ui token contract
-   (semantic aliases) so primitives map 1:1 to the product.
-   All values in oklch.
+   Future — Color Tokens
+   Future.co brand palette: pure white canvas, near-black ink,
+   cool neutral grays. Ember preserved for workout energy CTAs.
    ============================================================ */
 
 :root {
-  /* ---- Ember (primary / flame) ---- */
+  /* ---- Ember (workout energy / gradient CTAs) ---- */
   --ember-50:  oklch(0.971 0.014 52);
   --ember-100: oklch(0.940 0.032 50);
   --ember-200: oklch(0.882 0.064 46);
   --ember-300: oklch(0.806 0.105 43);
   --ember-400: oklch(0.722 0.150 40);
-  --ember-500: oklch(0.645 0.190 38);   /* brand ember */
-  --ember-600: oklch(0.585 0.193 36);   /* hover / pressed */
+  --ember-500: oklch(0.645 0.190 38);
+  --ember-600: oklch(0.585 0.193 36);
   --ember-700: oklch(0.505 0.168 34);
   --ember-800: oklch(0.420 0.135 33);
   --ember-900: oklch(0.345 0.105 32);
 
-  /* ---- Amber (secondary accent / energy) ---- */
+  /* ---- Amber (secondary energy) ---- */
   --amber-50:  oklch(0.980 0.018 88);
   --amber-100: oklch(0.957 0.040 86);
   --amber-200: oklch(0.915 0.080 84);
   --amber-300: oklch(0.870 0.118 82);
   --amber-400: oklch(0.825 0.150 78);
-  --amber-500: oklch(0.785 0.160 72);    /* gold accent */
+  --amber-500: oklch(0.785 0.160 72);
   --amber-600: oklch(0.720 0.158 64);
   --amber-700: oklch(0.620 0.140 56);
 
-  /* ---- Warm neutrals (sand / stone) ---- */
-  --stone-0:   oklch(1 0 0);
-  --stone-50:  oklch(0.988 0.004 70);
-  --stone-100: oklch(0.972 0.006 68);
-  --stone-150: oklch(0.955 0.008 66);
-  --stone-200: oklch(0.928 0.009 64);
-  --stone-300: oklch(0.882 0.010 62);
-  --stone-400: oklch(0.760 0.012 58);
-  --stone-500: oklch(0.605 0.014 52);
-  --stone-600: oklch(0.475 0.014 48);
-  --stone-700: oklch(0.372 0.012 46);
-  --stone-800: oklch(0.278 0.010 44);
-  --stone-900: oklch(0.205 0.008 44);
-  --stone-950: oklch(0.155 0.007 42);
+  /* ---- Future.co neutrals (extracted from future.co) ---- */
+  --stone-0:   #ffffff;
+  --stone-50:  #ffffff;   /* Future bg: pure white */
+  --stone-100: #f5f6f6;   /* Future surface */
+  --stone-150: #f0f0f0;   /* Future surface-2 */
+  --stone-200: #d6d7d7;   /* Future border */
+  --stone-300: #c0c1c2;   /* border-strong */
+  --stone-400: #b6b7b8;   /* Future muted-2 */
+  --stone-500: #767778;   /* Future muted */
+  --stone-600: #565759;
+  --stone-700: #272a2b;   /* Future ink-2 */
+  --stone-800: #1c2127;   /* Future ink (primary text) */
+  --stone-900: #1c2127;   /* foreground */
+  --stone-950: #010703;   /* Future coal / near-black */
 
-  /* ---- Semantic status (warm-biased, no green) ---- */
-  --success-500: oklch(0.715 0.150 80);   /* honey gold = "logged / done" */
+  /* ---- Semantic status ---- */
+  --success-500: oklch(0.715 0.150 80);
   --success-100: oklch(0.952 0.045 84);
-  --warning-500: oklch(0.800 0.150 75);   /* amber */
+  --warning-500: oklch(0.800 0.150 75);
   --warning-100: oklch(0.960 0.050 82);
-  --danger-500:  oklch(0.585 0.218 27);   /* warm red */
+  --danger-500:  oklch(0.585 0.218 27);
   --danger-100:  oklch(0.945 0.035 30);
-  --info-500:    oklch(0.620 0.075 50);   /* clay */
+  --info-500:    oklch(0.620 0.075 50);
   --info-100:    oklch(0.945 0.020 56);
 
   /* ============================================================
-     Semantic aliases — the shadcn/ui contract.
-     Light theme (default).
+     Semantic aliases — light theme
      ============================================================ */
-  --background: var(--stone-50);
-  --foreground: var(--stone-900);
+  --background: var(--stone-50);    /* #ffffff */
+  --foreground: var(--stone-900);   /* #1c2127 */
 
   --card: var(--stone-0);
   --card-foreground: var(--stone-900);
   --popover: var(--stone-0);
   --popover-foreground: var(--stone-900);
 
-  --primary: var(--ember-500);
-  --primary-foreground: oklch(0.995 0.004 80);
-  --primary-hover: var(--ember-600);
+  --primary: var(--stone-800);            /* Future dark button */
+  --primary-foreground: var(--stone-0);
+  --primary-hover: var(--stone-950);      /* #010703 on hover */
 
-  --secondary: var(--stone-150);
+  --secondary: var(--stone-100);
   --secondary-foreground: var(--stone-800);
 
   --muted: var(--stone-100);
@@ -80,7 +77,7 @@
   --accent-foreground: var(--stone-950);
 
   --destructive: var(--danger-500);
-  --destructive-foreground: oklch(0.995 0.004 80);
+  --destructive-foreground: var(--stone-0);
 
   --success: var(--success-500);
   --warning: var(--warning-500);
@@ -88,8 +85,8 @@
 
   --border: var(--stone-200);
   --border-strong: var(--stone-300);
-  --input: var(--stone-300);
-  --ring: var(--ember-500);
+  --input: var(--stone-200);
+  --ring: var(--stone-800);               /* Future dark focus ring */
 
   /* surfaces */
   --surface-page: var(--stone-50);
@@ -97,56 +94,74 @@
   --surface-sunken: var(--stone-100);
   --surface-inverse: var(--stone-950);
 
-  /* signature flame gradient (logo, hero, primary CTAs at large scale) */
+  /* gradients — ember retained for workout energy CTAs */
   --gradient-ember: linear-gradient(135deg, var(--amber-500) 0%, var(--ember-500) 52%, var(--ember-700) 100%);
   --gradient-ember-soft: linear-gradient(135deg, var(--amber-100) 0%, var(--ember-100) 100%);
-  --gradient-coal: linear-gradient(165deg, oklch(0.255 0.012 40) 0%, oklch(0.165 0.008 36) 100%); /* @kind color */
+  --gradient-coal: linear-gradient(165deg, #010703 0%, #0d1014 100%);
 
-  /* charts (warm ramp) */
-  --chart-1: var(--ember-500);
-  --chart-2: var(--amber-500);
-  --chart-3: var(--ember-700);
-  --chart-4: var(--amber-700);
+  /* charts */
+  --chart-1: var(--stone-800);
+  --chart-2: var(--stone-600);
+  --chart-3: var(--ember-500);
+  --chart-4: var(--amber-500);
   --chart-5: var(--stone-400);
+
+  /* house-style / Future named aliases (used by Tailwind preset) */
+  --canvas:  var(--stone-50);
+  --surface: var(--stone-100);
+  --paper:   var(--stone-0);
+  --ink:     var(--stone-900);
+  --ink-2:   var(--stone-700);
+  --muted-2: var(--stone-400);
+  --line:    var(--stone-200);
+  --line-2:  var(--stone-300);
 }
 
 /* ============================================================
-   Dark theme — "coal & ember". Used in active-workout / focus
-   surfaces and anywhere data-theme="dark" or .dark is set.
+   Dark theme — coal mode
    ============================================================ */
 .dark,
 [data-theme="dark"] {
   --background: var(--stone-950);
-  --foreground: var(--stone-100);
+  --foreground: #f5f6f6;
 
-  --card: oklch(0.225 0.010 42);
-  --card-foreground: var(--stone-100);
-  --popover: oklch(0.225 0.010 42);
-  --popover-foreground: var(--stone-100);
+  --card: #0d1014;
+  --card-foreground: #f5f6f6;
+  --popover: #0d1014;
+  --popover-foreground: #f5f6f6;
 
-  --primary: var(--ember-500);
-  --primary-foreground: oklch(0.995 0.004 80);
-  --primary-hover: var(--ember-400);
+  --primary: #f5f6f6;
+  --primary-foreground: var(--stone-950);
+  --primary-hover: #ffffff;
 
-  --secondary: oklch(0.285 0.012 42);
-  --secondary-foreground: var(--stone-100);
+  --secondary: #1c2127;
+  --secondary-foreground: #f5f6f6;
 
-  --muted: oklch(0.265 0.010 42);
+  --muted: #1c2127;
   --muted-foreground: var(--stone-400);
 
   --accent: var(--amber-500);
   --accent-foreground: var(--stone-950);
 
   --destructive: oklch(0.640 0.200 28);
-  --destructive-foreground: oklch(0.995 0.004 80);
+  --destructive-foreground: #ffffff;
 
   --border: oklch(1 0 0 / 10%);
   --border-strong: oklch(1 0 0 / 16%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: var(--ember-500);
+  --input: oklch(1 0 0 / 12%);
+  --ring: #f5f6f6;
 
   --surface-page: var(--stone-950);
-  --surface-card: oklch(0.225 0.010 42);
-  --surface-sunken: oklch(0.180 0.008 40);
-  --surface-inverse: var(--stone-50);
+  --surface-card: #0d1014;
+  --surface-sunken: #080c0e;
+  --surface-inverse: #f5f6f6;
+
+  --canvas:  var(--stone-950);
+  --surface: #0d1014;
+  --paper:   #0d1014;
+  --ink:     #f5f6f6;
+  --ink-2:   #d6d7d7;
+  --muted-2: var(--stone-500);
+  --line:    oklch(1 0 0 / 10%);
+  --line-2:  oklch(1 0 0 / 6%);
 }

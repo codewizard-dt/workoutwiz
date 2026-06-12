@@ -1,13 +1,13 @@
 {
   "suite": "golden",
-  "started_at": "2026-06-07T00:27:04.918336+00:00",
-  "finished_at": "2026-06-07T00:28:37.381735+00:00",
-  "api_base": "http://localhost:8000",
+  "started_at": "2026-06-12T02:25:24.193916+00:00",
+  "finished_at": "2026-06-12T02:27:25.337551+00:00",
+  "api_base": "http://localhost:3000/api",
   "summary": {
-    "total": 15,
-    "passed": 14,
-    "failed": 1,
-    "pass_pct": 93
+    "total": 18,
+    "passed": 15,
+    "failed": 3,
+    "pass_pct": 83
   },
   "cases": [
     {
@@ -42,8 +42,10 @@
     },
     {
       "id": "gs-007",
-      "passed": true,
-      "failures": []
+      "passed": false,
+      "failures": [
+        "must_contain 'sets' not found in reply"
+      ]
     },
     {
       "id": "gs-008",
@@ -77,8 +79,11 @@
     },
     {
       "id": "gs-014",
-      "passed": true,
-      "failures": []
+      "passed": false,
+      "failures": [
+        "must_contain 'sets' not found in reply",
+        "must_contain 'reps' not found in reply"
+      ]
     },
     {
       "id": "gs-015",
@@ -86,6 +91,21 @@
       "failures": [
         "expected_tool 'fallback' not in audit_log events: ['coach', 'router']"
       ]
+    },
+    {
+      "id": "gs-016",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "gs-017",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "gs-018",
+      "passed": true,
+      "failures": []
     }
   ]
 }

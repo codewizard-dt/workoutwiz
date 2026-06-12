@@ -79,6 +79,15 @@ The hub routes natural-language input to the appropriate sub-agent using LLM str
 | `KNOWLEDGE_GRAPH` | "Build a workout that avoids aggravating my knee injury" |
 | `FALLBACK` | "What's the capital of France?" |
 
+> **Intent naming note:** The Assessment 1 specification uses the intent names `COACH`, `WORKOUT_GENERATE`, `WORKOUT_LOG`, and `FALLBACK`. This implementation uses more explicit names that signal which routes are knowledge-graph-backed:
+>
+> | Assessment 1 spec | Implementation |
+> |---|---|
+> | `COACH` | `MEMBER_CONTEXT_KG` — member-context-grounded coaching via Neo4j |
+> | `WORKOUT_GENERATE` | `WORKOUT_GENERATE_KG` — injury-aware workout generation via Neo4j KG pipeline |
+> | `WORKOUT_LOG` | `WORKOUT_LOG` (unchanged) |
+> | `FALLBACK` | `FALLBACK` (unchanged) |
+
 ## Stack
 
 | Layer | Technology |

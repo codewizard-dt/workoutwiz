@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { CheckCircle2, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { WorkoutSequence, Exercise, WorkoutPhase } from '@/types'
 import { useKGFeedbackList } from '@/hooks/useKGFeedbackList'
@@ -10,6 +12,7 @@ interface PhaseTableProps {
   memberId?: string
   workoutId?: string
   onAddCurrent?: (exerciseId: string) => void
+  onRemoveSet?: (setId: string) => void
 }
 
 const PHASE_ORDER: WorkoutPhase[] = ['warmup', 'main', 'cooldown']
@@ -35,10 +38,11 @@ function formatPrescription(set: WorkoutSequence['sets'][number]): string {
   return '—'
 }
 
-export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onAddCurrent }: PhaseTableProps) {
+export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onAddCurrent, onRemoveSet }: PhaseTableProps) {
   const exerciseById = new Map(exercises.map((ex) => [ex.id, ex]))
   const showFeedback = memberId != null && workoutId != null
   const { data: savedRatings } = useKGFeedbackList(showFeedback ? workoutId : undefined)
+  const [added, setAdded] = useState<Set<string>>(new Set())
 
   const ordered = PHASE_ORDER.flatMap((phase) => {
     const seq = sequences.find((s) => s.phase === phase)
@@ -51,6 +55,15 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
         const sortedSets = [...seq.sets].sort(
           (a, b) => (a.position ?? 0) - (b.position ?? 0),
         )
+
+        // Stripe by exercise group: all sets for the same exercise share a color,
+        // toggling when the exercise changes.
+        let stripeIdx = -1
+        let lastExId: string | null = null
+        const stripeBySetId = new Map(sortedSets.map((s) => {
+          if (s.exercise_id !== lastExId) { stripeIdx++; lastExId = s.exercise_id }
+          return [s.id, stripeIdx % 2 === 1]
+        }))
 
         return (
           <div key={seq.phase}>
@@ -73,6 +86,7 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
                     {onAddCurrent && (
                       <th style={{ textAlign: 'right', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Add to current workout</th>
                     )}
+                    {onRemoveSet && <th style={{ width: '2.5rem' }} />}
                   </tr>
                 </thead>
                 <tbody>
@@ -84,20 +98,10 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
                       <tr
                         key={set.id}
                         className="ww-set-row"
-                        style={{ borderBottom: '1px solid var(--border)' }}
+                        style={{ borderBottom: '1px solid var(--border)', background: stripeBySetId.get(set.id) ? 'var(--stone-100)' : undefined }}
                       >
                         <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
                           <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>{name}</div>
-                          {ex && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)', marginTop: 'var(--space-1)' }}>
-                              {ex.category && (
-                                <span className="ww-badge ww-badge--outline" style={{ fontSize: '10px' }}>{ex.category}</span>
-                              )}
-                              {ex.muscle_groups.slice(0, 3).map((mg) => (
-                                <span key={mg} className="ww-badge ww-badge--secondary" style={{ fontSize: '10px' }}>{mg}</span>
-                              ))}
-                            </div>
-                          )}
                         </td>
                         <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
                           <span
@@ -108,6 +112,16 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
                           >
                             {set.set_type}
                           </span>
+                          {ex && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)', marginTop: 'var(--space-1)' }}>
+                              {ex.category && (
+                                <span className="ww-badge ww-badge--outline" style={{ fontSize: '10px' }}>{ex.category}</span>
+                              )}
+                              {ex.muscle_groups.slice(0, 3).map((mg) => (
+                                <span key={mg} className="ww-badge ww-badge--secondary" style={{ fontSize: '10px' }}>{mg}</span>
+                              ))}
+                            </div>
+                          )}
                         </td>
                         <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
                           <span className="ww-num">{formatPrescription(set)}</span>
@@ -125,16 +139,51 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
                             />
                           </td>
                         )}
-                        {onAddCurrent && (
-                          <td style={{ padding: 'var(--space-2-5) var(--space-3)', textAlign: 'right' }}>
+                        {onRemoveSet && (
+                          <td style={{ padding: 'var(--space-2-5) var(--space-2)', textAlign: 'center' }}>
                             <button
                               type="button"
-                              className="ww-btn ww-btn--outline ww-btn--sm ww-iconbtn"
-                              title="Add to current workout"
-                              onClick={() => { onAddCurrent(set.exercise_id) }}
+                              className="ww-btn ww-btn--ghost ww-iconbtn ww-btn--sm"
+                              style={{ color: 'var(--muted-foreground)' }}
+                              title="Remove set"
+                              onClick={() => { onRemoveSet(set.id) }}
                             >
-                              +
+                              <X size={14} aria-hidden />
                             </button>
+                          </td>
+                        )}
+                        {onAddCurrent && (
+                          <td style={{ padding: 'var(--space-2-5) var(--space-3)', textAlign: 'right' }}>
+                            {added.has(set.exercise_id) ? (
+                              <button
+                                type="button"
+                                className="ww-btn ww-iconbtn"
+                                style={{
+                                  background: 'var(--success-100)',
+                                  border: '1px solid var(--success-500)',
+                                  color: 'var(--success-500)',
+                                  width: '2.25rem',
+                                  height: '2.25rem',
+                                }}
+                                title="Added to workout"
+                                disabled
+                              >
+                                <CheckCircle2 size={18} aria-hidden />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="ww-btn ww-btn--primary ww-iconbtn"
+                                style={{ width: '2.25rem', height: '2.25rem' }}
+                                title="Add to current workout"
+                                onClick={() => {
+                                  onAddCurrent(set.exercise_id)
+                                  setAdded((prev) => new Set(prev).add(set.exercise_id))
+                                }}
+                              >
+                                <Plus size={18} aria-hidden />
+                              </button>
+                            )}
                           </td>
                         )}
                       </tr>

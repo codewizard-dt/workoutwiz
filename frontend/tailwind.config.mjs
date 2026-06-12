@@ -1,5 +1,8 @@
+import houseStyle from './src/design-system/tokens/tailwind.preset.mjs'
+
 /** @type {import('tailwindcss').Config} */
 export default {
+  presets: [houseStyle],
   darkMode: ["class"],
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {

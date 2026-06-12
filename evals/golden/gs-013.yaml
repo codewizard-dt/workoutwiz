@@ -1,5 +1,5 @@
 - id: "gs-013"
-  description: "COACH intent — nutrition question routes to coach, not workout generator"
+  description: "MEMBER_CONTEXT_KG intent — nutrition question routes to coach, not workout generator"
   query: "How much protein should I eat to build muscle?"
   expected_tools:
     - coach

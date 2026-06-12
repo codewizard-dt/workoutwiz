@@ -14,6 +14,7 @@ from typing import Any
 
 import neo4j
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -21,17 +22,24 @@ from app.auth import current_active_user
 from app.config import settings
 from app.kg.driver import get_neo4j_driver
 from app.models.user import User
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_async_session
+from app.models.coach_draft import CoachDraft, CoachDraftContentType, CoachDraftStatus
 from app.schemas.coach import (
     AdherenceWeek,
     ChurnRisk,
     CoachBriefResponse,
     CoachChatRequest,
     CoachChatResponse,
+    CoachDraftSchema,
     CoachMemberSummary,
     GoalItem,
     InjuryItem,
     MessagePatternPoint,
     MorningTask,
+    NudgeRequest,
+    NudgeResponse,
     WeeklyComparisonPoint,
 )
 from app.schemas.errors import ErrorResponse
@@ -39,6 +47,31 @@ from app.schemas.errors import ErrorResponse
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/coach", tags=["coach"])
+
+
+def _draft_to_schema(draft: CoachDraft) -> CoachDraftSchema:
+    import json
+    grounded_on: list[str] = []
+    if draft.grounded_on:
+        try:
+            grounded_on = json.loads(draft.grounded_on)
+        except (ValueError, TypeError):
+            grounded_on = [draft.grounded_on]
+    return CoachDraftSchema(
+        id=str(draft.id),
+        member_id=draft.member_id,
+        member_name=draft.member_name,
+        content_type=draft.content_type.value,
+        body=draft.body,
+        grounded_on=grounded_on,
+        status=draft.status.value,
+        created_by=draft.created_by,
+        approved_by=draft.approved_by,
+        approved_at=draft.approved_at.isoformat() if draft.approved_at else None,
+        sent_at=draft.sent_at.isoformat() if draft.sent_at else None,
+        created_at=draft.created_at.isoformat(),
+    )
+
 
 
 
@@ -550,3 +583,213 @@ MEMBER CONTEXT:
         grounded_facts=grounded_facts,
         session_id=session_id,
     )
+
+
+@router.post(
+    "/nudge",
+    response_model=NudgeResponse,
+    summary="Draft a nudge message for a flagged member",
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        422: {"model": ErrorResponse, "description": "Invalid action item"},
+        500: {"model": ErrorResponse, "description": "LLM error"},
+    },
+)
+async def coach_nudge(
+    body: NudgeRequest,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+) -> NudgeResponse:
+    import json as _json
+
+    try:
+        from langchain_anthropic import ChatAnthropic
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        llm = ChatAnthropic(model="claude-haiku-4-5-20251001", max_tokens=256)
+        system = (
+            "You are a fitness coach assistant. Write a warm, personal, 1-3 sentence check-in message "
+            "to send to a member. Be specific about their situation — reference the reason you are reaching out. "
+            "Do not use generic motivational phrases. Sign off as 'Your Coach'."
+        )
+        grounded_on = [body.action_item.reason]
+        human = (
+            f"Member: {body.member_name}\n"
+            f"Reason for nudge: {body.action_item.reason}\n"
+            f"Context: {body.action_item.context}\n\n"
+            "Write the nudge message now."
+        )
+        response = await llm.ainvoke([SystemMessage(content=system), HumanMessage(content=human)])
+        message_text = str(response.content)
+
+        draft_id: str | None = None
+        try:
+            draft = CoachDraft(
+                member_id=body.member_id,
+                member_name=body.member_name,
+                content_type=CoachDraftContentType.nudge,
+                body=message_text,
+                grounded_on=_json.dumps(grounded_on),
+                status=CoachDraftStatus.draft,
+                created_by=user.email,
+            )
+            db.add(draft)
+            await db.commit()
+            await db.refresh(draft)
+            draft_id = str(draft.id)
+        except Exception:
+            await db.rollback()
+            logger.exception("Error persisting nudge draft; continuing without draft_id")
+
+        return NudgeResponse(
+            draft_message=message_text,
+            grounded_on=grounded_on,
+            draft_id=draft_id,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Error in POST /coach/nudge")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+class CreateDraftRequest(BaseModel):
+    member_id: str
+    member_name: str
+    content_type: str  # "nudge" | "recommendation"
+    body: str
+    grounded_on: list[str] = []
+
+
+@router.post(
+    "/draft",
+    response_model=CoachDraftSchema,
+    summary="Save an AI-generated draft for coach review",
+    status_code=201,
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        500: {"model": ErrorResponse, "description": "DB error"},
+    },
+)
+async def create_coach_draft(
+    body: CreateDraftRequest,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+) -> CoachDraftSchema:
+    import json
+    try:
+        draft = CoachDraft(
+            member_id=body.member_id,
+            member_name=body.member_name,
+            content_type=CoachDraftContentType(body.content_type),
+            body=body.body,
+            grounded_on=json.dumps(body.grounded_on) if body.grounded_on else None,
+            status=CoachDraftStatus.draft,
+            created_by=user.email,
+        )
+        db.add(draft)
+        await db.commit()
+        await db.refresh(draft)
+        return _draft_to_schema(draft)
+    except Exception as exc:
+        await db.rollback()
+        logger.exception("Error creating coach draft")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+class PatchDraftRequest(BaseModel):
+    action: str  # "approve" | "edit" | "send"
+    body: str | None = None  # required when action == "edit"
+
+
+@router.patch(
+    "/draft/{draft_id}",
+    response_model=CoachDraftSchema,
+    summary="Approve, edit, or send a coach draft",
+    responses={
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        404: {"model": ErrorResponse, "description": "Draft not found"},
+        409: {"model": ErrorResponse, "description": "Invalid status transition"},
+        500: {"model": ErrorResponse, "description": "DB error"},
+    },
+)
+async def patch_coach_draft(
+    draft_id: str,
+    body: PatchDraftRequest,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+) -> CoachDraftSchema:
+    from datetime import UTC, datetime
+    from sqlalchemy import select
+
+    try:
+        result = await db.execute(
+            select(CoachDraft).where(CoachDraft.id == uuid.UUID(draft_id))
+        )
+        draft = result.scalar_one_or_none()
+        if draft is None:
+            raise HTTPException(status_code=404, detail="Draft not found")
+
+        if body.action == "approve":
+            if draft.status == CoachDraftStatus.sent:
+                raise HTTPException(status_code=409, detail="Cannot approve a sent draft")
+            draft.status = CoachDraftStatus.approved
+            draft.approved_by = user.email
+            draft.approved_at = datetime.now(UTC)
+
+        elif body.action == "edit":
+            if draft.status == CoachDraftStatus.sent:
+                raise HTTPException(status_code=409, detail="Cannot edit a sent draft")
+            if not body.body:
+                raise HTTPException(status_code=422, detail="body is required for edit action")
+            draft.body = body.body
+            if draft.status == CoachDraftStatus.approved:
+                draft.status = CoachDraftStatus.draft
+                draft.approved_by = None
+                draft.approved_at = None
+
+        elif body.action == "send":
+            if draft.status != CoachDraftStatus.approved:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Draft must be approved before it can be sent",
+                )
+            draft.status = CoachDraftStatus.sent
+            draft.sent_at = datetime.now(UTC)
+
+        else:
+            raise HTTPException(status_code=422, detail=f"Unknown action: {body.action}")
+
+        await db.commit()
+        await db.refresh(draft)
+        return _draft_to_schema(draft)
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        await db.rollback()
+        logger.exception("Error patching coach draft")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/draft",
+    response_model=list[CoachDraftSchema],
+    summary="List all coach drafts for the current coach",
+    responses={401: {"model": ErrorResponse, "description": "Not authenticated"}},
+)
+async def list_coach_drafts(
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+    status: str | None = None,
+) -> list[CoachDraftSchema]:
+    from sqlalchemy import select
+    try:
+        q = select(CoachDraft).order_by(CoachDraft.created_at.desc())
+        if status:
+            q = q.where(CoachDraft.status == CoachDraftStatus(status))
+        result = await db.execute(q)
+        return [_draft_to_schema(d) for d in result.scalars().all()]
+    except Exception as exc:
+        logger.exception("Error listing coach drafts")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

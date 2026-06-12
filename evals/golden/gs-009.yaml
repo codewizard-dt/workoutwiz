@@ -1,5 +1,5 @@
 - id: "gs-009"
-  description: "KNOWLEDGE_GRAPH intent — vague workout request (no injury context) should route to knowledge_graph, not coach"
+  description: "WORKOUT_GENERATE_KG intent — vague workout request (no injury context) should route to knowledge_graph, not coach"
   query: "What should I do for my workout tomorrow?"
   expected_tools:
     - knowledge_graph

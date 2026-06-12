@@ -203,6 +203,7 @@ One row per roadmap. Sort by file number ascending.
 | [ROADMAP-004](completed/004-knowledge-graph-coaching-system.md) | Knowledge Graph Coaching System | done | 29/29 | David Taylor | — |
 | [ROADMAP-005](completed/005-observability-layer.md) | Observability Layer | done | 13/13 | David Taylor | — |
 | [ROADMAP-006](completed/006-assessment-gap-closure.md) | Assessment Gap Closure | done | 19/19 | David Taylor | — |
+| [ROADMAP-007](007-future-aligned-coaching-features.md) | Future-Aligned Coaching Features | active | 8/8 | David Taylor | — |
 
 When adding a row:
 

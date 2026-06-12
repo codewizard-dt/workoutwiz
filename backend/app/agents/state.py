@@ -6,10 +6,10 @@ from pydantic import BaseModel, Field
 
 
 class Intent(StrEnum):
-    COACH = "COACH"
+    MEMBER_CONTEXT_KG = "MEMBER_CONTEXT_KG"
     WORKOUT_LOG = "WORKOUT_LOG"
     FALLBACK = "FALLBACK"
-    KNOWLEDGE_GRAPH = "KNOWLEDGE_GRAPH"
+    WORKOUT_GENERATE_KG = "WORKOUT_GENERATE_KG"
 
 class RouteDecision(BaseModel):
     """Structured output from the router node. Used with with_structured_output()."""
@@ -17,9 +17,9 @@ class RouteDecision(BaseModel):
     intent: Intent = Field(
         description=(
             "The most likely intent of the user message. "
-            "COACH for fitness questions, advice, and education (not workout generation). "
+            "MEMBER_CONTEXT_KG for fitness questions, advice, and education (not workout generation). "
             "WORKOUT_LOG to record a completed workout. "
-            "KNOWLEDGE_GRAPH to build, create, plan, generate, OR recommend a personalized, injury-aware list of exercises for this user — "
+            "WORKOUT_GENERATE_KG to build, create, plan, generate, OR recommend a personalized, injury-aware list of exercises for this user — "
             "including questions like 'what exercises suit my injuries?' whose best answer is a tailored exercise list. "
             "FALLBACK when the message is unclear or off-topic."
         )
@@ -54,5 +54,5 @@ class AgentState(TypedDict):
     session_id: str | None
     audit_log: list[dict[str, Any]]
 
-    # Knowledge graph result — populated by GENERATE_KG_node (KNOWLEDGE_GRAPH route only)
+    # Knowledge graph result — populated by GENERATE_KG_node (WORKOUT_GENERATE_KG route only)
     kg_result: dict[str, Any] | None

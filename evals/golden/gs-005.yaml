@@ -1,5 +1,5 @@
 - id: "gs-005"
-  description: "KNOWLEDGE_GRAPH intent — shoulder injury routes to knowledge_graph node and returns a shoulder-aware recommendation"
+  description: "WORKOUT_GENERATE_KG intent — shoulder injury routes to knowledge_graph node and returns a shoulder-aware recommendation"
   query: "My shoulder has been bothering me lately. What workout can I do without overhead movements?"
   expected_tools:
     - knowledge_graph
