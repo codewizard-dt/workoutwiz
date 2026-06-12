@@ -64,6 +64,7 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
           if (s.exercise_id !== lastExId) { stripeIdx++; lastExId = s.exercise_id }
           return [s.id, stripeIdx % 2 === 1]
         }))
+        const thStyle = { padding: 'var(--space-1) var(--space-2)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }
 
         return (
           <div key={seq.phase}>
@@ -77,33 +78,33 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)', width: '42%' }}>Exercise</th>
-                    <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Type</th>
-                    <th style={{ textAlign: 'left', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Prescription</th>
+                    <th style={{ textAlign: 'left', ...thStyle, minWidth: '33%' }}>Exercise</th>
+                    <th style={{ textAlign: 'left', ...thStyle }}>Type</th>
+                    <th style={{ textAlign: 'left', ...thStyle }}>Prescription</th>
                     {showFeedback && (
-                      <th style={{ textAlign: 'center', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Feel</th>
+                      <th style={{ textAlign: 'center', ...thStyle }}>Feel</th>
                     )}
                     {onAddCurrent && (
-                      <th style={{ textAlign: 'right', padding: 'var(--space-2) var(--space-3)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)', color: 'var(--muted-foreground)' }}>Add to current workout</th>
+                      <th style={{ textAlign: 'right', ...thStyle }}>Add to current workout</th>
                     )}
-                    {onRemoveSet && <th style={{ width: '2.5rem' }} />}
+                    {/* {onRemoveSet && <th style={{ width: '2.5rem' }} />} */}
                   </tr>
                 </thead>
                 <tbody>
                   {sortedSets.map((set) => {
                     const ex = exerciseById.get(set.exercise_id)
                     const name = ex?.name ?? set.exercise_id
-
+                    const tdStyle = { padding: 'var(--space-1) var(--space-2)' }
                     return (
                       <tr
                         key={set.id}
                         className="ww-set-row"
                         style={{ borderBottom: '1px solid var(--border)', background: stripeBySetId.get(set.id) ? 'var(--stone-100)' : undefined }}
                       >
-                        <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
+                        <td style={tdStyle}>
                           <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>{name}</div>
                         </td>
-                        <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
+                        <td style={tdStyle}>
                           <span
                             className={cn(
                               'ww-badge',
@@ -123,11 +124,24 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
                             </div>
                           )}
                         </td>
-                        <td style={{ padding: 'var(--space-2-5) var(--space-3)' }}>
-                          <span className="ww-num">{formatPrescription(set)}</span>
+                        <td style={tdStyle}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            <span className="ww-num">{formatPrescription(set)}</span>
+                            {onRemoveSet && (
+                              <button
+                                type="button"
+                                className="ww-btn ww-btn--ghost ww-iconbtn ww-btn--sm"
+                                style={{ color: 'var(--muted-foreground)' }}
+                                title="Remove set"
+                                onClick={() => { onRemoveSet(set.id) }}
+                              >
+                                <X size={14} aria-hidden />
+                              </button>
+                            )}
+                          </div>
                         </td>
                         {showFeedback && (
-                          <td style={{ padding: 'var(--space-2-5) var(--space-3)', textAlign: 'center' }}>
+                          <td style={tdStyle}>
                             <FeedbackForm
                               compact
                               exerciseId={set.exercise_id}
@@ -137,9 +151,10 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
                               contextType="exercise"
                               initialRating={savedRatings?.[set.id] ?? null}
                             />
+
                           </td>
                         )}
-                        {onRemoveSet && (
+                        {/* {onRemoveSet && (
                           <td style={{ padding: 'var(--space-2-5) var(--space-2)', textAlign: 'center' }}>
                             <button
                               type="button"
@@ -151,9 +166,9 @@ export function PhaseTable({ sequences, exercises = [], memberId, workoutId, onA
                               <X size={14} aria-hidden />
                             </button>
                           </td>
-                        )}
+                        )} */}
                         {onAddCurrent && (
-                          <td style={{ padding: 'var(--space-2-5) var(--space-3)', textAlign: 'right' }}>
+                          <td style={tdStyle}>
                             {added.has(set.exercise_id) ? (
                               <button
                                 type="button"

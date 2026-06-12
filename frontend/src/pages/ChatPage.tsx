@@ -5,6 +5,7 @@ import { useChat } from '../hooks/useChat'
 import { useWorkouts } from '../hooks/useWorkouts'
 import { useMe } from '@/hooks'
 import { useExercises } from '@/hooks/useExercises'
+import { useDraftWorkout } from '@/hooks/useDraftWorkout'
 import { AddExerciseModal } from '@/components/AddExerciseModal'
 import type { Exercise } from '@/types'
 import { ChatBubble } from '@/components/ChatBubble'
@@ -25,6 +26,7 @@ export default function ChatPage() {
   const { data: workouts, isLoading: workoutsLoading } = useWorkouts()
   const { data: user } = useMe()
   const { data: exercises = [] } = useExercises()
+  const { addDraftSets } = useDraftWorkout()
   const [addTarget, setAddTarget] = useState<Exercise | null>(null)
 
   const [draft, setDraft] = useState('')
@@ -720,7 +722,7 @@ export default function ChatPage() {
         <AddExerciseModal
           exercise={addTarget}
           onClose={() => { setAddTarget(null) }}
-          onAdd={() => { /* draft stored in localStorage by modal */ }}
+          onAdd={(draft) => { addDraftSets(draft) }}
         />
       )}
 

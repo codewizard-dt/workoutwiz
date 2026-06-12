@@ -16,8 +16,6 @@ interface AddExerciseModalProps {
   onAdd: (draft: AddDraftSet) => void
 }
 
-const DRAFT_KEY = 'ww_workout_draft'
-
 export function AddExerciseModal({ exercise, onClose, onAdd }: AddExerciseModalProps) {
   const isCardio = !exercise.is_reps && exercise.is_duration
   const isStrength = exercise.is_reps
@@ -43,10 +41,6 @@ export function AddExerciseModal({ exercise, onClose, onAdd }: AddExerciseModalP
       duration_s: isCardio ? (Number(durationS) || null) : null,
       weight_unit: weightUnit,
     }
-
-    const existing = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? '[]') as AddDraftSet[]
-    localStorage.setItem(DRAFT_KEY, JSON.stringify([...existing, draft]))
-    window.dispatchEvent(new CustomEvent('ww:draft-updated'))
 
     onAdd(draft)
     setAdded(true)

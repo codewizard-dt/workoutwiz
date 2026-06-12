@@ -13,6 +13,7 @@ import { EMPTY_FILTERS } from '@/components/exerciseFilters'
 import type { ExerciseFilterState } from '@/components/exerciseFilters'
 import { ExerciseDetailDrawer } from '@/components/ExerciseDetailDrawer'
 import { AddExerciseModal } from '@/components/AddExerciseModal'
+import { useDraftWorkout } from '@/hooks/useDraftWorkout'
 import type { Contraindication, Exercise, FeedbackSummaryItem } from '@/types'
 
 const numStyle: CSSProperties = {
@@ -44,6 +45,7 @@ export default function ExercisesPage() {
   const [safetyLensOn, setSafetyLensOn] = useState(false)
   const [addTarget, setAddTarget] = useState<Exercise | null>(null)
   const [detail, setDetail] = useState<Exercise | null>(null)
+  const { addDraftSets } = useDraftWorkout()
 
   // Whole catalog (50 rows) — filtered client-side so counts stay consistent and
   // the drawer can resolve bilateral pairs without extra round-trips.
@@ -229,7 +231,7 @@ export default function ExercisesPage() {
         <AddExerciseModal
           exercise={addTarget}
           onClose={() => { setAddTarget(null) }}
-          onAdd={() => { /* draft is stored in localStorage inside modal */ }}
+          onAdd={(draft) => { addDraftSets(draft) }}
         />
       )}
     </div>

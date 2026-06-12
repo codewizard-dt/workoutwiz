@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { WorkoutSequence, WorkoutSet } from '@/types'
+import type { AddDraftSet } from '@/components/AddExerciseModal'
 
 const KEY = 'ww_draft_sequences'
 
@@ -77,5 +78,41 @@ export function useDraftWorkout() {
     window.dispatchEvent(new CustomEvent('ww:draft-updated'))
   }, [])
 
-  return { sequences, setSequences, addExercise, clear }
+  const addDraftSets = useCallback((draft: AddDraftSet) => {
+    setLocal((prev) => {
+      const mainIdx = prev.findIndex((s) => s.phase === 'main')
+      const existingSets = mainIdx >= 0 ? prev[mainIdx].sets : []
+      const isCardio = draft.duration_s != null && draft.reps == null
+      const base = existingSets.length
+      const newSets: WorkoutSet[] = Array.from({ length: draft.sets }, (_, i): WorkoutSet => ({
+        id: `draft-${Date.now()}-${i}`,
+        sequence_id: 'draft-main',
+        exercise_id: draft.exercise_id,
+        set_type: isCardio ? 'CARDIO' : 'STRENGTH',
+        position: (base + i) * 100,
+        reps: draft.reps ?? undefined,
+        weight_kg: draft.weight_kg ?? undefined,
+        duration_s: draft.duration_s ?? undefined,
+      }))
+      const next =
+        mainIdx >= 0
+          ? prev.map((s, i) =>
+              i === mainIdx ? { ...s, sets: [...s.sets, ...newSets] } : s,
+            )
+          : [
+              ...prev,
+              {
+                id: 'draft-main',
+                workout_id: 'draft',
+                phase: 'main' as const,
+                position: 0,
+                sets: newSets,
+              },
+            ]
+      persist(next)
+      return next
+    })
+  }, [])
+
+  return { sequences, setSequences, addExercise, addDraftSets, clear }
 }
